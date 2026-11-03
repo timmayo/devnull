@@ -15,130 +15,131 @@
 schema_version: 1
 
 meta:
-  turn:         { range: int, driven_by: [always advances], affects: [clock, elections, events] }
-  date:         { range: date, driven_by: [turn], affects: [election calendar, event windows] }
-  event_flags:  { range: "set of booleans", driven_by: [story beats, player choices], affects: [unlocked content, endings] }
-  rng_seed:     { range: int, driven_by: [run start], affects: [reproducibility, debugging] }
+  turn:         { range: int, infrastructure: true, driven_by: [always advances], affects: [clock, elections, events] }
+  date:         { range: date, infrastructure: true, driven_by: [turn], affects: [election calendar, event windows] }
+  event_flags:  { range: "set of booleans", infrastructure: true, driven_by: [story beats, player choices], affects: [unlocked content, endings] }
+  rng_seed:     { range: int, infrastructure: true, driven_by: [run start], affects: [reproducibility, debugging] }
 
 player:
-  cash:               { range: "$ (int)", driven_by: [trades, odd jobs, theft, donations], affects: [tools, bribes, PAC money], visible: true, slice: true }
-  reputation:         { range: "-100..100", scope: per_entity, driven_by: [posts, leaks, favors], affects: [npc trust, recruiting, media coverage] }
-  legibility:         { range: "0..100", driven_by: [routine, digital footprint, purchases, cover quality, behavioral model accuracy], affects: [surveillance targeting, raid risk, ending path], visible: estimated, slice: true, start: 5 }
+  cash:               { range: "$ (int)", driven_by: [trades, odd jobs, theft, donations], affects: [tools access, legal defense fund, safe houses cover ids, bribes], visible: true, slice: true }
+  reputation:         { range: "-100..100", scope: per_entity, driven_by: [posts, leaks, favors], affects: [npc trust, recruiting, press capacity] }
+  legibility:         { range: "0..100", driven_by: [routine, digital footprint, purchases, cover quality, behavioral model accuracy, surveillance reach], affects: [attention queue, case file on player, fail soft state, raid risk, ending path], visible: estimated, slice: true, start: 5 }
   heat:               { range: "0..100", scope: per_entity, entities: [police, fbi, nsa, corp], driven_by: [hacks, leaks, flagged activity], affects: [investigations, account freezes, tails], decay: "differs by agency and by fail-soft state", visible: true, slice: true, start: 0 }
-  skills:             { range: "per-skill level", driven_by: [practice, training, npc mentors], affects: [hack success, persuasion, trading edge] }
-  tools_access:       { range: "inventory + credentials", driven_by: [purchases, theft, npc gifts], affects: [what you can breach or reach] }
-  time_energy:        { range: "per-turn budget", driven_by: [actions taken, sleep], affects: [pacing, tradeoffs], visible: true }
+  skills:             { range: "per-skill level", driven_by: [practice, training, npc mentors], affects: [hack success, persuasion, trading edge], note: "read by hack, trade, trace, verify; raised by using them" }
+  tools_access:       { range: "inventory + credentials", driven_by: [cash, theft, npc gifts], affects: [what you can breach or reach] }
+  time_energy:        { range: "per-turn budget", terminal: true, driven_by: [actions taken, sleep, burnout], affects: [pacing, tradeoffs], visible: true }
   safe_houses_cover_ids: { range: "count + quality", driven_by: [cash, npc help], affects: [heat reset, legibility] }
   integrity:          { range: "0..100", driven_by: ["gray acts lower it (disinfo, doxxing, sabotage)", honest wins raise it], affects: [reachable endings, npc trust, credibility], visible: open_question }
-  burnout:            { range: "0..100", driven_by: [overwork, stress, isolation], affects: [skill penalties, mistakes, quitting] }
-  cover_quality:      { range: "0..100", driven_by: [job, habits, cash], affects: [legibility, heat absorption] }
+  burnout:            { range: "0..100", driven_by: [time energy, personal relationships, overwork, isolation], affects: [skills, fragmentation, mistakes, quitting] }
+  cover_quality:      { range: "0..100", driven_by: [day job, cash, habits], affects: [legibility, heat absorption] }
   credibility:        { range: "-100..100", driven_by: [publishing record, integrity], affects: [press weight, court weight], note: "one false story craters it" }
-  day_job:            { range: "job + schedule", driven_by: [starting profile], affects: [cash, free time, cover story] }
-  rent_bills:         { range: "$ per turn", driven_by: [fixed, events], affects: [cash pressure, risky choices] }
-  personal_relationships: { range: "-100..100", scope: per_entity, driven_by: [time spent, secrets kept], affects: [support, leak risk if neglected] }
+  day_job:            { range: "job + schedule", exogenous: true, driven_by: [starting profile], affects: [cash, free time, cover story] }
+  rent_bills:         { range: "$ per turn", exogenous: true, driven_by: [fixed, events], affects: [cash pressure, risky choices] }
+  fail_soft_state:    { range: "enum: none | under_investigation | legal_defense | lying_low | operating_through_proxies | exile_relocation", driven_by: [open case status, case stage, legibility, heat], affects: [time energy, heat, legibility, cover quality], note: "see fail_soft_states for the effects of each" }
+  personal_relationships: { range: "-100..100", scope: per_entity, driven_by: [time energy, secrets kept, burnout], affects: [support, burnout, npc exposure] }
 
 world_meters:
-  ai_capability:      { range: "0..100 (clock)", driven_by: [data center buildout, funding, regulation], affects: [market sentiment, endings, enemy competence, behavioral model accuracy, nsa analytic capacity], slice: true, start: "low-mid, rising fast" }
-  public_opinion_ai:  { range: "-100..100", driven_by: [social feeds, leaks, incidents, local anger], affects: [elections, regulation, pac strategy], slice: true, start: "neutral / uninformed" }
-  regulatory_pressure: { range: "0..100", driven_by: [elections, scandals, lobbying], affects: [data center permits, corporate behavior], start: 10 }
-  market_sentiment:   { range: "-100..100", driven_by: [ai news, leaks, earnings], affects: [corporate budgets, your trading returns], slice: true }
-  power_grid_strain:  { range: "0..100", driven_by: [data center load, outages, sabotage], affects: [local backlash, capability pace], start: "low, climbing" }
+  ai_capability:      { range: "0..100 (clock)", driven_by: [compute capacity, market sentiment, regulatory pressure], affects: [market sentiment, behavioral model accuracy, nsa analytic capacity, fbi cyber division capacity, beneficial ai use, endings], slice: true, start: "low-mid, rising fast" }
+  public_opinion_ai:  { range: "-100..100", driven_by: [narrative strength, local anger, beneficial ai use, incidents], affects: [incumbents control, regulatory pressure, ad saturation], slice: true, start: "neutral / uninformed" }
+  regulatory_pressure: { range: "0..100", driven_by: [incumbents control, public opinion ai, scandals, lobbying spend], affects: [data center permits, ai capability, corporate behavior], start: 10 }
+  market_sentiment:   { range: "-100..100", driven_by: [ai capability, pr standing, earnings], affects: [budget, ai capability, press capacity], slice: true }
+  power_grid_strain:  { range: "0..100", driven_by: [resource draw, outages, sabotage], affects: [local anger, utility rate index, compute capacity], start: "low, climbing" }
   surveillance_reach: { range: "0..100", derived: "nsa collection coverage + police camera coverage", affects: [legibility floor], visible: false }
-  info_integrity:     { range: "0..100", driven_by: [disinfo, deepfakes, platform policy], affects: [effectiveness of leaks and posts], start: "mid" }
+  info_integrity:     { range: "0..100", driven_by: [narrative strength, algorithmic favor, deepfakes], affects: [document authenticity, coverage lag noise, effectiveness of leaks and posts], start: "mid" }
 
 corporations:
-  compute_capacity:   { range: "per company", scope: per_entity, driven_by: [capex, permits, grid access], affects: [ai capability] }
-  budget:             { range: "$ per company", scope: per_entity, driven_by: [market sentiment, revenue], affects: [lobbying, security spend, hiring] }
-  security_posture:   { range: "0..100", scope: per_entity, driven_by: [budget, past breaches], affects: [hack difficulty, detection speed] }
-  lobbying_spend:     { range: "$ per company", scope: per_entity, driven_by: [budget, regulatory pressure], affects: [super pac funding, policy outcomes, council capture], start: high }
-  pr_standing:        { range: "-100..100", scope: per_entity, driven_by: [scandals, leaks], affects: [stock price, employee loyalty] }
-  gov_investment:     { range: "$ per company", scope: per_entity, driven_by: [government policy, scandals], affects: [corp profit, government incentive to protect], start: high }
+  compute_capacity:   { range: "per company", scope: per_entity, driven_by: [budget, data center permits, power grid strain], affects: [ai capability, resource draw] }
+  budget:             { range: "$ per company", scope: per_entity, driven_by: [market sentiment, revenue, gov investment], affects: [lobbying spend, security posture, compute capacity, hiring] }
+  security_posture:   { range: "0..100", scope: per_entity, driven_by: [budget, countermeasure library, past breaches], affects: [hack difficulty, detection speed], note: "read by the hack action" }
+  lobbying_spend:     { range: "$ per company", scope: per_entity, driven_by: [budget, regulatory pressure], affects: [war chest, legislation pipeline, capture level, payments received, state preemption risk], start: high }
+  pr_standing:        { range: "-100..100", scope: per_entity, driven_by: [procedural violations, jobs promised vs delivered, nuisance load, public opinion ai], affects: [market sentiment, regulatory pressure] }
+  gov_investment:     { range: "$ per company", scope: per_entity, driven_by: [legislation pipeline, incumbents control], affects: [budget, agency priorities, lobbying spend], start: high }
 
 government:
-  incumbents_control: { range: "per seat / party", driven_by: [elections], affects: [regulatory pressure, agency priorities] }
-  election_calendar:  { range: "date + races", driven_by: [fixed schedule], affects: [opinion windows, pac activity spikes] }
-  agency_priorities:  { range: "per agency", scope: per_entity, driven_by: [control, scandals, threats], affects: [heat generation, investigations] }
-  legislation_pipeline: { range: "bills + stage", driven_by: [control, lobbying, opinion], affects: [surveillance reach, ai rules] }
-  data_center_permits: { range: "enum: fast_track | normal | restricted", driven_by: [regulatory pressure, council capture], affects: [site stage progression], start: fast_track }
+  incumbents_control: { range: "per seat / party", driven_by: [ad saturation, public opinion ai, election calendar], affects: [regulatory pressure, agency priorities, legislation pipeline, judge disposition] }
+  election_calendar:  { range: "date + races", exogenous: true, driven_by: [fixed schedule], affects: [opinion windows, ad saturation, member vulnerability] }
+  agency_priorities:  { range: "per agency", scope: per_entity, driven_by: [incumbents control, natsec flag, political pressure], affects: [task force allocation, local presence, cyber division capacity] }
+  legislation_pipeline: { range: "bills + stage", driven_by: [incumbents control, lobbying spend, public opinion ai], affects: [nsa legal authority, regulatory pressure, state preemption risk, surveillance reach] }
+  data_center_permits: { range: "enum: fast_track | normal | restricted", driven_by: [regulatory pressure, capture level, state preemption risk], affects: [site stage, compute capacity], start: fast_track }
 
 super_pacs:
-  war_chest:          { range: "$ per pac", scope: per_entity, driven_by: [donors], affects: [ad spend, candidate viability], start: high }
-  ad_saturation:      { range: "per race", driven_by: [war chest], affects: [opinion shifts, vote share] }
-  donor_exposure:     { range: "0..100", driven_by: [leaks, investigative reporting], affects: [donor flight, scandal risk] }
+  war_chest:          { range: "$ per pac", scope: per_entity, driven_by: [lobbying spend, donors, donor exposure], affects: [ad saturation, candidate viability, capture level], start: high }
+  ad_saturation:      { range: "per race", driven_by: [war chest], affects: [public opinion ai, incumbents control, vote share] }
+  donor_exposure:     { range: "0..100", driven_by: [press capacity, payments received, investigative reporting], affects: [war chest, incumbents control, scandal risk], note: "raised by the leak action" }
 
 police:
-  local_presence:     { range: "0..100", scope: per_district, driven_by: [budget, crime stats, events, protests], affects: [stops, tails, physical raids] }
-  camera_alpr_coverage: { range: "0..100", scope: per_district, driven_by: [budget, vendor contracts, surveillance reach], affects: [legibility when moving physically] }
-  informant_network:  { range: "count + quality", driven_by: [cash, past cases], affects: [detection of safe houses and meetings] }
-  corruptibility:     { range: "0..100", scope: per_entity, driven_by: [pay, scandals, leadership], affects: [bribes, tip-offs] }
-  community_trust:    { range: "-100..100", driven_by: [incidents, leaks, protests], affects: [public opinion, police funding, local willingness to help you] }
-  case_file_on_player: { range: "suspicion 0..100", driven_by: [your local activity], affects: [escalation to fbi referral], slice: true }
+  local_presence:     { range: "0..100", scope: per_district, driven_by: [agency priorities, crime stats, protests, community trust], affects: [case file on player, legibility, stops, tails, physical raids] }
+  camera_alpr_coverage: { range: "0..100", scope: per_district, driven_by: [budget, vendor contracts, community trust], affects: [surveillance reach, legibility when moving physically] }
+  informant_network:  { range: "count + quality", driven_by: [cash, corruptibility, past cases], affects: [case file on player, detection of safe houses and meetings] }
+  corruptibility:     { range: "0..100", scope: per_entity, driven_by: [pay, community trust, agency priorities], affects: [informant network, case file on player, bribes, tip-offs] }
+  community_trust:    { range: "-100..100", driven_by: [local anger, incidents, leaks], affects: [public opinion ai, local presence, camera alpr coverage, local willingness to help you] }
+  case_file_on_player: { range: "suspicion 0..100", driven_by: [legibility, local presence, informant network, your local activity], affects: [open case status, escalation to fbi referral], slice: true }
   tech_literacy:      { range: "0..100", fixed: 5, affects: [attribution confidence, detection speed] }
 
 fbi:
-  open_case_status:   { range: "enum: lead | preliminary | full | grand_jury | indictment", scope: per_case, driven_by: [heat, referrals, nsa tips], affects: [warrants, arrests, asset freezes], slice: true }
-  evidence_strength:  { range: "0..100", scope: per_case, driven_by: [your digital and physical trail, natsec flag], affects: [whether a case can be brought or collapses] }
-  task_force_allocation: { range: "agents per case", driven_by: [agency priorities, political pressure], affects: [investigation speed, tails] }
-  cyber_division_capacity: { range: "0..100", driven_by: [budget, hiring, ai tools], affects: [hack attribution, trace-back speed] }
-  undercover_assets:  { range: count, driven_by: [time, your npc contacts], affects: [chance an ally is a plant] }
-  political_pressure: { range: "-100..100", driven_by: [incumbents, election results, scandals], affects: [which targets get prioritized] }
+  open_case_status:   { range: "enum: lead | preliminary | full | grand_jury | indictment", scope: per_case, driven_by: [heat, case file on player, attention queue, evidence strength, task force allocation], affects: [fail soft state, warrants, arrests, asset freezes], slice: true }
+  evidence_strength:  { range: "0..100", scope: per_case, driven_by: [legibility, attribution confidence, natsec flag, your digital and physical trail], affects: [open case status, whether a case can be brought or collapses] }
+  task_force_allocation: { range: "agents per case", driven_by: [agency priorities, political pressure], affects: [open case status, evidence strength, tails] }
+  cyber_division_capacity: { range: "0..100", driven_by: [budget, hiring, ai capability, agency priorities], affects: [attribution confidence, trace-back speed] }
+  undercover_assets:  { range: count, driven_by: [open case status, npc exposure], affects: [loyalty vs leverage, fragmentation, chance an ally is a plant] }
+  political_pressure: { range: "-100..100", driven_by: [incumbents control, scandals], affects: [agency priorities, which targets get prioritized] }
   tech_literacy:      { range: "0..100", fixed: 50, affects: [attribution confidence, detection speed] }
 
 nsa:
-  collection_coverage: { range: "0..100", scope: per_channel, channels: [telecom, cloud, undersea_cable, social], driven_by: [legal authority, big tech partnerships, taps], affects: [legibility floor, surveillance reach], slice: true }
-  analytic_capacity:  { range: "0..100", driven_by: [compute budget, ai capability], affects: [how well it models and predicts you] }
-  legal_authority:    { range: "enum: reauthorized | under_challenge | expanded", driven_by: [legislation pipeline, court rulings, leaks], affects: [collection ceiling, backlash risk] }
-  corporate_partnerships: { range: "0..100", scope: per_entity, driven_by: [contracts, lobbying], affects: [which big tech data flows to the nsa] }
-  attention_queue:    { range: "rank", driven_by: [heat, activity], affects: [whether you are visible at all, nsa-to-fbi tips] }
-  attribution_confidence: { range: "0..100", scope: per_hack, driven_by: [tradecraft, tool reuse], affects: [whether a breach gets pinned on you] }
+  collection_coverage: { range: "0..100", scope: per_channel, channels: [telecom, cloud, undersea_cable, social], driven_by: [legal authority, corporate partnerships, taps], affects: [legibility, surveillance reach], slice: true }
+  analytic_capacity:  { range: "0..100", driven_by: [compute budget, ai capability], affects: [behavioral model accuracy, attribution confidence] }
+  legal_authority:    { range: "enum: reauthorized | under_challenge | expanded", driven_by: [legislation pipeline, case stage, leaks], affects: [collection coverage, public opinion ai] }
+  corporate_partnerships: { range: "0..100", scope: per_entity, driven_by: [contracts, lobbying spend], affects: [collection coverage] }
+  attention_queue:    { range: "rank", driven_by: [heat, legibility, behavioral model accuracy], affects: [open case status, evidence strength, whether you are visible at all] }
+  attribution_confidence: { range: "0..100", scope: per_hack, driven_by: [tradecraft, tool reuse, analytic capacity, cyber division capacity], affects: [evidence strength, heat, whether a breach gets pinned on you] }
   tech_literacy:      { range: "0..100", fixed: 95, affects: [attribution confidence, detection speed] }
 
 natsec_flag:
-  state:              { range: boolean, threshold: tbd, driven_by: [critical infrastructure attacks, foreign contact, hitting gov-invested companies, stolen classified data], affects: [agencies fuse: heat merges, intel flows, evidence strength jumps] }
+  state:              { range: boolean, threshold: tbd, driven_by: [critical infrastructure attacks, foreign contact, hitting gov-invested companies, stolen classified data], affects: [evidence strength, attention queue, task force allocation, open case status, agency priorities, heat], note: "agencies fuse: heat merges, intel flows" }
   lowered_by:         [staying domestic and small, using the press, legal avenues, framing gov investments as the risk]
   clears:             open_question
 
 city_council:
-  capture_level:      { range: "0..100", scope: per_city, driven_by: [corp payments, donations, lobbyist access], affects: [zoning votes, willingness to bypass process] }
-  payments_received:  { range: "$ + paper trail quality", scope: per_entity, driven_by: [corp lobbying spend], affects: [evidence you can find and leak] }
-  procedural_violations: { range: "count + severity", driven_by: [rushed rezonings, skipped notices, open meeting breaches], affects: [grounds for lawsuits, injunctions, recalls] }
-  member_vulnerability: { range: "0..100", scope: per_entity, driven_by: [next election date, scandals, local anger], affects: [who flips, who gets recalled] }
-  election_recall_window: { range: date, driven_by: [fixed calendar], affects: [when pressure converts to votes] }
+  capture_level:      { range: "0..100", scope: per_city, driven_by: [lobbying spend, payments received, war chest, lobbyist access], affects: [data center permits, procedural violations, site stage] }
+  payments_received:  { range: "$ + paper trail quality", scope: per_entity, driven_by: [lobbying spend], affects: [case strength, donor exposure, capture level, evidence you can find and leak] }
+  procedural_violations: { range: "count + severity", driven_by: [capture level, data center permits, rushed rezonings, skipped notices], affects: [legal standing, case strength, member vulnerability, pr standing] }
+  member_vulnerability: { range: "0..100", scope: per_entity, driven_by: [election recall window, local anger, procedural violations, payments received], affects: [capture level, who flips, who gets recalled] }
+  election_recall_window: { range: date, exogenous: true, driven_by: [fixed calendar], affects: [member vulnerability] }
 
 data_center_site:
-  stage:              { range: "enum: proposed | rezoned | permitted | construction | operational", scope: per_entity, driven_by: [council votes, permits, capex], affects: [cost to stop rises sharply each stage] }
-  ownership_opacity:  { range: "0..100", driven_by: [shell companies, ndas, land buying proxies], affects: [difficulty of tracing the project to a mega corp] }
-  resource_draw:      { range: "MW / gallons", driven_by: [compute capacity], affects: [utility rates, power grid strain] }
-  nuisance_load:      { range: "0..100 each: noise, light, air", driven_by: [operational stage, cut corners], affects: [local anger] }
+  stage:              { range: "enum: proposed | rezoned | permitted | construction | operational", scope: per_entity, driven_by: [capture level, data center permits, case stage, budget], affects: [resource draw, nuisance load, local economic dependence, jobs promised vs delivered, cost to stop rises sharply each stage] }
+  ownership_opacity:  { range: "0..100", exogenous: true, driven_by: [city file seed, shell companies, ndas], affects: [difficulty of tracing the project to a mega corp], note: "set at generation; lowered by the trace action" }
+  resource_draw:      { range: "MW / gallons", driven_by: [compute capacity, site stage], affects: [utility rate index, water stress, power grid strain] }
+  nuisance_load:      { range: "0..100 each: noise, light, air", driven_by: [site stage, enforcement level, cut corners], affects: [local anger, pr standing] }
 
 community:
-  utility_rate_index: { range: "% change", scope: per_city, driven_by: [operational data centers, rate cases], affects: [local anger, council vulnerability] }
-  water_stress:       { range: "0..100", scope: per_city, driven_by: [site draw, drought], affects: [local anger] }
-  jobs_promised_vs_delivered: { range: gap, driven_by: [corp pr vs reality], affects: [credibility of corp claims once exposed] }
-  local_anger:        { range: "0..100", scope: per_city, driven_by: [all impacts above], affects: [organizing strength, public opinion] }
-  awareness:          { range: "0..100", scope: per_city, driven_by: [local press, leaks, your posts], affects: [whether anger turns into action] }
-  local_economic_dependence: { range: "0..100", scope: per_city, driven_by: [tax base, jobs, council budgets], affects: [community splits, cost of a win, organizing strength] }
+  utility_rate_index: { range: "% change", scope: per_city, driven_by: [resource draw, rate case status, power grid strain], affects: [local anger, member vulnerability] }
+  water_stress:       { range: "0..100", scope: per_city, driven_by: [resource draw, drought], affects: [local anger] }
+  jobs_promised_vs_delivered: { range: gap, driven_by: [site stage, corp pr vs reality], affects: [local anger, pr standing, local economic dependence] }
+  local_anger:        { range: "0..100", scope: per_city, driven_by: [utility rate index, water stress, nuisance load, jobs promised vs delivered, power grid strain], affects: [organizing strength, public opinion ai, member vulnerability, community trust] }
+  awareness:          { range: "0..100", scope: per_city, driven_by: [press capacity, narrative strength, leaks], affects: [organizing strength, whether anger turns into action] }
+  local_economic_dependence: { range: "0..100", scope: per_city, driven_by: [site stage, jobs promised vs delivered, tax base], affects: [co optation risk, press capacity, organizing strength, cost of a win] }
 
 local_organizing:
-  organizing_strength: { range: "0..100", driven_by: [anger, awareness, leaders, resources], affects: [council pressure, turnout, lawsuits] }
-  fragmentation:      { range: "0..100", driven_by: [rival factions, burnout, infiltration], affects: [effectiveness of coordinated action] }
-  leaders:            { range: npcs, driven_by: [your contact], affects: [allies, co-optation targets] }
-  co_optation_risk:   { range: "0..100", driven_by: [community benefit deals, astroturf], affects: [whether the movement gets bought or split] }
+  organizing_strength: { range: "0..100", driven_by: [local anger, awareness, leaders, fragmentation, resources], affects: [member vulnerability, legal standing, watchdog capacity, incumbents control, turnout] }
+  fragmentation:      { range: "0..100", driven_by: [co optation risk, burnout, undercover assets, rival factions], affects: [organizing strength, effectiveness of coordinated action] }
+  leaders:            { range: npcs, driven_by: [npc trust], affects: [organizing strength, co optation risk, allies] }
+  co_optation_risk:   { range: "0..100", driven_by: [local economic dependence, lobbying spend, accountability terms, astroturf], affects: [fragmentation, organizing strength] }
 
 local_media:
-  press_capacity:     { range: "0..100", driven_by: [newsroom budgets], affects: [reach of leaks, speed of awareness] }
+  press_capacity:     { range: "0..100", driven_by: [market sentiment, local economic dependence, newsroom budgets], affects: [awareness, outlet slant, donor exposure, reach of leaks] }
 
 utilities_state:
-  rate_case_status:   { range: "enum: open | approved | contested", driven_by: [utility commission, special tariffs], affects: [who pays for the power] }
-  state_preemption_risk: { range: "0..100", driven_by: [state legislature, corp lobbying], affects: [whether localities lose the power to say no] }
+  rate_case_status:   { range: "enum: open | approved | contested", driven_by: [lobbying spend, state ag posture, utility commission], affects: [utility rate index, who pays for the power] }
+  state_preemption_risk: { range: "0..100", driven_by: [legislation pipeline, lobbying spend], affects: [data center permits, repeal preemption threat, capture level] }
 
 npcs:
-  trust:              { range: "-100..100", scope: per_entity, driven_by: [favors, honesty, time spent, integrity], affects: [access, intel, betrayal risk], slice: true }
-  loyalty_vs_leverage: { range: "0..100", scope: per_entity, driven_by: [your history, their incentives], affects: [whether they flip under pressure], visible: false }
-  agenda:             { range: "tag: profit | safety | power | ...", scope: per_entity, driven_by: [fixed + events], affects: [which ally or rival they become] }
-  knowledge:          { range: "set of secrets / facts", scope: per_entity, driven_by: [position, your queries], affects: [intel you can extract] }
-  exposure:           { range: "0..100", scope: per_entity, driven_by: [your contact, their risk], affects: [chance they are compromised via you] }
-  source_reliability: { range: "0..100", scope: per_entity, driven_by: [agenda, access], affects: [likelihood of bad intel], visible: false }
+  trust:              { range: "-100..100", scope: per_entity, driven_by: [favors, honesty, time spent, integrity], affects: [npc knowledge, loyalty vs leverage, access, betrayal risk], slice: true }
+  loyalty_vs_leverage: { range: "0..100", scope: per_entity, driven_by: [npc trust, your history, their incentives], affects: [npc exposure, source reliability, whether they flip under pressure], visible: false }
+  agenda:             { range: "tag: profit | safety | power | ...", scope: per_entity, exogenous: true, driven_by: [fixed + events], affects: [loyalty vs leverage, source reliability] }
+  knowledge:          { range: "set of secrets / facts", scope: per_entity, driven_by: [position, npc trust], affects: [verification level, document authenticity, intel you can extract] }
+  exposure:           { range: "0..100", scope: per_entity, driven_by: [your contact, loyalty vs leverage], affects: [heat, legibility, informant network, chance they are compromised via you] }
+  source_reliability: { range: "0..100", scope: per_entity, driven_by: [npc agenda, npc trust, loyalty vs leverage], affects: [document authenticity, likelihood of bad intel], visible: false }
   types:
     - { type: local_reporter,          unlocks: [press capacity, awareness],        risk: [layoffs, legal threats, burned sources] }
     - { type: union_rep,               unlocks: [turnout, funding, jobs-side credibility], risk: [split loyalties] }
@@ -148,37 +149,37 @@ npcs:
     - { type: rural_coop_manager,      unlocks: [grid data, utility side evidence], risk: [board pressure, supplier dependence] }
 
 social_networks:
-  follower_base:      { range: count, scope: per_platform, driven_by: [posting, virality, bots], affects: [reach, opinion influence] }
-  algorithmic_favor:  { range: "0..100", driven_by: [content type, platform policy], affects: [reach multiplier] }
-  narrative_strength: { range: "0..100", scope: per_topic, driven_by: [posts, coordinated campaigns], affects: [opinion, info integrity] }
-  bot_sockpuppet_network: { range: "count + quality", driven_by: [cash, time], affects: [amplification, raises heat if detected] }
+  follower_base:      { range: count, scope: per_platform, driven_by: [posting, algorithmic favor, bot sockpuppet network], affects: [narrative strength, public opinion ai, reach] }
+  algorithmic_favor:  { range: "0..100", exogenous: true, driven_by: [content type, platform policy], affects: [follower base, info integrity] }
+  narrative_strength: { range: "0..100", scope: per_topic, driven_by: [follower base, coordinated campaigns, info integrity], affects: [public opinion ai, awareness, info integrity] }
+  bot_sockpuppet_network: { range: "count + quality", driven_by: [cash, time energy], affects: [follower base, heat if detected] }
 
 courts_legal:
-  legal_standing:     { range: "0..100", scope: per_issue, driven_by: [who is affected, records obtained, plaintiff quality], affects: [whether a case can be filed] }
-  case_strength:      { range: "0..100", scope: per_case, driven_by: [evidence, procedural violations, document authenticity, credibility, counsel quality], affects: [injunction odds, settlement pressure] }
-  judge_disposition:  { range: "-100..100", scope: per_entity, driven_by: [appointment, donors, past rulings], affects: [ruling odds, venue choice] }
-  legal_defense_fund: { range: "$", driven_by: [donations, your cash, npc lawyers], affects: [survive slapps, afford appeals] }
-  state_ag_posture:   { range: "-100..100", driven_by: [election results, public opinion, scandals], affects: [investigations, amicus filings, consent decrees] }
-  case_stage:         { range: "enum: filed | hearing | ruling | appeal | enforced", driven_by: [time, motions], affects: [delay is a weapon for both sides] }
+  legal_standing:     { range: "0..100", scope: per_issue, driven_by: [organizing strength, procedural violations, records obtained, plaintiff quality], affects: [case stage, whether a case can be filed] }
+  case_strength:      { range: "0..100", scope: per_case, driven_by: [evidence, procedural violations, payments received, document authenticity, credibility, counsel quality], affects: [case stage, durability, injunction odds, settlement pressure] }
+  judge_disposition:  { range: "-100..100", scope: per_entity, driven_by: [incumbents control, lobbying spend, past rulings], affects: [case stage, case strength, venue choice] }
+  legal_defense_fund: { range: "$", driven_by: [cash, donations, npc lawyers], affects: [case stage, survive slapps, afford appeals] }
+  state_ag_posture:   { range: "-100..100", driven_by: [incumbents control, public opinion ai, scandals], affects: [case strength, enforcement level, rate case status, consent decrees] }
+  case_stage:         { range: "enum: filed | hearing | ruling | appeal | enforced", driven_by: [case strength, judge disposition, legal defense fund, legal standing, motions], affects: [site stage, durability, nsa legal authority, delay is a weapon for both sides] }
 
 adversary_learning:
-  behavioral_model_accuracy: { range: "0..100", scope: per_entity, driven_by: [ai capability, your data trail, pattern repetition], affects: [predicts your next move, detects routines] }
-  pattern_memory:     { range: "log of last N actions", driven_by: [your choices], affects: [repeated tactics lose effectiveness] }
-  countermeasure_library: { range: set, driven_by: [past incidents], affects: [corps and agencies adapt to tactics you have used] }
+  behavioral_model_accuracy: { range: "0..100", scope: per_entity, driven_by: [ai capability, analytic capacity, pattern memory, your data trail], affects: [legibility, attention queue, detects routines] }
+  pattern_memory:     { range: "log of last N actions", driven_by: [your choices], affects: [behavioral model accuracy, countermeasure library, repeated tactics lose effectiveness], note: "written by every noisy action" }
+  countermeasure_library: { range: set, driven_by: [pattern memory, case stage], affects: [security posture, behavioral model accuracy, corps and agencies adapt] }
 
 information:
-  document_authenticity: { range: "0..100", scope: per_item, visible: false, driven_by: [source, planted doc chance, deepfake rate], affects: [whether publishing it blows up on you] }
-  verification_level: { range: "enum: unverified | corroborated | confirmed", scope: per_item, driven_by: [verify actions], affects: [safe to publish threshold] }
+  document_authenticity: { range: "0..100", scope: per_item, visible: false, driven_by: [info integrity, source reliability, planted doc chance, deepfake rate], affects: [credibility, case strength, whether publishing it blows up on you] }
+  verification_level: { range: "enum: unverified | corroborated | confirmed", scope: per_item, driven_by: [document authenticity, npc knowledge], affects: [credibility, safe to publish threshold] }
 
 ambiguity:
-  beneficial_ai_use:  { range: "0..100", scope: per_sector, sectors: [medical, accessibility, science], driven_by: [ai capability], affects: [public support for stopping everything] }
-  accountability_terms: { range: "set: siting | ratepayer_protection | water_limits | audits | community_benefit", scope: per_site, driven_by: [negotiation, rulings], affects: [a win can be reform, not a blocked site] }
+  beneficial_ai_use:  { range: "0..100", scope: per_sector, sectors: [medical, accessibility, science], driven_by: [ai capability], affects: [public opinion ai, public support for stopping everything] }
+  accountability_terms: { range: "set: siting | ratepayer_protection | water_limits | audits | community_benefit", scope: per_site, driven_by: [case stage, organizing strength, negotiation], affects: [durability, co optation risk, a win can be reform, not a blocked site] }
 
 win_durability:
-  durability:         { range: "0..100", scope: per_victory, driven_by: [type: ordinance | ruling | law | agreement], affects: [decay rate] }
-  enforcement_level:  { range: "0..100", driven_by: [watchdogs, press, funding], affects: [whether rules are followed] }
-  repeal_preemption_threat: { range: "0..100", driven_by: [corp lobbying, state legislature, elections], affects: [chance of reversal each cycle] }
-  watchdog_capacity:  { range: "0..100", driven_by: [your time, npc org strength], affects: [slows decay, catches violations] }
+  durability:         { range: "0..100", scope: per_victory, driven_by: [enforcement level, repeal preemption threat, type: ordinance | ruling | law | agreement], affects: [site stage, regulatory pressure, decay rate] }
+  enforcement_level:  { range: "0..100", driven_by: [watchdog capacity, press capacity, state ag posture, funding], affects: [durability, nuisance load, whether rules are followed] }
+  repeal_preemption_threat: { range: "0..100", driven_by: [lobbying spend, state preemption risk, incumbents control], affects: [durability, chance of reversal each cycle] }
+  watchdog_capacity:  { range: "0..100", driven_by: [organizing strength, time energy, your time], affects: [enforcement level, procedural violations, slows decay, catches violations] }
   decay_clock:        "election and session boundaries"
   formula_note:       "durability follows enforcement level minus repeal / preemption threat"
 
@@ -191,9 +192,29 @@ fail_soft_states:
   stacking:                open_question
 
 news_digest:
-  outlet_slant:       { range: "tag + 0..100", scope: per_entity, driven_by: [ownership, press capacity], affects: [how your actions are framed] }
-  digest_items_per_turn: { range: list, driven_by: [world events, your actions], affects: [player infers hidden state from coverage] }
-  coverage_lag_noise: { range: "0..100", driven_by: [info integrity], affects: [hidden state clarity] }
+  outlet_slant:       { range: "tag + 0..100", scope: per_entity, driven_by: [ownership, press capacity], affects: [digest items per turn, how your actions are framed] }
+  digest_items_per_turn: { range: list, terminal: true, driven_by: [world events, your actions, outlet slant], affects: [player infers hidden state from coverage] }
+  coverage_lag_noise: { range: "0..100", driven_by: [info integrity], affects: [digest items per turn, hidden state clarity] }
+
+# Verbs. Each action reads state to decide its odds and writes state when it
+# resolves. Every action also spends player.time_energy. tools/coupling_check.py
+# uses these lists to find variables nothing in the game can change.
+actions:
+  records:   { reads: [player.skills, city_council.payments_received, data_center_site.ownership_opacity], writes: [city_council.procedural_violations, information.document_authenticity, courts_legal.legal_standing, player.time_energy] }
+  trace:     { reads: [player.tools_access, player.skills, data_center_site.ownership_opacity, npcs.knowledge], writes: [data_center_site.ownership_opacity, information.verification_level, player.skills, player.legibility, player.time_energy] }
+  attend:    { reads: [city_council.member_vulnerability, local_media.press_capacity], writes: [community.awareness, local_organizing.leaders, npcs.trust, player.reputation, player.legibility, police.case_file_on_player, adversary_learning.pattern_memory, player.time_energy] }
+  feed:      { reads: [social_networks.algorithmic_favor, social_networks.follower_base, world_meters.info_integrity, player.credibility], writes: [social_networks.follower_base, social_networks.narrative_strength, player.reputation, player.integrity, player.legibility, player.heat, adversary_learning.pattern_memory, player.time_energy] }
+  leak:      { reads: [information.verification_level, information.document_authenticity, npcs.source_reliability, local_media.press_capacity], writes: [community.awareness, super_pacs.donor_exposure, player.credibility, player.reputation, npcs.exposure, player.heat, adversary_learning.pattern_memory, player.time_energy] }
+  verify:    { reads: [player.skills, npcs.knowledge], writes: [information.verification_level, information.document_authenticity, player.time_energy] }
+  file:      { reads: [courts_legal.legal_standing, courts_legal.judge_disposition, city_council.procedural_violations, player.cash], writes: [courts_legal.case_stage, courts_legal.case_strength, courts_legal.legal_defense_fund, player.cash, adversary_learning.pattern_memory, player.time_energy] }
+  negotiate: { reads: [local_organizing.organizing_strength, courts_legal.case_strength, npcs.trust], writes: [ambiguity.accountability_terms, local_organizing.co_optation_risk, win_durability.durability, player.time_energy] }
+  hack:      { reads: [corporations.security_posture, player.skills, player.tools_access], writes: [player.heat, player.legibility, player.skills, nsa.attribution_confidence, natsec_flag.state, adversary_learning.pattern_memory, player.time_energy] }
+  trade:     { reads: [world_meters.market_sentiment, player.skills], writes: [player.cash, player.skills, player.legibility, player.time_energy] }
+  buy:       { reads: [player.cash], writes: [player.cash, player.tools_access, player.safe_houses_cover_ids, player.cover_quality, player.legibility, player.time_energy] }
+  maintain:  { reads: [win_durability.durability], writes: [win_durability.watchdog_capacity, player.time_energy] }
+  meet:      { reads: [npcs.agenda, npcs.source_reliability], writes: [npcs.trust, npcs.exposure, player.personal_relationships, player.legibility, player.time_energy] }
+  lay_low:   { reads: [player.safe_houses_cover_ids, player.fail_soft_state], writes: [player.heat, player.legibility, player.time_energy] }
+  work:      { reads: [player.day_job, player.rent_bills], writes: [player.cash, player.cover_quality, player.burnout, player.time_energy] }
 
 endings:
   checks: [ai_capability, public_opinion_ai, integrity, win_durability, accountability_terms]
