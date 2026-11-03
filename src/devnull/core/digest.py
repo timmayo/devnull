@@ -2,7 +2,7 @@
 
 The player never sees most of the world state. The digest is how they infer
 it: coverage is lagged, noisy and sometimes wrong. Text is plain ASCII so it
-prints on any terminal. Stories marked [real] are real, sourced and linked;
+prints on any terminal. Stories with a link are real and point to their source;
 everything else is generic and fictional.
 
 Uses its own random stream (seed + turn) so reading the digest never changes
@@ -249,10 +249,16 @@ def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, lis
     return sections
 
 
-def render(sim: Sim, city: dict[str, Any] | None = None, width: int = 78) -> str:
+NEWS_TITLES = ("LOCAL NEWS", "NATIONAL NEWS")
+
+
+def render(sim: Sim, city: dict[str, Any] | None = None, width: int = 78, view: str = "morning") -> str:
+    """view='morning' is the day's opening without headlines; view='news' is only the headlines."""
     import textwrap
     out = ["", "=" * width, header(sim), "=" * width]
     for title, lines in morning(sim, city):
+        if (title in NEWS_TITLES) != (view == "news"):
+            continue
         out.append("")
         out.append(title)
         for ln in lines:

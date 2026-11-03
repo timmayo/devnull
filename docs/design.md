@@ -237,3 +237,21 @@ Terminal and VS Code). The whole line is the link and nothing is printed below i
 Terminals without support get the URL inline after the text. Force a mode with
 `DEVNULL_LINKS=osc8` or `plain`. News sections show at most 10 stories each, and
 today's events appear only through the `events` command.
+
+## 5f. Contact skills
+
+Each contact has 2-3 related skills and 1-2 unrelated side skills, each at one of
+three levels: beginner, advanced, expert (`skills:` in `data/contacts.yaml`). Related
+skills come from the contact's type plus the event where you met them (a web user
+group produces web and Python people; a labor hall produces labor-law and organizing
+people). Side skills (cooking, ham radio, car repair, and so on) appear on the contact
+sheet once their trust reaches 30. The `learn` action asks a trusting contact to teach
+you their best skill: your skills rise by 0.8 + 0.8 x their level, and an advanced or
+expert Linux contact can reveal how to boot Linux.
+
+**Your skills.** `status` lists your own skills with the same three levels as contacts
+(none, beginner, advanced, expert). You start with data analysis (beginner, from your
+day job). `research` slowly teaches tech skills (self-study tops out at advanced), and
+`meet <n> learn` teaches a contact's best skill up to their level. The older 0-100
+"know-how" number still gates tools (trace, VPN, hack). Status also explains burnout
+(hours lost past 60, 85 and 95), heat and legibility in plain words.

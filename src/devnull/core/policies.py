@@ -45,7 +45,7 @@ def linux_plan(sim: Sim) -> list[str]:
         return []
     if s["lead_linux"]:
         return ["install_linux"]
-    return ["research"]
+    return ["research linux"]
 
 
 def idle(sim: Sim) -> list[str]:
@@ -132,12 +132,14 @@ def hacker(sim: Sim) -> list[str]:
         return ["extra_shift"]
     plan = linux_plan(sim)
     if plan:
-        return plan + ["research"]
+        return plan + ["research linux"]
+    if s["sk_network_security"] < 1:
+        return ["research network_security", "research network_security"]
     if sim.can_do("hack") and s["evidence"] < 60:
         return ["hack"]
     if sim.can_do("leak"):
         return ["leak", "feed"]
-    return ["research"] + socialize(sim, TECH)
+    return ["research python"] + socialize(sim, TECH)
 
 
 def reckless(sim: Sim) -> list[str]:

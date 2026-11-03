@@ -82,6 +82,9 @@ types:
 skills:
   levels: [beginner, advanced, expert]
   level_odds: { related: [0.30, 0.45, 0.25], side: [0.50, 0.35, 0.15] }
+  # Your own skills use the same three levels. xp needed for beginner / advanced / expert.
+  xp_thresholds: [3, 9, 18]
+  player_start: { data_analysis: 1 }          # you spend your days in spreadsheets
   catalog:
     python: "Python"
     web_dev: "web development"
@@ -102,6 +105,12 @@ skills:
     finance: "finance and accounting"
     lobbying: "lobbying"
     police_procedure: "police procedure"
+    human_resources: "human resources and hiring"
+    marketing: "marketing"
+    construction: "construction and contracting"
+    leadership: "leadership"
+    hospitality: "hospitality and food service"
+    design_art: "design and illustration"
   side:
     cooking: "cooking"
     photography: "photography"
@@ -141,7 +150,7 @@ skills:
     library_talk: { research_archives: 2, journalism: 1 }
     business_mixer: { finance: 2, lobbying: 2, public_speaking: 1 }
     policy_forum: { records_law: 2, lobbying: 1, police_procedure: 1, energy: 1 }
-    fan_convention: { hardware: 1, python: 1 }
+    fan_convention: { design_art: 2, hardware: 1, python: 1 }
     webinar: { data_analysis: 1 }
     neighbors_open_house: { organizing: 1, public_speaking: 1 }
 

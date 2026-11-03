@@ -17,7 +17,7 @@ import yaml
 
 from devnull import __version__
 from devnull.core.digest import describe, render
-from devnull.core.termlinks import enable_vt, fill_link, mode
+from devnull.core.termlinks import GREEN, RED, enable_vt, fill_link, mode, paint
 from devnull.core.sim import Sim, load_rules
 
 CITIES_DIR = Path(__file__).resolve().parents[3] / "cities"
@@ -103,7 +103,7 @@ def show_commands(sim: Sim, admin: bool) -> None:
     print("\nLOOK AROUND (free)")
     print("  events [more|days]  What is on today and this week. Then 'attend' to go to one.")
     print("  status              Your hours, cash, heat, laptop and more.")
-    print("  news                Read this morning's news again.")
+    print("  news                Read today's local and national headlines.")
     print("  markets             Stock prices for the Mega Corps and neo-clouds.")
     if sim.contacts or admin:
         print("  contacts            The people you know. Then 'contact <n>' or 'meet <n>'.")
@@ -139,6 +139,20 @@ def show_commands(sim: Sim, admin: bool) -> None:
     print("New commands appear as you unlock them.")
 
 
+def burnout_note(sim: Sim, x: float) -> str:
+    cuts = sim.rules["daily"]["burnout_hours_penalty"]            # [[60, 1], [85, 2], [95, 99]]
+    state = ("fresh" if x < 30 else "tired" if x < cuts[0][0] else "worn down" if x < cuts[1][0]
+             else "exhausted" if x < cuts[2][0] else "collapsing")
+    return (f"{state}. Past {cuts[0][0]} you lose an hour of free time a day, past {cuts[1][0]} two, "
+            f"past {cuts[2][0]} you cannot function. Work raises it; rest and days off lower it.")
+
+
+def stat_line(label: str, value: str, note: str = "") -> None:
+    head = f"  {label:<12} {value:<9}"
+    print(textwrap.fill(note, width=78, initial_indent=head, subsequent_indent=" " * len(head)) if note
+          else head.rstrip())
+
+
 def show_status(sim: Sim, admin: bool = False) -> None:
     s = sim.state
     laptop = ("Linux" if s["os"] >= 1 else "Windows 11") + (
@@ -153,15 +167,22 @@ def show_status(sim: Sim, admin: bool = False) -> None:
         leads.append("you know how to install Linux")
     law = {0: "none", 1: "filed", 2: "hearing", 3: "awaiting ruling"}[int(s["filed"])]
     print(f"\n{sim.date:%A %B %d, %Y}   Day {sim.turn + 1}   Free hours left: {sim.hours_left}")
-    print(f"  Cash         ${s['cash']:.0f}")
-    print(f"  Heat         {s['heat']:.0f}")
-    print(f"  Burnout      {s['burnout']:.0f}")
-    print(f"  Skills       {s['skills']:.0f}")
-    print(f"  Laptop       {laptop}")
+    stat_line("Cash", f"${s['cash']:.0f}", f"Bills run about ${sim.rules['daily']['upkeep']} a day.")
+    stat_line("Heat", f"{s['heat']:.0f}", "The attention you are drawing right now. It fades if you stay quiet; "
+              "loud or risky actions raise it.")
+    stat_line("Burnout", f"{s['burnout']:.0f}/100", burnout_note(sim, s["burnout"]))
+    stat_line("Legibility", band(s["legibility"]), "(an estimate) How easily watchers can see and track you: "
+              "your phone, accounts and routines. Heat and surveillance raise it; a VPN and lying low lower it. "
+              "Above roughly 20 the police file on you grows even while you do nothing.")
+    stat_line("Know-how", f"{s['skills']:.0f}/100", "Technical ability. It unlocks tools (tracing at 5, a VPN at 6, "
+              "hacking at 15). Research and learning from contacts build it.")
+    mine = sim.my_skills()
+    stat_line("Skills", "", ", ".join(f"{sim.skill_label(k)} ({sim.level_name(v)})" for k, v in mine)
+              or "none yet. Research, or ask a contact to teach you ('meet <n> learn').")
+    stat_line("Laptop", "", laptop)
     if gear:
-        print(f"  Gear         {', '.join(gear)}")
-    print(f"  People       {len(sim.contacts)} known; best two average trust {s['trust']:.0f}")
-    print(f"  Legibility   about {band(s['legibility'])} (an estimate)")
+        stat_line("Gear", "", ", ".join(gear))
+    stat_line("People", "", f"{len(sim.contacts)} known; best two average trust {s['trust']:.0f}")
     if "evidence" in sim.unlocked or s["evidence"] > 0:
         print(f"  Evidence     {s['evidence']:.0f}   verified {s['verified']:.0f}   "
               f"authenticity about {round(s['auth'], -1):.0f}")
@@ -172,7 +193,23 @@ def show_status(sim: Sim, admin: bool = False) -> None:
         print(f"  Terms won    {s['terms']:.0f}")
     if leads:
         print(f"  Leads        {'; '.join(leads)}")
-    print("  (Case file, FBI status, NSA coverage and the AI curve are hidden; read the news.)")
+    hidden = []
+    if s["sk_data_analysis"] >= 2:
+        print(f"  AI progress  about {round(s['ai'], -1):.0f}/100 (you read the filings)")
+    else:
+        hidden.append("the AI curve (data analysis)")
+    if s["sk_network_security"] >= 2:
+        print(f"  Police file  about {band(s['case_file'])} (an estimate)")
+    else:
+        hidden.append("the police file (network security)")
+    if s["sk_network_security"] >= 3:
+        fbi = ["none", "a file is open", "an active inquiry", "surveillance and warrants", "arrest is close"]
+        print(f"  FBI interest {fbi[min(int(s['fbi']), len(fbi) - 1)]}")
+        print(f"  NSA coverage about {round(s['nsa'], -1):.0f}/100 of your traffic")
+    else:
+        hidden.append("FBI status and NSA coverage (advanced network security)")
+    if hidden:
+        print("  (Hidden for now: " + "; ".join(hidden) + ". Research a topic to see it, and read the news.)")
     if admin:
         print("  [admin] type 'admin reveal' to see everything.")
 
@@ -244,7 +281,7 @@ def show_events(sim: Sim, days: int) -> None:
         end = m["real"].get("end") if m.get("real") else None
         span = f" (through {end:%b} {end.day})" if end and end != d else ""
         print(line(f"{d:%a %b} {d.day}: {describe(m)}{span}", m))
-    print("\n  'events more' shows the next 30 days; 'events <days>' any range. 'attend' goes to something on today.")
+    print("\n  'events more' shows the next 30 days; 'events <days>' any range. 'attend <n>' goes to one of today's list.")
     print("  Dated events with a link are real. Recurring meetings are typical for the city; their link opens")
     print("  the page where real ones are listed.")
 
@@ -290,7 +327,7 @@ def do_attend(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
         return False, ["There are no meetings today."]
     arg = args[0] if args else None
     if arg is None and len(ms) > 1:
-        print("  Meetings today:")
+        print("  On today:")
         for i, (_, m) in enumerate(ms, 1):
             print(f"    {i}) {m['label']}, {m['time']} ({m['hours']}h)")
         chosen = pick_from("  Which one? (blank to cancel) ", [str(i) for i in range(1, len(ms) + 1)])
@@ -298,6 +335,35 @@ def do_attend(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
             return False, ["You stay home."]
         arg = chosen
     return sim.act("attend" + (f" {arg}" if arg else ""))
+
+
+def do_research(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
+    """`research` opens the menu; `research <topic> [method]` studies directly."""
+    r = sim.rules["research"]
+    if args:
+        return sim.act("research " + " ".join(args))
+    methods = r["methods"]
+    print("  Methods: " + "; ".join(
+        f"{n} ({m['hours']}h{', $' + str(m['cost']) if m['cost'] else ''}: {m['label']})" for n, m in methods.items()))
+    print(f"\n  {'#':>2}  {'topic':<26} {'level':<10} {'progress':<9} next level gives")
+    keys = list(r["topics"])
+    for i, key in enumerate(keys, 1):
+        topic = r["topics"][key]
+        lvl, xp, need = sim.research_progress(key)
+        level = sim.level_name(lvl) if lvl else "-"
+        prog = f"{xp:.0f}/{need}" if need else "done"
+        nxt = topic["levels"][lvl + 1]["gives"] if lvl < 3 else "nothing more"
+        print(f"  {i:>2}  {topic['label']:<26} {level:<10} {prog:<9} {nxt}")
+    try:
+        raw = input("  Topic and method, e.g. '3' or 'linux library' (blank to cancel) ").strip()
+    except EOFError:
+        return False, []
+    if not raw:
+        return False, ["You close the books."]
+    first, *rest = raw.split()
+    if first.isdigit() and 1 <= int(first) <= len(keys):
+        first = keys[int(first) - 1]
+    return sim.act(" ".join(["research", first] + rest))
 
 
 def do_meet(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
@@ -329,13 +395,19 @@ def do_meet(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
 
 def admin_cmd(sim: Sim, args: list[str]) -> None:
     if not args:
-        print("  admin set <var> <value> | reveal | spawn <type> | unlock all | skip <days> | hours <n>")
+        print("  admin set <var> <value> | skill <key> <0-3> | reveal | spawn <type> | unlock all | skip <days> | hours <n>")
         return
     sub = args[0]
     if sub == "set" and len(args) == 3 and args[1] in sim.state:
         sim.state[args[1]] = float(args[2])
         sim._refresh_unlocks()
         print(f"  {args[1]} = {sim.state[args[1]]}")
+    elif sub == "skill" and len(args) == 3 and args[1] in sim.rules["contacts"]["skills"]["catalog"] \
+            and args[2] in ("0", "1", "2", "3"):
+        th = sim.rules["contacts"]["skills"]["xp_thresholds"]
+        sim.skill_xp[args[1]] = 0.0 if args[2] == "0" else float(th[int(args[2]) - 1])
+        sim._refresh_derived()
+        print(f"  {sim.skill_label(args[1])}: level {args[2]}")
     elif sub == "reveal":
         for k, v in sim.state.items():
             print(f"  {k:<16} {v:>9.2f}")
@@ -393,18 +465,28 @@ def arrow(now: int, then: int | None) -> str:
 
 
 def prompt(sim: Sim, admin: bool, ref: dict[str, int] | None = None) -> str:
-    """[hours $cash heat]; ^ or v marks a change since the morning of the previous day."""
+    """[hours $cash heat]. ^ or v marks a change since the morning of the previous day:
+    green when it is good for you (more cash, less heat), red when it is bad."""
     now = snap(sim)
     ref = ref or {}
-    return (f"\n[{sim.hours_left}h ${now['cash']}{arrow(now['cash'], ref.get('cash'))} "
-            f"heat {now['heat']}{arrow(now['heat'], ref.get('heat'))}"
+
+    def part(label: str, key: str, good_when_up: bool, fmt: str) -> str:
+        arr = arrow(now[key], ref.get(key))
+        text = fmt.format(now[key]) + arr
+        if not arr:
+            return text
+        good = (arr == "^") == good_when_up
+        return paint(text, GREEN if good else RED, prompt=True)
+
+    return (f"\n[{sim.hours_left}h {part('cash', 'cash', True, '${}')} "
+            f"{part('heat', 'heat', False, 'heat {}')}"
             f"{' ADMIN' if admin else ''}] > ")
 
 
 def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
     print(wrap(city.get("display", {}).get("disclaimer", "")))
     print(render(sim, city))
-    print("\nStart with 'commands' to see what you can do. Try 'events' to see what is on today.")
+    print("\nStart with 'commands' to see what you can do. Try 'events' to see what is on today, 'news' for the headlines.")
     if mode() == "plain":
         print("(Your terminal does not show clickable links, so links print after the text. "
               "Windows Terminal or VS Code's terminal make them clickable.)")
@@ -452,7 +534,7 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
         elif word == "status":
             show_status(sim, admin)
         elif word == "news":
-            print(render(sim, city))
+            print(render(sim, city, view="news"))
         elif word == "events":
             days = 7
             if args and args[0].isdigit():
@@ -487,10 +569,13 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
                 print(f"The run lasted {sim.turn} days.")
                 return
             print(render(sim, city))
+            print("\n  Headlines: 'news'.   What is on today: 'events'.")
             flush_unlocks(sim)
         else:
             if word == "attend":
                 done, msgs = do_attend(sim, args)
+            elif word == "research":
+                done, msgs = do_research(sim, args)
             elif word == "meet":
                 done, msgs = do_meet(sim, args)
             elif word == "buy" and not admin and f"buy {args[0] if args else ''}" not in sim.unlocked:

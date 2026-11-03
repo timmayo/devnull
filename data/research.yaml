@@ -1,0 +1,151 @@
+# Research: study a topic, level it up, and change what you can do.
+#
+# `research` opens a menu. `research <topic> [method]` studies one directly.
+# Each session adds xp to the topic's skill. Levels: beginner, advanced, expert.
+# Self-study (online, library) tops out at advanced; a paid course or a contact who
+# is an expert can take you to expert. Every level-up shows its text and applies
+# its one-time `add` / `set` effects. Your levels also feed the rules as variables
+# named sk_<topic> (0-3), so actions get better as you learn (see slice_rules.yaml),
+# and a few levels unlock readings of hidden state in `status`.
+#
+# All first guesses. Facts about real law are kept general on purpose.
+
+thresholds: [3, 9, 18]        # xp for beginner / advanced / expert (the same scale contacts teach on)
+self_study_cap: 2             # online and library stop here
+
+methods:
+  online:
+    label: "read and practice online"
+    hours: 2
+    cost: 0
+    xp: 1.0
+    needs_laptop: true        # works on the tethered laptop, but that leaves a trail
+    online: true
+  library:
+    label: "work at the library"
+    hours: 3
+    cost: 0
+    xp: 0.7
+    online: false             # no trail; slower
+  course:
+    label: "take a paid course"
+    hours: 2
+    cost: 60
+    xp: 1.6
+    needs_laptop: true
+    online: true
+    cap: 3                    # can reach expert
+
+topics:
+  linux:
+    label: "Linux"
+    blurb: "Free operating systems, the command line, and how to run them on your own laptop."
+    levels:
+      1: { gives: "how to install Linux", text: "A forum thread walks you through booting Linux from a USB stick. Now you know how.", set: { lead_linux: 1 } }
+      2: { gives: "faster, stronger tracing and hacking", text: "You learn partitioning and dual-boot without wrecking Windows. The terminal stops being scary.", add: { skills: 3 } }
+      3: { gives: "expert-level tracing and hacking", text: "You live in the terminal now. Tools that once looked like magic are just scripts you can read.", add: { skills: 5 } }
+  network_security:
+    label: "network security"
+    blurb: "How connections give you away, and how the people watching them think."
+    levels:
+      1: { gives: "tethered trails shrink", text: "You learn how a connection gives you away: addresses, logs, DNS. You start closing the obvious gaps.", add: { skills: 2 } }
+      2: { gives: "status shows an estimate of your case file", text: "You can now read your own risk. Your status shows a rough estimate of what the police hold on you.", add: { skills: 3 } }
+      3: { gives: "status shows FBI interest and NSA coverage", text: "You understand how the big collectors work. Your status now shows the FBI's level of interest and how much of your traffic the NSA sees.", add: { skills: 4 } }
+  python:
+    label: "Python"
+    blurb: "Scripts that do the boring work of research for you."
+    levels:
+      1: { gives: "records and tracing yield more", text: "You write your first scraper. Filings that took an hour take minutes.", add: { skills: 2 } }
+      2: { gives: "bigger yields", text: "You automate the dull parts of research and stop making the same mistakes twice.", add: { skills: 3 } }
+      3: { gives: "a freelance gig ($200)", text: "You build a tool somebody will pay for. A freelance gig lands $200.", add: { skills: 3, cash: 200 } }
+  web_dev:
+    label: "web development"
+    blurb: "Building and running sites, and reaching people with them."
+    levels:
+      1: { gives: "posts reach further", text: "You can put up a simple site. Your posts start to land somewhere you control.", add: { skills: 1 } }
+      2: { gives: "posts reach much further", text: "You build a small site with a mailing list. People you have never met start to read it.", add: { skills: 2, public_concern: 0.5 } }
+      3: { gives: "a stronger public voice", text: "Your site is fast, findable and hard to knock offline.", add: { skills: 2, public_concern: 1 } }
+  hardware:
+    label: "hardware repair"
+    blurb: "Batteries, cases, and what is actually inside a cheap laptop."
+    levels:
+      1: { gives: "you know where to buy a laptop", text: "You learn how laptop batteries work, and which parts cost what. A pawn shop on the east side stocks laptops with new batteries.", set: { lead_store: 1 } }
+      2: { gives: "you can fix your laptop yourself ($60)", text: "You open the case, find the swollen cell and swap it for a $60 part. The laptop now runs on battery.", set: { laptop: 1 }, add: { cash: -60, skills: 2 } }
+      3: { gives: "a repair side-gig ($150)", text: "Friends start asking you to fix theirs. A repair job pays $150.", add: { skills: 2, cash: 150 } }
+  data_analysis:
+    label: "data analysis"
+    blurb: "Spreadsheets, databases and spotting what does not add up."
+    levels:
+      1: { gives: "tracing yields more", text: "Pivot tables turn into pattern-spotting. You notice what is missing from a report as well as what is in it.", add: { skills: 2 } }
+      2: { gives: "status shows AI progress", text: "You reconstruct the AI buildout from public filings. Your status now shows how far along it is.", add: { skills: 2 } }
+      3: { gives: "better evidence quality", text: "You can spot anomalies other people miss, which makes what you find harder to dismiss.", add: { skills: 3, auth: 3 } }
+  machine_learning:
+    label: "machine learning"
+    blurb: "How these systems are built and trained, and what they can and cannot do."
+    levels:
+      1: { gives: "the news about AI makes more sense", text: "You understand how these systems are trained, and why they are hungry for power and data.", add: { skills: 2 } }
+      2: { gives: "you can judge claims from AI labs", text: "You can tell a real result from a demo built to impress investors.", add: { skills: 2, cred: 2 } }
+      3: { gives: "credibility with reporters", text: "You can explain what the machines can and cannot do in plain words. Reporters start to quote you.", add: { skills: 3, cred: 4 } }
+  records_law:
+    label: "public-records law"
+    blurb: "Your rights to government documents, and how requests get refused."
+    levels:
+      1: { gives: "records requests yield more", text: "You learn the basics of Michigan's records law: a short deadline to answer, and one possible extension.", add: { evidence: 1 } }
+      2: { gives: "records requests yield much more", text: "You learn to write requests that are hard to refuse, and to ask for the right thing the first time.", add: { evidence: 2 } }
+      3: { gives: "records requests yield the most", text: "You know what to do when a request is denied, and which denials are bluffs.", add: { evidence: 3 } }
+  land_use:
+    label: "land use and zoning"
+    blurb: "Where hearings happen, what needs a permit, and where residents can speak."
+    levels:
+      1: { gives: "you read hearing agendas properly", text: "You learn how zoning and site plans work, and why a hearing notice matters.", add: { evidence: 1 } }
+      2: { gives: "attending events moves opinion more", text: "You spot where a data center needs a rezoning or special-use permit, and where residents get a say.", add: { evidence: 2 } }
+      3: { gives: "attending events moves opinion most", text: "You can read a site plan like a map of who gets what.", add: { evidence: 3, cred: 2 } }
+  energy:
+    label: "utility and energy systems"
+    blurb: "Power plants, the grid, and who pays when demand outruns capacity."
+    levels:
+      1: { gives: "power-bill stories make sense", text: "You learn why data centers strain the grid.", add: { evidence: 1 } }
+      2: { gives: "better evidence on the buildout", text: "You read a utility tariff and see how very large customers are billed.", add: { evidence: 2 } }
+      3: { gives: "you can explain who pays", text: "You can show, with numbers, who pays when demand outruns capacity.", add: { evidence: 3, cred: 2 } }
+  journalism:
+    label: "investigative reporting"
+    blurb: "How stories are sourced, checked and published."
+    levels:
+      1: { gives: "leaks keep your credibility", text: "You learn to source a claim two independent ways before you trust it.", add: { cred: 2 } }
+      2: { gives: "leaks land harder", text: "You learn how reporters decide whether a tip is worth running.", add: { cred: 3 } }
+      3: { gives: "leaks land hardest", text: "You can hand a reporter a package that is ready to publish.", add: { cred: 4 } }
+  finance:
+    label: "finance and accounting"
+    blurb: "Following money through companies, filings and shell entities."
+    levels:
+      1: { gives: "tracing yields more", text: "You learn to follow an LLC back to the people behind it.", add: { skills: 1, evidence: 1 } }
+      2: { gives: "tracing yields much more", text: "You read filings, liens and property records like a map.", add: { skills: 1, evidence: 2 } }
+      3: { gives: "tracing yields the most", text: "You can see how a deal is financed, and who is on the hook if it fails.", add: { evidence: 3, cred: 2 } }
+  litigation:
+    label: "litigation"
+    blurb: "How a civil case works, and how to bring one without a big firm."
+    levels:
+      1: { gives: "lawsuits are stronger", text: "You learn how a civil case moves from filing to ruling.", add: { cred: 1 } }
+      2: { gives: "lawsuits are much stronger", text: "You learn what a plain, filing-ready complaint looks like.", add: { cred: 2 } }
+      3: { gives: "lawsuits are strongest", text: "You know how to survive a motion to dismiss.", add: { cred: 3 } }
+  police_procedure:
+    label: "police procedure"
+    blurb: "How police and prosecutors build a case, and what your rights are."
+    levels:
+      1: { gives: "better cover", text: "You learn how police and prosecutors build a case against someone, and what they look for first.", add: { cover: 2 } }
+      2: { gives: "better cover", text: "You learn what to say and what not to say during a stop.", add: { cover: 3 } }
+      3: { gives: "better cover", text: "You can tell what a federal visit looks like before it happens.", add: { cover: 4 } }
+  organizing:
+    label: "community organizing"
+    blurb: "Turning neighbors into a group that can win."
+    levels:
+      1: { gives: "posts and meetings move opinion more", text: "You learn to start with one person at a time, and with their own reasons.", add: { public_concern: 0.5 } }
+      2: { gives: "bigger swings in opinion", text: "You build a phone tree and a sign-up sheet. People start showing up.", add: { public_concern: 1 } }
+      3: { gives: "the biggest swings in opinion", text: "You can fill a hearing room.", add: { public_concern: 2, cred: 2 } }
+  public_speaking:
+    label: "public speaking"
+    blurb: "Holding a room, and saying the thing in three minutes."
+    levels:
+      1: { gives: "attending moves opinion more", text: "You learn to say it in three minutes without notes.", add: { cred: 1 } }
+      2: { gives: "attending moves opinion much more", text: "Commissioners stop checking their phones when you stand up.", add: { cred: 2 } }
+      3: { gives: "attending moves opinion most", text: "You can hold a room and a camera.", add: { cred: 3 } }

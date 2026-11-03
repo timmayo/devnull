@@ -52,7 +52,7 @@ daily:
 # Online actions on a laptop that only runs plugged in are tied to the
 # apartment's connection, which leaves a trail. Applied while laptop == 0.
 tethered_extra:
-  legibility: { bias: 1.5, terms: { gear_vpn: -1.0 } }
+  legibility: { bias: 1.5, terms: { gear_vpn: -1.0, sk_network_security: -0.4 } }
   case_file: { bias: 0.5, terms: { gear_vpn: -0.4 } }
 
 start:
@@ -279,10 +279,10 @@ actions:
       legibility: { bias: 0.5 }
   attend:
     hours: 2
-    help: "Go to a meeting happening today. Moves opinion; you may meet people."
+    help: "Go to something on today (see events). Moves opinion; you may meet people."
     done: "You sit in the back of a public meeting and take notes."
     effects:
-      opinion: { bias: -0.8, terms: { laptop: -0.4, opinion: -0.006 } }   # live coverage needs a mobile laptop
+      opinion: { bias: -0.8, terms: { laptop: -0.4, opinion: -0.006, sk_land_use: -0.15, sk_public_speaking: -0.15, sk_organizing: -0.15 } }   # live coverage needs a mobile laptop
       heat: { bias: 1 }
       case_file: { bias: 0.5 }
       burnout: { bias: 0.5 }
@@ -292,7 +292,7 @@ actions:
     help: "Post. Moves opinion, makes noise."
     done: "You post. Some people read it."
     effects:
-      opinion: { bias: -1.5, terms: { opinion: -0.012 } }   # diminishing returns
+      opinion: { bias: -1.5, terms: { opinion: -0.012, sk_web_dev: -0.2, sk_organizing: -0.2 } }   # diminishing returns
       public_concern: { bias: 0.1 }
       heat: { bias: 3 }
       legibility: { bias: 1 }
@@ -315,7 +315,7 @@ actions:
     effects:
       legibility: { bias: 0.5 }
       case_file: { bias: 0.3 }
-      evidence: { bias: 6, terms: { evidence: -0.05 }, noise: 2, delay: [5, 15] }
+      evidence: { bias: 6, terms: { evidence: -0.05, sk_records_law: 1.2, sk_python: 0.4 }, noise: 2, delay: [5, 15] }
   trace:
     hours: 2
     online: true
@@ -324,7 +324,7 @@ actions:
     requires: { skills: 5 }
     why: "You are not skilled enough yet."
     effects:
-      evidence: { bias: 2.5, terms: { skills: 0.05, os: 1.5, evidence: -0.03 }, noise: 1 }
+      evidence: { bias: 2.5, terms: { skills: 0.05, os: 1.5, evidence: -0.03, sk_data_analysis: 0.6, sk_finance: 0.8, sk_python: 0.4, sk_linux: 0.5 }, noise: 1 }
       skills: { bias: 0.3 }
       heat: { bias: 1.5 }
       legibility: { bias: 1 }
@@ -337,7 +337,7 @@ actions:
     requires: { evidence: 10 }
     why: "You have little to verify."
     effects:
-      verified: { bias: 6, terms: { verified: -0.05 } }
+      verified: { bias: 6, terms: { verified: -0.05, sk_journalism: 0.8 } }
       auth: { bias: 1.5, terms: { auth: -0.012 } }
       burnout: { bias: 0.3 }
   leak:
@@ -356,7 +356,7 @@ actions:
       case_file: { bias: 3 }
       burnout: { bias: 1.5 }
       evidence: { bias: -8 }
-      cred: { bias: -4, terms: { verified: 0.06, auth: 0.03 } }
+      cred: { bias: -4, terms: { verified: 0.06, auth: 0.03, sk_journalism: 1.0 } }
   file:
     hours: 3
     help: "File a lawsuit. Costs $300; takes months; strength depends on your evidence."
@@ -367,7 +367,7 @@ actions:
     effects:
       cash: { bias: -300 }
       filed: { set: 1, msg: "Filed. The clerk stamps it and gives you a case number." }
-      case: { bias: 0, terms: { evidence: 0.5, verified: 0.3, auth: 0.2, cred: 0.15 } }
+      case: { bias: 0, terms: { evidence: 0.5, verified: 0.3, auth: 0.2, cred: 0.15, sk_litigation: 5 } }
       heat: { bias: 2 }
       case_file: { bias: 2 }
       legibility: { bias: 2 }
@@ -400,12 +400,12 @@ actions:
     help: "Breach a system. Real evidence, real risk. Needs Linux and skill."
     unlock: { os: 1 }
     done: "You get into a system you should not be in."
-    requires: { os: 1, laptop: 1, skills: 15 }
-    why: "You need a working laptop running Linux and more skill."
+    requires: { os: 1, laptop: 1, skills: 15, sk_network_security: 1 }
+    why: "You need a working laptop running Linux, more skill, and some network security knowledge (research it)."
     effects:
-      evidence: { bias: 8, terms: { skills: 0.1 }, noise: 3 }
+      evidence: { bias: 8, terms: { skills: 0.1, sk_network_security: 1.5, sk_linux: 1.0 }, noise: 3 }
       auth: { bias: -3 }
-      heat: { bias: 8 }
+      heat: { bias: 8, terms: { sk_network_security: -1.5 } }
       legibility: { bias: 2 }
       case_file: { bias: 5 }
       skills: { bias: 0.8 }
@@ -413,11 +413,8 @@ actions:
   research:
     hours: 2
     online: true
-    help: "Read, learn, practice. Builds skill; you may find out how to run Linux."
-    done: "You read until your eyes hurt."
-    effects:
-      skills: { bias: 0.8 }
-      lead_linux: { set: 1, p: 0.07, if: { skills: 6 }, msg: "A forum thread explains how to boot Linux from a USB stick. Now you know how." }
+    help: "Study a topic (a menu): levels you up and opens new abilities. Online, at the library, or a paid course."
+    effects: {}                    # handled in code from data/research.yaml
   install_linux:
     hours: 3
     online: true

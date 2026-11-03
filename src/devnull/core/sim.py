@@ -26,6 +26,7 @@ DEFAULT_RULES = REPO_ROOT / "data" / "slice_rules.yaml"
 DEFAULT_CONTACTS = REPO_ROOT / "data" / "contacts.yaml"
 DEFAULT_MARKET = REPO_ROOT / "data" / "market.yaml"
 DEFAULT_NEWS = REPO_ROOT / "data" / "news.yaml"
+DEFAULT_RESEARCH = REPO_ROOT / "data" / "research.yaml"
 
 
 def load_rules(path: Path = DEFAULT_RULES, contacts_path: Path = DEFAULT_CONTACTS) -> dict[str, Any]:
@@ -37,6 +38,9 @@ def load_rules(path: Path = DEFAULT_RULES, contacts_path: Path = DEFAULT_CONTACT
     if DEFAULT_MARKET.exists():
         with open(DEFAULT_MARKET, encoding="utf-8") as f:
             rules["market_tape"] = yaml.safe_load(f)
+    if DEFAULT_RESEARCH.exists():
+        with open(DEFAULT_RESEARCH, encoding="utf-8") as f:
+            rules["research"] = yaml.safe_load(f)
     if DEFAULT_NEWS.exists():
         with open(DEFAULT_NEWS, encoding="utf-8") as f:
             rules["news"] = yaml.safe_load(f)
@@ -171,6 +175,11 @@ class Sim:
         self.prices = {s: q["price"] for s, q in self.quotes.items()}
         self.price_change = {s: q["change_pct"] for s, q in self.quotes.items()}
         self.prices_real = bool(self.quotes)       # False once the path is simulated
+        sk = cr.get("skills", {})
+        th = sk.get("xp_thresholds", [1, 4, 9])
+        self.skill_xp: dict[str, float] = {k: float(th[v - 1]) for k, v in sk.get("player_start", {}).items()}
+        for k in sk.get("catalog", {}):
+            self.state["sk_" + k] = 0.0
         self._refresh_derived()
         self._refresh_unlocks(silent=True)
         self.history.append(dict(self.state))
@@ -215,6 +224,8 @@ class Sim:
         self.state["press_trust"] = max([c.trust for c in live if c.type == "local_reporter"] or [0.0])
         self.state["techie_trust"] = max([c.trust for c in live if c.type == "techie"] or [0.0])
         self.state["contacts_n"] = float(len(self.contacts))
+        for k in self.rules.get("contacts", {}).get("skills", {}).get("catalog", {}):
+            self.state["sk_" + k] = float(self.skill_level(k))
 
     def _refresh_unlocks(self, silent: bool = False) -> None:
         items = [(n, a.get("unlock")) for n, a in self.rules["actions"].items()]
@@ -256,7 +267,9 @@ class Sim:
             if ev["start"] <= d <= ev.get("end", ev["start"]) and ev["kind"] in meetings:
                 tmpl = meetings[ev["kind"]]
                 out.append((ev["id"], {**tmpl, "label": ev["title"], "time": ev.get("time", "all day"),
-                                       "hours": ev.get("hours", tmpl["hours"]), "real": ev}))
+                                       "hours": ev.get("hours", tmpl["hours"]), "real": ev,
+                                       "attendees": ev.get("attendees", tmpl["attendees"]),
+                                       "skills": ev.get("skills")}))
         return out
 
     def meetings_today(self) -> list[tuple[str, dict[str, Any]]]:
@@ -297,11 +310,12 @@ class Sim:
                 return key
         return next(iter(weights))
 
-    def _draw_skills(self, ctype: str, meeting_key: str | None) -> tuple[dict[str, int], dict[str, int]]:
+    def _draw_skills(self, ctype: str, meeting_key: str | None,
+                     event_pool: dict[str, float] | None = None) -> tuple[dict[str, int], dict[str, int]]:
         """2-3 related skills (type pool + event pool x1.5) and 1-2 unrelated side skills, levels 1-3."""
         sk = self.rules["contacts"]["skills"]
         pool: dict[str, float] = dict(sk["by_type"].get(ctype, {}))
-        for name, w in sk["by_meeting"].get(meeting_key or "", {}).items():
+        for name, w in (event_pool or sk["by_meeting"].get(meeting_key or "", {})).items():
             pool[name] = pool.get(name, 0) + 1.5 * w
 
         def level(kind: str) -> int:
@@ -324,6 +338,113 @@ class Sim:
         side = {k: level("side") for k in side_keys[: 1 + (self.rng.random() < 0.4)]}
         return related, side
 
+    def skill_level(self, key: str) -> int:
+        """Your level in a skill: 0 (none), 1 beginner, 2 advanced, 3 expert."""
+        th = self.rules["contacts"]["skills"]["xp_thresholds"]
+        xp = self.skill_xp.get(key, 0.0)
+        return sum(xp >= edge for edge in th)
+
+    def my_skills(self) -> list[tuple[str, int]]:
+        return sorted(((k, self.skill_level(k)) for k in self.skill_xp if self.skill_level(k) > 0),
+                      key=lambda kv: (-kv[1], self.skill_label(kv[0])))
+
+    def add_skill_xp(self, key: str, amount: float, cap_level: int) -> list[str]:
+        """Add xp to one of your skills, never past cap_level. Returns messages (level-ups included)."""
+        th = self.rules["contacts"]["skills"]["xp_thresholds"]
+        before = self.skill_level(key)
+        cap = th[cap_level - 1]
+        if self.skill_xp.get(key, 0.0) >= cap:
+            return []
+        self.skill_xp[key] = min(cap, self.skill_xp.get(key, 0.0) + amount)
+        msgs: list[str] = []
+        for lvl in range(before + 1, self.skill_level(key) + 1):
+            msgs += self._level_up(key, lvl)
+        self._refresh_derived()
+        return msgs
+
+    def _level_up(self, key: str, level: int) -> list[str]:
+        """One-time discovery and effects when you reach a new level of a skill."""
+        msgs = [f"  You are now {self.level_name(level)} in {self.skill_label(key)}."]
+        topic = (self.rules.get("research", {}).get("topics") or {}).get(key)
+        spec = (topic or {}).get("levels", {}).get(level)
+        if spec:
+            msgs.append("  " + spec["text"])
+            for var, v in (spec.get("set") or {}).items():
+                self.state[var] = float(v)
+                self._clamp(var)
+            for var, v in (spec.get("add") or {}).items():
+                self.state[var] += float(v)
+                self._clamp(var)
+        self.event("skill_up", (key, level))
+        return msgs
+
+    def learn_skill(self, key: str, teacher_level: int, amount: float) -> list[str]:
+        """Learn from a contact: xp up to their level."""
+        msgs = self.add_skill_xp(key, amount, teacher_level)
+        if msgs:
+            return msgs
+        if self.skill_level(key) >= teacher_level:
+            return [f"  You already know as much about {self.skill_label(key)} as they do."]
+        return [f"  You are making progress in {self.skill_label(key)}."]
+
+    # -- research ------------------------------------------------------
+    def research_topic(self, arg: str | None) -> str | None:
+        """Topic key from a key, label or unique prefix."""
+        if not arg:
+            return None
+        topics = self.rules["research"]["topics"]
+        a = arg.lower().replace(" ", "_")
+        if a in topics:
+            return a
+        hits = [k for k, v in topics.items()
+                if k.startswith(a) or v["label"].lower().replace(" ", "_").startswith(a)]
+        return hits[0] if len(hits) == 1 else None
+
+    def research_progress(self, key: str) -> tuple[int, float, float | None]:
+        """(level, xp, xp needed for the next level or None if expert)."""
+        th = self.rules["research"]["thresholds"]
+        lvl = self.skill_level(key)
+        return lvl, self.skill_xp.get(key, 0.0), (th[lvl] if lvl < 3 else None)
+
+    def research_reason(self, key: str, method: str) -> str | None:
+        """Why this study session cannot be done now, or None."""
+        r = self.rules["research"]
+        m = r["methods"].get(method)
+        if m is None:
+            return f"Unknown method. Options: {', '.join(r['methods'])}."
+        lvl = self.skill_level(key)
+        cap = m.get("cap", r["self_study_cap"])
+        if lvl >= cap:
+            if lvl >= 3:
+                return "You are already an expert."
+            return "Self-study has taken you as far as it can. Take a paid course, or learn from an expert."
+        if m["hours"] > self.hours_left:
+            return f"Not enough hours left today (needs {m['hours']})."
+        if self.state["cash"] < m["cost"]:
+            return f"You cannot afford it (${m['cost']})."
+        return None
+
+    def _do_research(self, key: str, method: str) -> list[str]:
+        r = self.rules["research"]
+        m = r["methods"][method]
+        topic = r["topics"][key]
+        self.hours_left -= m["hours"]
+        self.state["cash"] -= m["cost"]
+        self.state["skills"] += 0.8 * m["xp"]
+        self._clamp("skills")
+        cap = m.get("cap", r["self_study_cap"])
+        msgs = [f"You {m['label']}: {topic['label']}."]
+        msgs += self.add_skill_xp(key, m["xp"], cap)
+        lvl, xp, need = self.research_progress(key)
+        if need:
+            msgs.append(f"  Progress toward {self.level_name(lvl + 1)}: {xp:.1f}/{need}.")
+        if m.get("online") and self.state["laptop"] < 1:
+            for var, ex in self.rules["tethered_extra"].items():
+                self.state[var] += evaluate(ex, self.state, self.rng)
+                self._clamp(var)
+        self.event("researched", (key, method))
+        return msgs
+
     def skill_label(self, key: str) -> str:
         sk = self.rules["contacts"]["skills"]
         return sk["catalog"].get(key) or sk["side"].get(key) or key
@@ -335,7 +456,8 @@ class Sim:
         """Their strongest related skill (ties: the first drawn)."""
         return max(c.skills.items(), key=lambda kv: kv[1]) if c.skills else None
 
-    def new_contact(self, ctype: str, where: str | None = None, meeting_key: str | None = None) -> Contact:
+    def new_contact(self, ctype: str, where: str | None = None, meeting_key: str | None = None,
+                    skill_pool: dict[str, float] | None = None) -> Contact:
         cr = self.rules["contacts"]
         spec = cr["types"][ctype]
         name = ""
@@ -348,7 +470,7 @@ class Sim:
                   for k, v in spec["traits"].items()}
         c = Contact(id=self._next_cid, name=name, type=ctype, met_turn=self.turn,
                     last_turn=self.turn, traits=traits, trust=self.rng.uniform(8, 14))
-        c.skills, c.side = self._draw_skills(ctype, meeting_key)
+        c.skills, c.side = self._draw_skills(ctype, meeting_key, skill_pool)
         c.plant = self.rng.random() < spec["traits"]["plant_p"]
         c.leverage = 1.0 if self.rng.random() < 0.4 * (1 - traits["honesty"]) else 0.0
         c.history.append({"turn": self.turn, "date": self.date.isoformat(), "action": "met",
@@ -377,7 +499,8 @@ class Sim:
                 msgs.append(f"You run into {c.name} again ({types[ctype]['label']}). [contact #{c.id}]")
             else:
                 c = self.new_contact(ctype, where=place(m),
-                                     meeting_key=(m.get("real") or {}).get("kind", key))
+                                     meeting_key=(m.get("real") or {}).get("kind", key),
+                                     skill_pool=m.get("skills"))
                 msgs.append(f"You get talking with {c.name}, {a_or_an(types[ctype]['label'])}. [contact #{c.id}]")
         self._refresh_derived()
         return msgs
@@ -437,10 +560,11 @@ class Sim:
         for var, eff in (res.get("player") or {}).items():
             self._apply_effect(var, eff)
         if ca.get("teaches") and outcome == "success" and best:
-            gain = 0.8 + 0.8 * best[1]                     # beginner 1.6 ... expert 3.2
+            gain = 0.8 + 0.8 * best[1]                     # know-how: beginner 1.6 ... expert 3.2
             self.state["skills"] += gain
             self._clamp("skills")
-            msgs.append(f"  (+{gain:.1f} skills; {c.name} is {self.level_name(best[1])} level)")
+            msgs.append(f"  (+{gain:.1f} know-how; {c.name} is {self.level_name(best[1])} level)")
+            msgs += self.learn_skill(best[0], best[1], 1.5 + 0.75 * (best[1] - 1))
             if (best[0] == "linux" and best[1] >= 2 and self.state["lead_linux"] < 1
                     and self.rng.random() < 0.35):
                 self.state["lead_linux"] = 1.0
@@ -512,6 +636,11 @@ class Sim:
             if choice[1]["hours"] > self.hours_left:
                 return f"Not enough hours left today (needs {choice[1]['hours']})."
             return None
+        if tokens[0] == "research" and "research" in self.rules:
+            key = self.research_topic(tokens[1] if len(tokens) > 1 else None)
+            if key is None:
+                return "Choose a topic: research <topic> [online|library|course]. Type 'research' for the menu."
+            return self.research_reason(key, tokens[2] if len(tokens) > 2 else "online")
         if tokens[0] == "meet":
             if len(tokens) < 3 or not tokens[1].isdigit():
                 return "Usage: meet <contact#> <action>."
@@ -592,6 +721,8 @@ class Sim:
             self.event("attended", key)
         elif tokens[0] == "meet":
             msgs = self._do_contact_action(self.contact(int(tokens[1])), tokens[2])
+        elif tokens[0] == "research":
+            msgs = self._do_research(self.research_topic(tokens[1]), tokens[2] if len(tokens) > 2 else "online")
         else:
             spec = self.action_spec(text)
             self.hours_left -= spec["hours"]
