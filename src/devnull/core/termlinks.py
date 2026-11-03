@@ -59,3 +59,23 @@ def fill_link(text: str, url: str | None, width: int = 78, initial: str = "", su
         pad = ln[: len(ln) - len(body)]
         out.append(pad + link(body, url))
     return "\n".join(out)
+
+
+GREEN, RED = "32", "31"
+
+
+def colors_enabled() -> bool:
+    """ANSI colors on a real terminal. Off for pipes, NO_COLOR, or DEVNULL_COLOR=off."""
+    if os.environ.get("NO_COLOR") or os.environ.get("DEVNULL_COLOR", "").lower() == "off":
+        return False
+    return sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
+
+
+def paint(text: str, color: str, prompt: bool = False) -> str:
+    """Wrap text in a color. In an input() prompt on non-Windows, mark the codes as zero-width."""
+    if not colors_enabled():
+        return text
+    start, end = f"{ESC}[{color}m", f"{ESC}[0m"
+    if prompt and os.name != "nt":
+        start, end = f"\x01{start}\x02", f"\x01{end}\x02"
+    return start + text + end

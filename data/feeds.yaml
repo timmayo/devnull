@@ -1,6 +1,6 @@
 # Live headline feeds, fetched when a run starts and shown on day 1 only (they
 # describe today; later in-game days have no real feed). Headlines and links
-# only, always labeled [real] with the outlet. Free RSS for personal use; a
+# only, always shown as a clickable link with the outlet name. Free RSS for personal use; a
 # released game needs a licensed news source (see docs/design.md).
 
 max_age_hours: 72
