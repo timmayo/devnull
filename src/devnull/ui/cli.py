@@ -125,7 +125,7 @@ def show_commands(sim: Sim, admin: bool) -> None:
         print("  contacts         list the people you know")
         print("  contact <n>      what you know about one person and what has happened")
         print("  meet <n> [act]   spend time with a contact (coffee, favor, ask, ...)")
-    print("\nOTHER: help, commands, status, news, events [days], markets, sleep, wait <days>, quit"
+    print("\nOTHER: help, commands, status, news, events [more|days], markets, sleep, wait <days>, quit"
           + (", admin" if admin else ""))
     print("New commands appear as you unlock them.")
 
@@ -202,6 +202,14 @@ def show_contact(sim: Sim, c: Any, admin: bool) -> None:
     if admin:
         print(f"  [admin] trust {c.trust:.1f} bond {c.bond:.1f} exposure {c.exposure:.1f} "
               f"plant {c.plant} traits {c.traits}")
+    def fmt(skills: dict[str, int]) -> str:
+        return ", ".join(f"{sim.skill_label(k)} ({sim.level_name(v)})"
+                         for k, v in sorted(skills.items(), key=lambda kv: -kv[1]))
+    print(wrap("Skills: " + (fmt(c.skills) or "none you know of"), "  "))
+    if c.trust >= 30 or admin:
+        print(wrap("Also: " + fmt(c.side), "  "))
+    else:
+        print("  Also: you do not know them well enough to know what else they can do.")
     print("  History:")
     for h in c.history[-12:]:
         print(wrap(f"{h['date']}  {h['action']} ({h['outcome']}): {h['text']}", "    "))
@@ -210,7 +218,7 @@ def show_contact(sim: Sim, c: Any, admin: bool) -> None:
 def show_events(sim: Sim, days: int) -> None:
     """Today's gatherings, then the next occurrence of each one coming up."""
     def line(text: str, m: dict[str, Any]) -> str:
-        url = m["real"]["url"] if m.get("real") else None
+        url = m["real"]["url"] if m.get("real") else m.get("listing_url")
         return fill_link(text, url, 78, "    ", "      ")
 
     today = sim.meetings_today()
@@ -227,7 +235,9 @@ def show_events(sim: Sim, days: int) -> None:
         end = m["real"].get("end") if m.get("real") else None
         span = f" (through {end:%b} {end.day})" if end and end != d else ""
         print(line(f"{d:%a %b} {d.day}: {describe(m)}{span}", m))
-    print("\n  Events with a link are real; click or Ctrl+click it. 'attend' goes to something on today.")
+    print("\n  'events more' shows the next 30 days; 'events <days>' any range. 'attend' goes to something on today.")
+    print("  Dated events with a link are real. Recurring meetings are typical for the city; their link opens")
+    print("  the page where real ones are listed.")
 
 
 def show_markets(sim: Sim) -> None:
@@ -435,7 +445,12 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
         elif word == "news":
             print(render(sim, city))
         elif word == "events":
-            show_events(sim, int(args[0]) if args and args[0].isdigit() else 30)
+            days = 7
+            if args and args[0].isdigit():
+                days = int(args[0])
+            elif args and args[0].startswith("m"):
+                days = 30
+            show_events(sim, days)
         elif word == "markets":
             show_markets(sim)
         elif word == "contacts":

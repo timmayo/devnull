@@ -112,6 +112,8 @@ class Contact:
     met_turn: int
     last_turn: int
     traits: dict[str, float]
+    skills: dict[str, int] = field(default_factory=dict)   # related skills, level 1-3
+    side: dict[str, int] = field(default_factory=dict)     # unrelated skills; shown once they trust you
     trust: float = 10.0
     exposure: float = 0.0
     bond: float = 0.0
@@ -295,7 +297,45 @@ class Sim:
                 return key
         return next(iter(weights))
 
-    def new_contact(self, ctype: str, where: str | None = None) -> Contact:
+    def _draw_skills(self, ctype: str, meeting_key: str | None) -> tuple[dict[str, int], dict[str, int]]:
+        """2-3 related skills (type pool + event pool x1.5) and 1-2 unrelated side skills, levels 1-3."""
+        sk = self.rules["contacts"]["skills"]
+        pool: dict[str, float] = dict(sk["by_type"].get(ctype, {}))
+        for name, w in sk["by_meeting"].get(meeting_key or "", {}).items():
+            pool[name] = pool.get(name, 0) + 1.5 * w
+
+        def level(kind: str) -> int:
+            r, acc = self.rng.random(), 0.0
+            for i, p in enumerate(sk["level_odds"][kind], 1):
+                acc += p
+                if r < acc:
+                    return i
+            return 3
+
+        related: dict[str, int] = {}
+        for _ in range(2 + (self.rng.random() < 0.3)):
+            if not pool:
+                break
+            pick = self._weighted(pool)
+            related[pick] = level("related")
+            pool.pop(pick)
+        side_keys = list(sk["side"])
+        self.rng.shuffle(side_keys)
+        side = {k: level("side") for k in side_keys[: 1 + (self.rng.random() < 0.4)]}
+        return related, side
+
+    def skill_label(self, key: str) -> str:
+        sk = self.rules["contacts"]["skills"]
+        return sk["catalog"].get(key) or sk["side"].get(key) or key
+
+    def level_name(self, level: int) -> str:
+        return self.rules["contacts"]["skills"]["levels"][max(1, min(3, level)) - 1]
+
+    def best_skill(self, c: Contact) -> tuple[str, int] | None:
+        """Their strongest related skill (ties: the first drawn)."""
+        return max(c.skills.items(), key=lambda kv: kv[1]) if c.skills else None
+
+    def new_contact(self, ctype: str, where: str | None = None, meeting_key: str | None = None) -> Contact:
         cr = self.rules["contacts"]
         spec = cr["types"][ctype]
         name = ""
@@ -308,6 +348,7 @@ class Sim:
                   for k, v in spec["traits"].items()}
         c = Contact(id=self._next_cid, name=name, type=ctype, met_turn=self.turn,
                     last_turn=self.turn, traits=traits, trust=self.rng.uniform(8, 14))
+        c.skills, c.side = self._draw_skills(ctype, meeting_key)
         c.plant = self.rng.random() < spec["traits"]["plant_p"]
         c.leverage = 1.0 if self.rng.random() < 0.4 * (1 - traits["honesty"]) else 0.0
         c.history.append({"turn": self.turn, "date": self.date.isoformat(), "action": "met",
@@ -335,7 +376,8 @@ class Sim:
                                   "outcome": "met", "text": f"Ran into them at {place(m)}."})
                 msgs.append(f"You run into {c.name} again ({types[ctype]['label']}). [contact #{c.id}]")
             else:
-                c = self.new_contact(ctype, where=place(m))
+                c = self.new_contact(ctype, where=place(m),
+                                     meeting_key=(m.get("real") or {}).get("kind", key))
                 msgs.append(f"You get talking with {c.name}, {a_or_an(types[ctype]['label'])}. [contact #{c.id}]")
         self._refresh_derived()
         return msgs
@@ -383,7 +425,9 @@ class Sim:
         else:
             outcome = "fail"
         res = ca[outcome]
-        msgs = [res["text"].format(name=c.name)]
+        best = self.best_skill(c)
+        skill_text = self.skill_label(best[0]) if best else "what they know"
+        msgs = [res["text"].format(name=c.name, skill=skill_text)]
         for field_name, eff in (res.get("contact") or {}).items():
             if "set" in eff:
                 setattr(c, field_name, bool(eff["set"]))
@@ -392,6 +436,15 @@ class Sim:
                 setattr(c, field_name, min(hi, max(lo, getattr(c, field_name) + evaluate(eff, ctx, self.rng))))
         for var, eff in (res.get("player") or {}).items():
             self._apply_effect(var, eff)
+        if ca.get("teaches") and outcome == "success" and best:
+            gain = 0.8 + 0.8 * best[1]                     # beginner 1.6 ... expert 3.2
+            self.state["skills"] += gain
+            self._clamp("skills")
+            msgs.append(f"  (+{gain:.1f} skills; {c.name} is {self.level_name(best[1])} level)")
+            if (best[0] == "linux" and best[1] >= 2 and self.state["lead_linux"] < 1
+                    and self.rng.random() < 0.35):
+                self.state["lead_linux"] = 1.0
+                msgs.append(f"{c.name} shows you how to boot Linux from a USB stick. Now you know how.")
         if res.get("uses_type_gives"):
             gives = cr["types"][c.type].get("ask_gives") or {}
             gained = []
@@ -417,7 +470,7 @@ class Sim:
                 self.event("plant_revealed", c.id)
         c.last_turn = self.turn
         c.history.append({"turn": self.turn, "date": self.date.isoformat(), "action": action,
-                          "outcome": outcome, "text": res["text"].format(name=c.name)})
+                          "outcome": outcome, "text": res["text"].format(name=c.name, skill=skill_text)})
         self.event("contact_action", (c.id, action, outcome))
         self._refresh_derived()
         return msgs

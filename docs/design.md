@@ -231,3 +231,9 @@ Real City Commission dates come from the city's adopted 2026 schedule; the
 recurring Tuesday approximation applies only in years the city file does not
 list. Day 1 always includes a made-up neighbors' open house with high odds of
 meeting people.
+
+**Links.** Real news and events are clickable terminal hyperlinks (OSC 8; Windows
+Terminal and VS Code). The whole line is the link and nothing is printed below it.
+Terminals without support get the URL inline after the text. Force a mode with
+`DEVNULL_LINKS=osc8` or `plain`. News sections show at most 10 stories each, and
+today's events appear only through the `events` command.

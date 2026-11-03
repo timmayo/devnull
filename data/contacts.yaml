@@ -75,9 +75,80 @@ types:
 # Meetings. `when` is a schedule: weekday (0 = Monday), `nth` of the month, or
 # `every_other_week`. `hours` is the time cost. `mult` scales the base `attend`
 # effects. `attendees` are the odds weights for who you can meet there.
+# Skills a contact can have. Three levels each: beginner (1), advanced (2), expert (3).
+# A new contact gets 2-3 RELATED skills, drawn from their type's pool plus the pool of the
+# event where you met them (event skills count 1.5x), and 1-2 unrelated SIDE skills (hobbies
+# and trades). Related skills show up on the contact sheet; side skills show once they trust you.
+skills:
+  levels: [beginner, advanced, expert]
+  level_odds: { related: [0.30, 0.45, 0.25], side: [0.50, 0.35, 0.15] }
+  catalog:
+    python: "Python"
+    web_dev: "web development"
+    linux: "Linux"
+    hardware: "hardware repair"
+    network_security: "network security"
+    machine_learning: "machine learning"
+    data_analysis: "data analysis"
+    journalism: "investigative reporting"
+    records_law: "public-records law"
+    research_archives: "archival research"
+    public_speaking: "public speaking"
+    land_use: "land use and zoning"
+    litigation: "litigation"
+    organizing: "community organizing"
+    labor_law: "labor relations"
+    energy: "utility and energy systems"
+    finance: "finance and accounting"
+    lobbying: "lobbying"
+    police_procedure: "police procedure"
+  side:
+    cooking: "cooking"
+    photography: "photography"
+    woodworking: "woodworking"
+    gardening: "gardening"
+    ham_radio: "ham radio"
+    music: "playing music"
+    running: "distance running"
+    chess: "chess"
+    home_brewing: "home brewing"
+    bicycle_repair: "bicycle repair"
+    languages: "foreign languages"
+    first_aid: "first aid"
+    car_repair: "car repair"
+    birdwatching: "birdwatching"
+  by_type:
+    local_reporter: { journalism: 4, records_law: 2, public_speaking: 1, research_archives: 1 }
+    union_rep: { labor_law: 4, organizing: 3, public_speaking: 1, finance: 1 }
+    corporate_whistleblower: { data_analysis: 2, finance: 2, machine_learning: 2, network_security: 1, python: 1 }
+    state_regulator: { energy: 3, records_law: 2, land_use: 2, finance: 1 }
+    public_interest_lawyer: { litigation: 4, records_law: 3, land_use: 1 }
+    rural_coop_manager: { energy: 4, finance: 2, organizing: 1 }
+    techie: { python: 3, web_dev: 3, linux: 3, hardware: 2, network_security: 2, machine_learning: 1 }
+    neighbor_activist: { organizing: 4, public_speaking: 2, land_use: 1, records_law: 1 }
+    developer_staffer: { land_use: 3, finance: 2, public_speaking: 1, energy: 1 }
+    lobbyist: { lobbying: 4, public_speaking: 2, finance: 1, records_law: 1 }
+    police_officer: { police_procedure: 4, network_security: 1, public_speaking: 1 }
+    librarian: { research_archives: 4, records_law: 1, web_dev: 1, data_analysis: 1 }
+  by_meeting:
+    city_commission: { records_law: 2, land_use: 2, public_speaking: 1 }
+    planning_commission: { land_use: 3, finance: 1 }
+    web_user_group: { web_dev: 3, python: 2, linux: 1 }
+    ai_builders_meetup: { machine_learning: 3, python: 2, data_analysis: 2 }
+    neighborhood_association: { organizing: 3, land_use: 1 }
+    labor_hall: { labor_law: 3, organizing: 2 }
+    ratepayers_group: { energy: 3, finance: 1, records_law: 1 }
+    library_talk: { research_archives: 2, journalism: 1 }
+    business_mixer: { finance: 2, lobbying: 2, public_speaking: 1 }
+    policy_forum: { records_law: 2, lobbying: 1, police_procedure: 1, energy: 1 }
+    fan_convention: { hardware: 1, python: 1 }
+    webinar: { data_analysis: 1 }
+    neighbors_open_house: { organizing: 1, public_speaking: 1 }
+
 meetings:
   city_commission:
     label: "City Commission meeting"
+    listing_url: "https://events.grandrapidsmi.gov/meetings"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 1, every_other_week: true }          # approximation; real dates replace it (see below)
     approx_unless_listed: true      # skipped in any year where the city file lists real meetings of this kind
     time: "2:00 pm or 7:00 pm"
@@ -87,6 +158,7 @@ meetings:
     attendees: { local_reporter: 3, neighbor_activist: 3, developer_staffer: 1.5, public_interest_lawyer: 1, state_regulator: 0.5, lobbyist: 0.7, police_officer: 0.5 }
   planning_commission:
     label: "Planning Commission hearing"
+    listing_url: "https://events.grandrapidsmi.gov/meetings"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 3, nth: 1 }                          # game approximation
     time: "evening"
     hours: 3
@@ -95,6 +167,7 @@ meetings:
     attendees: { developer_staffer: 3, neighbor_activist: 3, public_interest_lawyer: 1.5, local_reporter: 2, lobbyist: 1 }
   web_user_group:
     label: "web developers' user group"
+    listing_url: "https://www.meetup.com/find/us--mi--grand-rapids/"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 2, nth: 2 }
     time: "evening"
     hours: 3
@@ -103,6 +176,7 @@ meetings:
     attendees: { techie: 6, corporate_whistleblower: 0.8, local_reporter: 0.5, lobbyist: 0.3 }
   ai_builders_meetup:
     label: "AI builders' meetup"
+    listing_url: "https://www.meetup.com/find/us--mi--grand-rapids/"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 3, nth: 4 }
     time: "evening"
     hours: 3
@@ -111,6 +185,7 @@ meetings:
     attendees: { techie: 5, corporate_whistleblower: 1.5, local_reporter: 0.8, lobbyist: 0.8 }
   neighborhood_association:
     label: "neighborhood association meeting"
+    listing_url: "https://www.eventbrite.com/d/mi--grand-rapids/events/"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 0, nth: 1 }
     time: "evening"
     hours: 2
@@ -119,6 +194,7 @@ meetings:
     attendees: { neighbor_activist: 6, union_rep: 1, local_reporter: 0.7, police_officer: 1 }
   labor_hall:
     label: "labor hall meeting"
+    listing_url: "https://www.eventbrite.com/d/mi--grand-rapids/events/"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 3, nth: 3 }
     time: "evening"
     hours: 3
@@ -127,6 +203,7 @@ meetings:
     attendees: { union_rep: 6, neighbor_activist: 2, rural_coop_manager: 0.5 }
   ratepayers_group:
     label: "ratepayers and environment group"
+    listing_url: "https://www.eventbrite.com/d/mi--grand-rapids/events/"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 5, nth: 1 }
     time: "morning"
     hours: 2
@@ -135,6 +212,7 @@ meetings:
     attendees: { neighbor_activist: 4, rural_coop_manager: 2, state_regulator: 1, union_rep: 1, local_reporter: 1 }
   library_talk:
     label: "public library community talk"
+    listing_url: "https://www.eventbrite.com/d/mi--grand-rapids/events/"      # where real ones are listed; this entry itself is a game approximation
     when: { weekday: 5 }
     time: "morning"
     hours: 2
@@ -338,3 +416,20 @@ contact_actions:
       contact: { trust: { bias: -8 }, exposure: { bias: 6 } }
       text: "{name} gets scared off. You hope they do not talk."
     plant: { case_file: { bias: 5 } }
+  learn:
+    hours: 2
+    cost: 0
+    help: "Ask them to teach you their best skill. Higher level, bigger gain."
+    requires_contact: { trust: 20 }
+    p: { bias: 0.35, terms: { trust: 0.4, talkative: 0.25 } }
+    backfire_share: 0.1
+    teaches: true
+    success:
+      contact: { trust: { bias: 1.5 } }
+      text: "{name} walks you through {skill}. You come away knowing more."
+    fail:
+      contact: { trust: { bias: 0.5 } }
+      text: "{name} tries to explain {skill}, but it does not click today."
+    backfire:
+      contact: { trust: { bias: -1.5 } }
+      text: "You ask a naive question about {skill}. {name} seems to doubt you are serious."
