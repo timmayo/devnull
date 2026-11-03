@@ -1,0 +1,33 @@
+# The tape: real companies shown as market data only. They never take plot actions.
+# Day 1 of a run uses real, delayed quotes (fetched when the run starts). After
+# that the prices move on a simulated path tied to the game's market sentiment,
+# and the digest says so. Edit the lists freely.
+#
+# Neo-cloud picks: the five largest US-listed neoclouds by market value at the
+# Oct 12, 2026 close, per https://portfolio-terminal.com/blog/neocloud-stocks-what-is-a-neocloud
+# (page dated Oct 13, 2026; a secondary source, retrieved 2026-11-03). Revisit
+# periodically: this group moves fast.
+
+groups:
+  megacorps:
+    title: "MEGA CORPS"
+    beta: 0.8             # sensitivity to game market sentiment
+    sigma: 0.012          # daily noise in simulated days
+    tickers:
+      MSFT:  Microsoft
+      AAPL:  Apple
+      META:  Meta
+      GOOGL: Alphabet (Google)
+      AMZN:  Amazon
+  neoclouds:
+    title: "NEO-CLOUDS"
+    beta: 1.6
+    sigma: 0.03
+    tickers:
+      NBIS: Nebius
+      CRWV: CoreWeave
+      IREN: IREN
+      HUT:  Hut 8
+      APLD: Applied Digital
+
+sim_drift_per_point: 0.002   # log-return per point of change in game market sentiment, times beta

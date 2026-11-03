@@ -1,0 +1,2 @@
+[console_scripts]
+devnull = devnull.ui.cli:main

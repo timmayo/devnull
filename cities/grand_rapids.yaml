@@ -25,19 +25,19 @@ real:
     tax_base_notes:  { value: VERIFY, source: "city budget docs", retrieved: VERIFY }
 
   government_structure:           # structure only, no people
-    form:            { value: VERIFY, source: "city charter", retrieved: VERIFY }
-    mayor_powers:    { value: VERIFY, source: "city charter", retrieved: VERIFY }
-    council_size:    { value: VERIFY, source: "city charter", retrieved: VERIFY }
-    ward_system:     { value: VERIFY, source: "city charter", retrieved: VERIFY }
-    meeting_schedule: { value: VERIFY, source: "city clerk", retrieved: VERIFY }
-    election_calendar: { value: VERIFY, source: "county clerk", retrieved: VERIFY }
-    recall_rules:    { value: VERIFY, source: "state statute", retrieved: VERIFY }
+    form:            { value: "City Commission appoints a city manager as chief administrator (the page does not name the form; council-manager is our reading)", source: "https://www.grandrapidsmi.gov/Government/Departments/Office-of-the-City-Commission", retrieved: "2026-11-03", status: partial }
+    mayor_powers:    { value: "Elected at large; official head of the city; presides when the Commission makes decisions. Vote and veto powers not stated on the page.", source: "https://www.grandrapidsmi.gov/Government/Departments/Office-of-the-City-Commission", retrieved: "2026-11-03", status: VERIFY_vote_veto_and_term }
+    council_size:    { value: "6 ward commissioners plus the mayor (7 members, implied by '2 per ward' x 3 wards plus mayor). cast_templates.council_members uses 6; the mayor is a separate role.", source: "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/", retrieved: "2026-11-03", status: partial }
+    ward_system:     { value: "3 wards, 2 commissioners each; four-year overlapping terms; one commissioner per ward chosen every two years", source: "https://www.grandrapidsmi.gov/Government/Departments/Office-of-the-City-Commission", retrieved: "2026-11-03" }
+    meeting_schedule: { value: "Regular meetings on Tuesdays, usually every other week, 7:00 pm; standing committees meet the morning of regular meeting days; written communications for the agenda are due 2:00 pm the Wednesday before; schedule published before Jan 1", source: "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/", retrieved: "2026-11-03" }
+    election_calendar: { value: VERIFY, note: "commissioner staggering is known (see ward_system); mayor term length, nonpartisan status, and election dates still needed", source: "city charter / Kent County clerk", retrieved: VERIFY }
+    recall_rules:    { value: "Michigan Election Law: signatures equal to 25% of the votes cast for governor in the official's district; 60 days to collect; petition reason must be clear and factual (county election commission decides, appeal to circuit court); election at least 95 days after filing, on the next May or November election date; terms longer than two years cannot be recalled in the first or last year. Grand Rapids charter recall provisions not yet checked.", source: "https://ballotpedia.org/Michigan_Recall_Law (secondary); primary: MCL 168.951 et seq.", retrieved: "2026-11-03", status: VERIFY_against_statute_and_charter }
 
   law:
-    open_meetings:   { strength: VERIFY, citation: "state statute", retrieved: VERIFY }
-    public_records:  { strength: VERIFY, response_days: VERIFY, citation: "state statute", retrieved: VERIFY }
-    zoning_process:  { value: VERIFY, citation: "city zoning code", retrieved: VERIFY }
-    utility_commission: { type: VERIFY, citation: "state statute", retrieved: VERIFY }
+    open_meetings:   { strength: "moderate (design rating, derived from the rules below)", rules: "Special or rescheduled meetings need notice at least 18 hours ahead; closed sessions need a 2/3 roll-call vote for most purposes and must cite the statutory purpose; a court may invalidate a decision made in violation; suit must be brought within 60 days after approved minutes are public (30 days for contracts, bids and bond procedures); a body may cure by reenacting the decision in compliance; intentional violation is a misdemeanor; personal civil liability up to $500 per meeting", citation: "Michigan Open Meetings Act, MCL 15.261 et seq. (sections 15.263, 15.265, 15.267, 15.268, 15.270, 15.272, 15.273); summarized in the Michigan AG OMA Handbook, Oct 2022", source: "https://www.michigan.gov/ag/-/media/Project/Websites/AG/open-meetings/OMA-Handbook-October-2022.pdf", retrieved: "2026-11-03", status: VERIFY_amendments_since_2022 }
+    public_records:  { strength: "moderate (design rating)", response_days: "5 business days to respond; one notice of extension of up to 10 business days; silence counts as a denial if the failure was willful and intentional, or the request clearly said FOIA or information in its first 250 words or subject line", citation: "Michigan Freedom of Information Act, MCL 15.235", source: "https://capitol.legislature.mi.gov/documents/mcl/pdf/mcl-15-235.pdf", retrieved: "2026-11-03" }
+    zoning_process:  { value: "Planning staff review -> Planning Commission public hearing (notice 15 days before) -> Planning Commission recommends (it does not decide) -> City Commission reviews in committee, may hold an additional public hearing -> City Commission decides -> rezoning typically takes effect 30 days after the decision", citation: "City of Grand Rapids, Apply for a Zone Change (city zoning code section not yet checked)", source: "https://www.grandrapidsmi.gov/departments/planning-department/apply-for-a-zone-change", retrieved: "2026-11-03", status: VERIFY_code_section_and_mailing_radius }
+    utility_commission: { type: "state public service commission (Michigan Public Service Commission)", citation: "MPSC order in Case U-21859 (Consumers Energy), Nov 6, 2025; enabling statute not yet cited", source: "https://www.michigan.gov/mpsc/commission/news-releases/2025/11/06/mpsc-approves-terms-of-service-between-consumers-energy-and-data-centers", retrieved: "2026-11-03", status: VERIFY_statute_and_whether_GR_is_served_by_this_utility }
     state_preemption_baseline: { value: VERIFY, source: "legislature / counsel review", retrieved: VERIFY }
 
   conditions:
@@ -50,7 +50,7 @@ real:
   # They supply facts (rate structure, department size). They never act in the plot.
   background_institutions:
     police_department:  { staffing: VERIFY, source: "city budget", retrieved: VERIFY }
-    utility:            { rate_structure: VERIFY, source: "tariff filings", retrieved: VERIFY }
+    utility:            { rate_structure: "Large-load rule (Consumers Energy, Rate GPD data center provision, approved Nov 6, 2025): applies at 100 MW (or aggregated 100 MW where each same-owner site is 20 MW or more); minimum 15-year contract, auto-extends 5 years unless 4 years' written notice; 80% minimum billing demand; exit fee = minimum monthly bill x months remaining, with collateral of half the exit fee. Whether Grand Rapids is in this utility's electric territory is still VERIFY.", source: "https://www.michigan.gov/mpsc/commission/news-releases/2025/11/06/mpsc-approves-terms-of-service-between-consumers-energy-and-data-centers", retrieved: "2026-11-03" }
     local_press:        { type: "daily / weekly", source: VERIFY, retrieved: VERIFY }
 
 # ---------------------------------------------------------------
@@ -97,4 +97,215 @@ fictional:
 # DISPLAY
 # ---------------------------------------------------------------
 display:
-  disclaimer: "Set in a real city. All characters, organizations, and events in the story are fictional."
+  disclaimer: "Set in a real city. Items marked [real] are real, dated and linked to their source. Everything else (all characters, organizations and events in the story) is fictional."
+  digest_notes:                   # real texture shown in the morning news
+    tuesday: "The City Commission usually meets on Tuesdays at 7:00 pm."   # source: grandrapidsmi.gov City Commission page, retrieved 2026-11-03
+
+# ---------------------------------------------------------------
+# NEWS
+# Real items appear only while the in-game date is inside `window` (inclusive).
+# Summaries are in our own words; the link is the source. Add items with a
+# source, publication date and the date we retrieved it. Fillers are generic and
+# fictional: no real names, streets, teams or outlets.
+# ---------------------------------------------------------------
+news:
+  real_events:
+    - id: early_voting_2026
+      window: [2026-10-20, 2026-11-02]
+      text: "Early voting is open in Grand Rapids. Registered voters can use any of four early-voting sites, and unregistered residents can still register at the city clerk's office with a photo ID and proof of residency."
+      source: "FOX 17"
+      published: 2026-10-20
+      url: "https://www.fox17online.com/news/local-news/grand-rapids/early-voting-begins-in-grand-rapids-what-voters-need-to-know"
+      retrieved: 2026-11-03
+    - id: general_election_2026
+      window: [2026-11-03, 2026-11-03]
+      text: "Election Day in Kent County: the November 3, 2026 general election. Same-day registration is available at the city clerk's office with a photo ID and proof of residency."
+      source: "Kent County Elections and FOX 17"
+      published: 2026-10-20
+      url: "https://www.kentcountymi.gov/662/Candidates-Proposals"
+      retrieved: 2026-11-03
+  fillers:
+    all:
+      - "Crews close a lane downtown for utility work; expect delays near the river."
+      - "A food truck rally draws a crowd on the west side."
+      - "A neighborhood group announces a cleanup day for next weekend."
+      - "The library extends its evening hours this month."
+      - "A water main repair slows traffic on a side street."
+      - "Local restaurants report a busy weekend."
+    winter:
+      - "Plows run overnight as lake-effect snow moves through."
+      - "Warming centers open as temperatures drop."
+      - "Salt crews work the main roads ahead of an icy morning."
+    spring:
+      - "Potholes multiply after the thaw; crews patch the worst ones."
+      - "Farmers' market stalls start filling up again."
+    summer:
+      - "Heat advisory: the city opens cooling centers."
+      - "Outdoor concerts and festivals fill the weekend."
+    fall:
+      - "Leaf collection begins in several neighborhoods."
+      - "Orchards and cider mills report big weekend crowds."
+
+# ---------------------------------------------------------------
+# EVENTS
+# Real, dated, linked. Each borrows a meeting template (`kind`, in contacts.yaml)
+# for who attends; the people you meet are always fictional. Titles, dates,
+# times and venues are copied from the sources below; check the link before
+# relying on them. Not yet covered: Eventbrite and Meetup listings (the game's
+# recurring meeting types stand in for those).
+# Sources: https://www.experiencegr.com/events/  https://grandrapids.org/events/
+# ---------------------------------------------------------------
+events:
+    - id: restaurant_week
+      title: "Restaurant Week GR"
+      start: 2026-11-06
+      end: 2026-11-14
+      time: "all day"
+      hours: 2
+      kind: civic_festival
+      venue: "participating restaurants"
+      source: "Experience Grand Rapids"
+      url: "https://www.experiencegr.com/event/restaurant-week-gr/95758/"
+      retrieved: 2026-11-03
+    - id: first_friday_nov
+      title: "First Friday Update (webinar)"
+      start: 2026-11-06
+      time: "10:00 am"
+      hours: 1
+      kind: webinar
+      venue: "Zoom"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/first-friday-update-11-6/"
+      retrieved: 2026-11-03
+    - id: talent_hr_summit
+      title: "Talent & Human Resources Summit"
+      start: 2026-11-10
+      time: "7:30 am"
+      hours: 4
+      kind: business_mixer
+      venue: "JW Marriott Grand Rapids"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/talent-human-resources-summit-2026/"
+      retrieved: 2026-11-03
+    - id: minority_contractors
+      title: "West Michigan Minority Contractors"
+      start: 2026-11-12
+      time: "4:00 pm"
+      hours: 2
+      kind: business_mixer
+      venue: "Grand Rapids Chamber, 250 Monroe Ave"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/west-michigan-minority-contractors-11-12/"
+      retrieved: 2026-11-03
+    - id: comic_con
+      title: "Grand Rapids Comic Con 2026"
+      start: 2026-11-13
+      time: "all day"
+      hours: 4
+      kind: fan_convention
+      venue: "DeVos Place"
+      source: "Experience Grand Rapids"
+      url: "https://www.experiencegr.com/event/grand-rapids-comic-con-2026/99694/"
+      retrieved: 2026-11-03
+    - id: athena_forum
+      title: "ATHENA Leadership Forum"
+      start: 2026-11-17
+      time: "3:00 pm"
+      hours: 2
+      kind: business_mixer
+      venue: "The Big Room at SILVA"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/athena-leadership-forum-11-17/"
+      retrieved: 2026-11-03
+    - id: christkindl_markt
+      title: "Christkindl Markt 2026"
+      start: 2026-11-18
+      end: 2026-12-24
+      time: "afternoon"
+      hours: 2
+      kind: civic_festival
+      venue: "Grand Rapids Downtown Market"
+      source: "Experience Grand Rapids"
+      url: "https://www.experiencegr.com/event/christkindl-markt-2026/96332/"
+      retrieved: 2026-11-03
+    - id: exchange_lunch_nov
+      title: "Business Exchange Luncheon"
+      start: 2026-11-19
+      time: "11:30 am"
+      hours: 2
+      kind: business_mixer
+      venue: "Sheraton Grand Rapids Airport"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/business-exchange-luncheon-11-19/"
+      retrieved: 2026-11-03
+    - id: issues_forum_tech
+      title: "Chamber Issues Forum: Technology and the Future of Public Safety"
+      start: 2026-11-20
+      time: "8:00 am"
+      hours: 2
+      kind: policy_forum
+      venue: "Grand Rapids Chamber, 250 Monroe Ave"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/chamber-issues-forum-11-20/"
+      retrieved: 2026-11-03
+    - id: enlighten
+      title: "ENLIGHTEN Presented by PNC Bank"
+      start: 2026-11-23
+      end: 2027-01-10
+      time: "evening"
+      hours: 2
+      kind: civic_festival
+      venue: "Frederik Meijer Gardens & Sculpture Park"
+      source: "Experience Grand Rapids"
+      url: "https://www.experiencegr.com/event/enlighten-presented-by-pnc-bank/96824/"
+      retrieved: 2026-11-03
+    - id: exchange_breakfast_dec
+      title: "Business Exchange Breakfast"
+      start: 2026-12-03
+      time: "8:00 am"
+      hours: 2
+      kind: business_mixer
+      venue: "Grand Rapids Chamber, 250 Monroe Ave"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/business-exchange-breakfast-12-3/"
+      retrieved: 2026-11-03
+    - id: first_friday_dec
+      title: "First Friday Update (webinar)"
+      start: 2026-12-04
+      time: "10:00 am"
+      hours: 1
+      kind: webinar
+      venue: "Zoom"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/first-friday-update-12-4/"
+      retrieved: 2026-11-03
+    - id: legislators_breakfast
+      title: "Breakfast With Legislators"
+      start: 2026-12-07
+      time: "7:30 am"
+      hours: 2
+      kind: policy_forum
+      venue: "Grand Rapids Chamber, 250 Monroe Ave"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/breakfast-with-legislators-12-7/"
+      retrieved: 2026-11-03
+    - id: growth_workshop_dec
+      title: "Business Growth Workshop: Momentum Marketing"
+      start: 2026-12-08
+      time: "8:30 am"
+      hours: 2
+      kind: business_mixer
+      venue: "Grand Rapids Chamber, 250 Monroe Ave"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/business-growth-workshop-12-8/"
+      retrieved: 2026-11-03
+    - id: exchange_lunch_dec
+      title: "Business Exchange Luncheon"
+      start: 2026-12-17
+      time: "11:30 am"
+      hours: 2
+      kind: business_mixer
+      venue: "Sheraton Grand Rapids Airport"
+      source: "Grand Rapids Chamber"
+      url: "https://grandrapids.org/event/business-exchange-luncheon-12-17/"
+      retrieved: 2026-11-03

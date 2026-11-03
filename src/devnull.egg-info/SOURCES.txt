@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/devnull/__init__.py
+src/devnull.egg-info/PKG-INFO
+src/devnull.egg-info/SOURCES.txt
+src/devnull.egg-info/dependency_links.txt
+src/devnull.egg-info/entry_points.txt
+src/devnull.egg-info/requires.txt
+src/devnull.egg-info/top_level.txt
+src/devnull/core/__init__.py
+src/devnull/core/digest.py
+src/devnull/core/policies.py
+src/devnull/core/sim.py
+src/devnull/core/world.py
+src/devnull/ui/__init__.py
+src/devnull/ui/cli.py

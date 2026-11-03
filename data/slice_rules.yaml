@@ -1,11 +1,15 @@
 # Vertical slice update rules (v0). Explicit edges for the slice variables.
 #
-# Names are short ids; the first ten map to world_state.yaml as:
+# Short ids map to world_state.yaml where one exists:
 #   cash=player.cash  legibility=player.legibility  heat=player.heat
 #   ai=world_meters.ai_capability  opinion=world_meters.public_opinion_ai
 #   market=world_meters.market_sentiment  case_file=police.case_file_on_player
 #   fbi=fbi.open_case_status  nsa=nsa.collection_coverage  trust=npcs.trust
-# Added for the opening: regulation, laptop, lead_store, lead_npc, burnout, cover.
+#   regulation=world_meters.regulatory_pressure  skills=player.skills
+#   burnout=player.burnout  cover=player.cover_quality  cred=player.credibility
+#   evidence/auth/verified=information.*  case=courts_legal.case_strength
+#   filed=courts_legal.case_stage  terms=ambiguity.accountability_terms
+# Gear flags: laptop, os, gear_* (see `gear` and `shop`).
 #
 # An expression is:  value = bias + sum(coef * source) + noise * N(0,1)
 # Sources are read from the state AFTER the player's actions this turn, so
@@ -15,7 +19,7 @@
 #   relax:    x += rate * (expr - x)      moves toward a target
 #   add:      x += expr                   drift or accumulation
 #   logistic: S-curve, terms scale the rate
-#   ladder:   fbi only, see below
+#   ladder:   fbi only; lawsuit: see the blocks below
 #
 # Every number here is a first guess for tuning, not a fact.
 
@@ -30,8 +34,8 @@ calendar:
   count_delay_days: 1             # ballots are counted the day after
 
 # Daily life. Turn 0 is the first morning: a cheap apartment, a day job the
-# player dislikes, and a cheap laptop whose battery is dead (it only runs
-# while plugged in).
+# player dislikes, and a cheap laptop (Windows 11) whose battery is dead: it
+# only runs while plugged in.
 daily:
   upkeep: 62                      # rent, food, transit, phone: per day
   job:
@@ -48,8 +52,8 @@ daily:
 # Online actions on a laptop that only runs plugged in are tied to the
 # apartment's connection, which leaves a trail. Applied while laptop == 0.
 tethered_extra:
-  legibility: 1.5
-  case_file: 0.5
+  legibility: { bias: 1.5, terms: { gear_vpn: -1.0 } }
+  case_file: { bias: 0.5, terms: { gear_vpn: -0.4 } }
 
 start:
   cash: 350
@@ -61,13 +65,30 @@ start:
   case_file: 0
   fbi: 0
   nsa: 40
-  trust: 20
+  trust: 0              # derived: average of your two best contacts' trust
+  press_trust: 0        # derived: trust of your best reporter contact
+  techie_trust: 0       # derived: trust of your best developer contact
+  contacts_n: 0         # derived: how many people you know
   regulation: 10
+  elite_alarm: 70       # how worried the Mega Corp CEOs are that AI could end humanity
+  public_concern: 10    # how worried ordinary people are; most treat AI as a search engine
   laptop: 0             # 0 = cheap, battery dead; 1 = working battery, mobile
+  os: 0                 # 0 = Windows 11; 1 = Linux
   lead_store: 0         # 1 once the player has found where to buy a laptop
   lead_npc: 0           # 1 once an NPC has offered to help with a laptop
+  lead_linux: 0          # 1 once the player has learned how to run Linux
   burnout: 15
   cover: 30             # the day job is a plausible, boring cover story
+  skills: 5
+  evidence: 0           # documents and facts held about the project
+  auth: 55              # how trustworthy that material is
+  verified: 0           # how much of it has been corroborated
+  cred: 50              # credibility with press and courts
+  filed: 0              # lawsuit stage: 0 none, 1 filed, 2 hearing, 3 ruling
+  case: 0               # strength of the lawsuit
+  terms: 0              # accountability terms won (reform, not a blocked site)
+  gear_burner: 0        # placeholder hardware
+  gear_vpn: 0           # placeholder app
 
 ranges:
   cash: [-1000000, 1000000]
@@ -80,24 +101,65 @@ ranges:
   fbi: [0, 4]           # 0 none, 1 lead, 2 preliminary, 3 full, 4 grand_jury
   nsa: [0, 100]
   trust: [0, 100]
-  regulation: [0, 100]   # world_state regulatory_pressure; moved by elections
+  regulation: [0, 100]   # moved by elections and court wins
   laptop: [0, 2]
+  os: [0, 1]
   lead_store: [0, 1]
   lead_npc: [0, 1]
+  lead_linux: [0, 1]
   burnout: [0, 100]
   cover: [0, 100]
+  skills: [0, 100]
+  evidence: [0, 100]
+  auth: [0, 100]
+  verified: [0, 100]
+  cred: [0, 100]
+  filed: [0, 3]
+  case: [0, 100]
+  terms: [0, 100]
+  gear_burner: [0, 1]
+  gear_vpn: [0, 1]
+  press_trust: [0, 100]
+  techie_trust: [0, 100]
+  contacts_n: [0, 1000]
+  elite_alarm: [0, 100]
+  public_concern: [0, 100]
+
+# Gear. The laptop's OS, hardware and apps open options as they are acquired.
+# Hardware and apps beyond the placeholders below are still to be designed.
+gear:
+  os:
+    windows11: { owned_at_start: true, note: "Day 1 default. Everyday and heavily logged." }
+    linux:     { how: "learn how (research), then install_linux", unlocks: [hack, stronger trace] }
+  hardware:
+    laptop_battery: { how: "browse_store then upgrade_store, or a trusted contact (upgrade_npc)", unlocks: [mobile online actions, no tether trail, live coverage at events] }
+    burner_phone:   { placeholder: true, how: "buy burner_phone", unlocks: [quieter meetings] }
+    tbd:            "more hardware to be designed"
+  apps:
+    vpn:            { placeholder: true, how: "buy vpn", unlocks: [smaller tether trail] }
+    tbd:            "more apps to be designed"
+
+# Shop items for `buy <item>`.
+shop:
+  burner_phone: { price: 80, unlock: { contacts_n: 1 }, flag: gear_burner, category: hardware, placeholder: true, note: "A prepaid phone for meetings." }
+  vpn:          { price: 15, unlock: { skills: 6 }, flag: gear_vpn, category: apps, placeholder: true, note: "Hides your apartment's connection from the sites you visit." }
 
 world:
   ai:
     kind: logistic        # S-curve; drivers scale the growth rate multiplicatively
     rate: 0.001           # per day; unopposed it goes ~30 -> ~90 over 8 years
     cap: 100
-    terms: { market: 0.012, opinion: 0.01, regulation: -0.03 }
+    terms: { market: 0.012, opinion: 0.01, regulation: -0.03, terms: -0.01, elite_alarm: 0.003 }   # alarmed CEOs race, not brake
     noise: 0.02
   regulation:
-    kind: add             # elections add to it; this is the daily decay of past wins
+    kind: add             # elections and court wins add to it; this is the decay of past wins
     bias: 0
     terms: { regulation: -0.001 }
+    noise: 0
+  terms:
+    kind: add             # accountability terms erode unless someone keeps watching
+    bias: 0
+    terms: { terms: -0.02 }
     noise: 0
   market:
     kind: relax
@@ -114,7 +176,7 @@ world:
   opinion:
     kind: add
     bias: 0.85            # corporate persuasion pushes opinion up
-    terms: { opinion: -0.01 }   # mean reversion
+    terms: { opinion: -0.01, public_concern: -0.02 }   # mean reversion; concern pushes against AI
     noise: 1.5
   heat:
     kind: relax
@@ -133,15 +195,32 @@ world:
     bias: -1.25
     terms: { legibility: 0.06, heat: 0.12 }
     noise: 1.0
-  trust:
+  elite_alarm:
+    kind: relax           # insiders grow more alarmed as capability grows
+    rate: 0.01
+    bias: 40
+    terms: { ai: 0.5 }
+    noise: 0
+  public_concern:
+    kind: add             # slow awakening; leaks and posts push it up
+    bias: 0
+    terms: { ai: 0.0015, public_concern: -0.003 }
+    noise: 0
+  cred:
+    kind: relax
+    rate: 0.01
+    bias: 50
+    terms: {}
+    noise: 0
+  verified:
     kind: add
-    bias: -0.3
+    bias: -0.05           # corroboration goes stale
     terms: {}
     noise: 0
 
 # Elections: applied on the day after each federal general election.
 election:
-  regulation: { bias: 0, terms: { opinion: -0.6 }, noise: 4 }
+  regulation: { bias: 0, terms: { opinion: -0.6, public_concern: 0.15 }, noise: 4 }
 
 # FBI case ladder. Advances one level with probability p_up when case_file is
 # at or above the threshold for the next level; falls one level with
@@ -155,90 +234,233 @@ ladder:
   p_down: 0.10
   drop_margin: 20
 
+# Lawsuit. After `file`, the case moves one stage with probability p_advance
+# per day (about 45 days per stage). At the ruling stage the court decides:
+# a win has probability case/100.
+lawsuit:
+  var: filed
+  strength: case
+  p_advance: 0.022
+  win:  { regulation: 12, opinion: -8 }
+  lose: { opinion: 3, trust: -3 }
+
 # Player actions. Each action costs `hours` of the day's free hours.
 #   requires:     every listed variable must be >= the value
 #   requires_max: every listed variable must be <= the value
 #   online:       true -> uses the laptop (see tethered_extra)
+#   unlock:       command stays hidden until every listed variable reaches its value (sticky)
+#   why:          shown when the requirements are not met
+#   done:         one line shown after the action
 # An effect is an expression added to the variable, or a chance to set it:
-#   { set: 1, p: 0.25 }          set the variable to 1 with probability p
-#   { ..., if: { trust: 25 } }   only applies when trust >= 25
+#   { set: 1, p: 0.25, msg: "..." }    set to 1 with probability p; msg shows on success
+#   { ..., if: { trust: 25 } }         only applies when trust >= 25
+#   { ..., delay: [5, 15] }            applies after that many days (a records request)
 actions:
   extra_shift:
     hours: 3
+    help: "Pick up a shift. +$45, more burnout."
+    done: "You pick up an extra shift. Your feet hurt."
     effects:
       cash: { bias: 45 }
       burnout: { bias: 2.5 }
   rest:
     hours: 2
+    help: "Sleep, eat, stop. Lowers burnout."
+    done: "You sleep, eat something real, and stare at the ceiling."
     effects:
       burnout: { bias: -4 }
   trade:
     hours: 1
     online: true
+    help: "Small trades. Pays when market sentiment is up."
+    done: "You place a few small trades."
     effects:
       cash: { bias: 10, terms: { market: 1.0 }, noise: 20 }
       legibility: { bias: 0.5 }
   attend:
     hours: 2
+    help: "Go to a meeting happening today. Moves opinion; you may meet people."
+    done: "You sit in the back of a public meeting and take notes."
     effects:
       opinion: { bias: -0.8, terms: { laptop: -0.4, opinion: -0.006 } }   # live coverage needs a mobile laptop
-      trust: { bias: 1 }
       heat: { bias: 1 }
       case_file: { bias: 0.5 }
       burnout: { bias: 0.5 }
   feed:
     hours: 1
     online: true
+    help: "Post. Moves opinion, makes noise."
+    done: "You post. Some people read it."
     effects:
-      opinion: { bias: -1.5, terms: { opinion: -0.012 } }   # diminishing returns: harder to move the further you have
+      opinion: { bias: -1.5, terms: { opinion: -0.012 } }   # diminishing returns
+      public_concern: { bias: 0.1 }
       heat: { bias: 3 }
       legibility: { bias: 1 }
       burnout: { bias: 0.3 }
-  leak:
-    hours: 2
-    online: true
-    requires: { trust: 20 }
-    effects:
-      opinion: { bias: 0, terms: { trust: -0.08, opinion: -0.018 } }   # better sources land harder
-      market: { bias: -5 }
-      heat: { bias: 12 }
-      case_file: { bias: 3 }
-      trust: { bias: -2 }
-      burnout: { bias: 1.5 }
-  meet:
-    hours: 2
-    effects:
-      trust: { bias: 4 }
-      legibility: { bias: 1 }
-      burnout: { bias: 0.3 }
-      lead_npc: { set: 1, p: 0.10, if: { trust: 25 } }   # a contact offers to help with the laptop
   lay_low:
     hours: 3
+    help: "Stay quiet. Heat and suspicion fall."
+    done: "You stay in. No posts, no messages."
     effects:
       heat: { bias: -6 }
       case_file: { bias: -3 }
       legibility: { bias: -1 }
-  # Ways to fix the laptop. The player has to find them.
-  browse_store:                       # walk the electronics shops and pawn shops
-    hours: 2
-    requires_max: { lead_store: 0 }
+
+  # --- investigation and publishing ---
+  records:
+    hours: 1
+    online: true
+    help: "File a public-records request. Answers arrive in days or weeks."
+    done: "Request filed. Michigan law gives them 5 business days to answer, plus a possible 10-day extension."
     effects:
-      lead_store: { set: 1, p: 0.08 }
-  upgrade_store:                      # buy a used laptop with a working battery
+      legibility: { bias: 0.5 }
+      case_file: { bias: 0.3 }
+      evidence: { bias: 6, terms: { evidence: -0.05 }, noise: 2, delay: [5, 15] }
+  trace:
     hours: 2
+    online: true
+    help: "Follow the money and the shell companies. Better with Linux."
+    done: "You follow shell companies through filings until the names run out."
+    requires: { skills: 5 }
+    why: "You are not skilled enough yet."
+    effects:
+      evidence: { bias: 2.5, terms: { skills: 0.05, os: 1.5, evidence: -0.03 }, noise: 1 }
+      skills: { bias: 0.3 }
+      heat: { bias: 1.5 }
+      legibility: { bias: 1 }
+      auth: { bias: -0.5 }
+  verify:
+    hours: 2
+    help: "Corroborate what you hold. Makes publishing and court safer."
+    unlock: { evidence: 1 }
+    done: "You cross-check what you hold against a second source."
+    requires: { evidence: 10 }
+    why: "You have little to verify."
+    effects:
+      verified: { bias: 6, terms: { verified: -0.05 } }
+      auth: { bias: 1.5, terms: { auth: -0.012 } }
+      burnout: { bias: 0.3 }
+  leak:
+    hours: 2
+    online: true
+    help: "Give evidence to the press. Big effect, big heat. Unverified leaks cost credibility."
+    unlock: { evidence: 5 }
+    done: "You hand material to a reporter and walk away."
+    requires: { press_trust: 20, evidence: 10 }
+    why: "You need a reporter who trusts you and something worth leaking."
+    effects:
+      opinion: { bias: 0, terms: { press_trust: -0.012, evidence: -0.03, verified: -0.018, cred: -0.012, opinion: -0.018 } }
+      market: { bias: -5 }
+      public_concern: { bias: 0.6, terms: { elite_alarm: 0.01, evidence: 0.01 } }   # insiders' private alarm goes public
+      heat: { bias: 12 }
+      case_file: { bias: 3 }
+      burnout: { bias: 1.5 }
+      evidence: { bias: -8 }
+      cred: { bias: -4, terms: { verified: 0.06, auth: 0.03 } }
+  file:
+    hours: 3
+    help: "File a lawsuit. Costs $300; takes months; strength depends on your evidence."
+    unlock: { evidence: 15 }
+    requires: { evidence: 20, cash: 300 }
+    requires_max: { filed: 0 }
+    why: "You need evidence worth filing, $300, and no case already open."
+    effects:
+      cash: { bias: -300 }
+      filed: { set: 1, msg: "Filed. The clerk stamps it and gives you a case number." }
+      case: { bias: 0, terms: { evidence: 0.5, verified: 0.3, auth: 0.2, cred: 0.15 } }
+      heat: { bias: 2 }
+      case_file: { bias: 2 }
+      legibility: { bias: 2 }
+  negotiate:
+    hours: 3
+    help: "Sit down for accountability terms. A reform, not a blocked site."
+    unlock: { evidence: 10, trust: 25 }
+    done: "You sit across a table from people who would rather you were not there."
+    requires: { trust: 40, evidence: 15 }
+    why: "You need trust and leverage before anyone will sit down."
+    effects:
+      terms: { bias: 1.5 }
+      regulation: { bias: 1 }
+      opinion: { bias: 0.5 }
+      trust: { bias: -1 }
+      burnout: { bias: 0.5 }
+  maintain:
+    hours: 2
+    help: "Watch that agreements are followed. Keeps terms from eroding."
+    unlock: { terms: 1 }
+    done: "You check that the agreements are being followed."
+    requires: { terms: 1 }
+    why: "There are no agreements to watch."
+    effects:
+      terms: { bias: 0.8 }
+      burnout: { bias: 0.3 }
+  hack:
+    hours: 3
+    online: true
+    help: "Breach a system. Real evidence, real risk. Needs Linux and skill."
+    unlock: { os: 1 }
+    done: "You get into a system you should not be in."
+    requires: { os: 1, laptop: 1, skills: 15 }
+    why: "You need a working laptop running Linux and more skill."
+    effects:
+      evidence: { bias: 8, terms: { skills: 0.1 }, noise: 3 }
+      auth: { bias: -3 }
+      heat: { bias: 8 }
+      legibility: { bias: 2 }
+      case_file: { bias: 5 }
+      skills: { bias: 0.8 }
+      burnout: { bias: 0.8 }
+  research:
+    hours: 2
+    online: true
+    help: "Read, learn, practice. Builds skill; you may find out how to run Linux."
+    done: "You read until your eyes hurt."
+    effects:
+      skills: { bias: 0.8 }
+      lead_linux: { set: 1, p: 0.07, if: { skills: 6 }, msg: "A forum thread explains how to boot Linux from a USB stick. Now you know how." }
+  install_linux:
+    hours: 3
+    online: true
+    help: "Install Linux next to Windows 11."
+    unlock: { lead_linux: 1 }
+    requires: { lead_linux: 1, laptop: 1 }
+    requires_max: { os: 0 }
+    why: "You need to know how, and a laptop that runs on battery."
+    effects:
+      os: { set: 1, msg: "Linux installed. The laptop now boots to a different world." }
+      skills: { bias: 2 }
+      legibility: { bias: 0.5 }
+
+  # --- ways to fix the laptop. The player has to find them. ---
+  browse_store:
+    hours: 2
+    help: "Walk the electronics and pawn shops."
+    done: "You spend two hours in shops that smell like solder."
+    requires_max: { lead_store: 0 }
+    why: "You already know where to buy one."
+    effects:
+      lead_store: { set: 1, p: 0.08, msg: "A pawn shop clerk says they refurbish used laptops with new batteries. $420." }
+  upgrade_store:
+    hours: 2
+    help: "Buy a used laptop with a working battery ($420)."
+    unlock: { lead_store: 1 }
     requires: { lead_store: 1, cash: 420 }
     requires_max: { laptop: 0 }
+    why: "You need to have found a seller, $420, and a dead battery."
     effects:
       cash: { bias: -420 }
-      laptop: { set: 1 }
-      legibility: { bias: 1 }         # a purchase trail
-  upgrade_npc:                        # a trusted contact swaps in a battery for a favor
+      laptop: { set: 1, msg: "New laptop, working battery. You can work anywhere now." }
+      legibility: { bias: 1 }
+  upgrade_npc:
     hours: 2
-    requires: { lead_npc: 1, trust: 35, cash: 150 }
+    help: "Have a developer you trust swap in a battery for a favor ($150)."
+    unlock: { lead_npc: 1 }
+    requires: { lead_npc: 1, techie_trust: 35, cash: 150 }
     requires_max: { laptop: 0 }
+    why: "You need a developer contact's offer, their trust (35), $150, and a dead battery."
     effects:
       cash: { bias: -150 }
-      laptop: { set: 1 }
+      laptop: { set: 1, msg: "Your contact swaps the battery. It holds a charge. You owe them." }
       trust: { bias: 2 }
 
 # Endings checked after the last turn, first match wins. Caught ends the run early.
@@ -246,5 +468,6 @@ endings:
   - { id: caught,        when: "fbi >= 4" }
   - { id: broke,         when: "cash <= -300" }
   - { id: pressure_won,  when: "opinion <= -25 and ai < 85" }
+  - { id: reform,        when: "terms >= 40 and ai < 90" }
   - { id: runaway,       when: "ai >= 85" }
   - { id: stalemate,     when: "True" }

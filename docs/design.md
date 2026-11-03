@@ -89,14 +89,46 @@ Actions that hurt the AI buildout most are the ones most likely to trip it, sinc
 - **Wins that decay:** every victory has a Win Durability and needs maintenance (watchdogs, follow-up elections). Decay happens at election and session boundaries.
 - **Fail-soft states** instead of game over: Under Investigation, Legal Defense, Lying Low, Operating Through Proxies, Exile / Relocation.
 
-## 5b. Time
+## 5b. Time and the opening
 
-- **1 turn = 1 day.** The simulation ticks daily; the player can batch quiet days (lay low, maintain, work) so a long run does not mean thousands of keypresses. A news digest summarizes skipped days.
-- **A run is up to 8 years.** It starts on Tuesday 2026-11-03, a US federal general election day (a midterm), and ends on the midterm election day 8 years later, 2034-11-07 (2,926 turns). That spans five federal elections: 2026 (turn 0), 2028, 2030, 2032 and 2034.
-- **Elections.** Ballots are counted the day after election day. The national result is seeded and fictional; real results are never encoded. In the slice an election moves `regulation` in proportion to public opinion, and `regulation` then decays daily and slows the AI clock.
+- **1 turn = 1 day.** The simulation ticks daily; the player can batch quiet days (lay low, rest, extra shifts) so a long run does not mean thousands of keypresses. A news digest summarizes skipped days.
+- **A run lasts up to 8 years from the day the player first picks a city.** The start date is the real date on the player's machine and is saved with the run. Any 8-year window contains exactly two US presidential elections and four federal general elections, so two full major cycles are guaranteed whenever the player starts.
+- **Elections.** Ballots are counted the day after election day. The national result is seeded and fictional; real results are never encoded. In the slice an election moves `regulation` in proportion to public opinion; `regulation` then decays daily and slows the AI clock.
 - **Endings are thresholds, not the calendar.** Most runs end early; the date is only a backstop.
 - **Capability Clock** is an S-curve (logistic). Public opinion, market sentiment and regulation scale its rate. Pressure can slow it, not stop it.
-- Local-election dates (Grand Rapids) are still `VERIFY`.
+- **Real-layer facts are dated.** City data carries a `retrieved` date, and a player may start years later. Show that date, and re-verify the city file on a schedule.
+
+### The first morning
+
+The player wakes up in a cheap apartment with a cheap laptop whose battery is dead: it only runs while plugged in. They have a weekday day job they dislike that pays little.
+
+- **Day job.** Monday to Friday. Take-home is low against daily costs, so there is a small surplus. It gives a boring cover story (lowers legibility) and costs hours and burnout. Burnout cuts the free hours left in the day.
+- **Free hours.** About 4 on a workday, 10 on a day off. Every action costs hours.
+- **The tethered laptop.** Online actions (posting, leaking, trading) work, but only from the apartment's connection, which leaves a trail: extra legibility and case-file suspicion. A mobile laptop also gives better coverage at live events.
+- **Fixing it is a discovery, not a menu item.** Two routes so far:
+  - *Store:* browse electronics and pawn shops to find a seller, then pay for a used laptop with a working battery.
+  - *NPC:* build enough trust with a contact for them to offer a battery swap for a favor.
+  Both are found by doing things in the world. Upgrades beyond this (hardened hardware, better tools) are open for later.
+- Cash has no real sink beyond the laptop yet, so a saver ends up rich.
+
+### Gear: OS, hardware, apps
+
+The laptop's operating system, hardware and apps are progression. Each item opens options when acquired, and the player has to find out how to get it.
+
+- **Operating system.** Day 1 is Windows 11. The player can learn how to run Linux (found by researching) and install it once the laptop works on battery. Linux unlocks `hack` and makes `trace` stronger.
+- **Hardware.** The battery fix is the first upgrade (see above). Other hardware is still to be designed. A placeholder burner phone exists to exercise the system: it makes meetings quieter.
+- **Apps.** Still to be designed. A placeholder VPN exists: it shrinks the trail left by the tethered laptop.
+- **How the code treats gear.** Each item is a state flag set by an action (`research`, `install_linux`, `buy <item>`, `upgrade_*`). Other actions read the flag in their `requires` lists or effect `terms`. New gear is added in `data/slice_rules.yaml` under `gear` and `shop`; no engine change needed.
+
+### Verbs in the slice
+
+Morning-to-night actions: `extra_shift`, `rest`, `trade`, `attend`, `feed`, `meet`, `lay_low`. Investigation and publishing: `records` (delayed reply, tied to Michigan FOIA timing), `trace`, `verify`, `leak`, `file` (a lawsuit that runs for months), `negotiate`, `maintain`, `hack`. Setup: `research`, `install_linux`, `browse_store`, `upgrade_store`, `upgrade_npc`, `buy <item>`.
+
+The legal route (`records`, `verify`, `file`, `negotiate`, `maintain`) builds evidence and accountability terms without breaking anything, and does not draw FBI attention the way `hack` and unverified `leak` do.
+
+### The morning news digest
+
+The digest is the player's only view of most hidden state. Headlines are lagged and noisy (AI progress, opinion, markets, regulation). A second section, "On your mind", turns hidden agency state into small signs (a patrol car, a blocked call, a bank notice). Silence is ambiguous: a quiet digest can mean safety or a missed sign. Real texture comes from the city file (for example the City Commission usually meets on Tuesdays).
 
 ## 6. Interface
 
@@ -132,3 +164,52 @@ The player selects a real city, and it keeps its real name. Real structure and c
 1. Coupling matrix across the capture loop, local layer, and agencies, to find orphan variables.
 2. Vertical slice (~30 minutes of play): AI Capability, Market Sentiment, Public Opinion, Legibility, Cash, Heat, NPC Trust, Police Case File, FBI Open Case Status, NSA Collection Coverage; 5 NPCs; one clock; one ending.
 3. Content as data: events, NPCs, companies, and dialogue in YAML, simulation in code, seeded RNG, plain-text saves.
+
+## 5c. People, meetings, and what you can see
+
+**Opening sentiment.** Every run starts with two opposed views, and the first
+digest says both: the CEOs of the Mega Corps warn that AI could end humanity
+(`elite_alarm` starts high, 70) while most of the public uses it as a glorified
+search engine (`public_concern` starts low, 10). Leaks and posts move public
+concern up; it feeds opinion against AI and the election effect on regulation.
+
+**Meetings.** `data/contacts.yaml` defines generic meeting types (city
+commission, planning commission, web user group, AI builders meetup,
+neighborhood association, labor hall, ratepayers group, library talk). The
+digest lists the ones held today; `attend [n]` goes to one. Only the City
+Commission schedule is a sourced fact; the others are game approximations
+modeled on the kinds of groups found on Meetup. Real group names are never used.
+
+**Contacts.** Each meeting has a chance to introduce a fictional person (names
+come from `pools/`, rejected if on the real-officials blocklist). Per contact:
+trust, bond, owes, leverage, ally, hostile, plus hidden traits and a possible
+plant. `contacts` lists them, `contact <n>` shows detail and the recorded
+history of everything done with them. `meet <n> [action]` offers coffee, favor,
+ask, confide, flirt, bribe, extort, recruit; each has a success, fail and
+backfire outcome, recorded in the history. Trust drifts down after three weeks
+of silence. Allies give small daily benefits.
+
+**Unlocks.** Commands appear when their `unlock` condition is met (sticky), and
+the CLI announces each new one. `status` is always available. Admin mode
+(`--admin`, or type `admin`) unlocks everything and adds `admin set|reveal|spawn|unlock|hours|skip`.
+
+## 5d. Events, meetings and the tape
+
+**Gatherings.** Meetings and real events are one list. The digest shows TODAY
+(attendable now, numbered) and UPCOMING (the next occurrence of each, with
+links); `upcoming [days]` shows further out. Real events live in the city file
+(`events:`) with a source link and retrieval date, and borrow a meeting
+template (`kind`) from `data/contacts.yaml` for who attends. The people you
+meet are always fictional. Eventbrite and Meetup are not scraped (no stable
+public feed); the recurring meeting types stand in for them.
+
+**The tape.** `data/market.yaml` lists the Mega Corps (Microsoft, Apple, Meta,
+Alphabet, Amazon) and five neo-clouds (Nebius, CoreWeave, IREN, Hut 8, Applied
+Digital; chosen by market value at the Oct 12, 2026 close from a secondary
+source, so revisit). Day 1 shows real delayed quotes fetched at run start
+(`devnull.core.market`: Stooq, then Yahoo, both free and unofficial). Later
+days are simulated from those prices, driven by the game's market sentiment, and
+the digest says so. Real companies appear as market data only and never take
+plot actions. **Before release:** use a licensed market-data feed (the free
+endpoints are for personal use) and have the use of company names and tickers
+reviewed along with the other trademark questions.

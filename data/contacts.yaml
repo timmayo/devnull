@@ -1,0 +1,327 @@
+# Contacts, meetings and what you can do with a contact (v0).
+#
+# Every person here is generated and fictional. Meeting TYPES are generic
+# categories modeled on kinds of real local meetings (checked against Meetup
+# search results for Grand Rapids: web, Python and AI-builder user groups, plus
+# neighborhood, labor and civic meetings). Real group names are never used.
+# Only the City Commission schedule is a sourced fact (see the city file);
+# the rest are game approximations. All numbers are first guesses.
+
+names:
+  surnames: pools/mi_surnames.txt
+  given: pools/given_names.txt
+  blocklist: pools/real_officials_blocklist.txt
+
+trust_bands: [[15, "stranger"], [30, "acquaintance"], [50, "friendly"], [75, "trusted"], [101, "inner circle"]]
+
+# NPC types. Traits are 0..1. plant_p = chance a new contact is reporting on you.
+# ask_gives = what asking a trusting contact for help can yield.
+types:
+  local_reporter:
+    label: "local reporter"
+    traits: { honesty: 0.7, talkative: 0.8, corruptibility: 0.10, plant_p: 0.02, loyalty: 0.5 }
+    ask_gives: { evidence: 1 }
+  union_rep:
+    label: "union rep"
+    traits: { honesty: 0.6, talkative: 0.6, corruptibility: 0.20, plant_p: 0.03, loyalty: 0.6 }
+    ask_gives: { evidence: 2 }
+    ally_daily: { opinion: -0.05 }
+  corporate_whistleblower:
+    label: "worried insider"
+    traits: { honesty: 0.5, talkative: 0.4, corruptibility: 0.20, plant_p: 0.10, loyalty: 0.4 }
+    ask_gives: { evidence: 8 }
+    ally_daily: { evidence: 0.2 }
+  state_regulator:
+    label: "state regulator"
+    traits: { honesty: 0.85, talkative: 0.3, corruptibility: 0.10, plant_p: 0.05, loyalty: 0.5 }
+    ask_gives: { evidence: 4 }
+    ally_daily: { regulation: 0.02 }
+  public_interest_lawyer:
+    label: "public-interest lawyer"
+    traits: { honesty: 0.8, talkative: 0.5, corruptibility: 0.05, plant_p: 0.03, loyalty: 0.7 }
+    ask_gives: { evidence: 3, cred: 1 }
+  rural_coop_manager:
+    label: "co-op manager"
+    traits: { honesty: 0.7, talkative: 0.5, corruptibility: 0.20, plant_p: 0.02, loyalty: 0.5 }
+    ask_gives: { evidence: 3 }
+  techie:
+    label: "software developer"
+    traits: { honesty: 0.6, talkative: 0.8, corruptibility: 0.20, plant_p: 0.03, loyalty: 0.5 }
+    ask_gives: { skills: 1 }
+    ally_daily: { skills: 0.05 }
+  neighbor_activist:
+    label: "neighborhood activist"
+    traits: { honesty: 0.75, talkative: 0.9, corruptibility: 0.10, plant_p: 0.02, loyalty: 0.7 }
+    ask_gives: { evidence: 1 }
+    ally_daily: { opinion: -0.04 }
+  developer_staffer:
+    label: "developer's staffer"
+    traits: { honesty: 0.3, talkative: 0.5, corruptibility: 0.50, plant_p: 0.20, loyalty: 0.3 }
+    ask_gives: { evidence: 5 }
+  lobbyist:
+    label: "lobbyist"
+    traits: { honesty: 0.2, talkative: 0.6, corruptibility: 0.60, plant_p: 0.25, loyalty: 0.2 }
+    ask_gives: { evidence: 4 }
+  police_officer:
+    label: "police officer"
+    traits: { honesty: 0.5, talkative: 0.4, corruptibility: 0.35, plant_p: 0.30, loyalty: 0.4 }
+    ask_gives: { case_file: -2 }
+    ally_daily: { case_file: -0.1 }
+  librarian:
+    label: "librarian"
+    traits: { honesty: 0.9, talkative: 0.9, corruptibility: 0.05, plant_p: 0.01, loyalty: 0.6 }
+    ask_gives: { evidence: 2 }
+
+# Meetings. `when` is a schedule: weekday (0 = Monday), `nth` of the month, or
+# `every_other_week`. `hours` is the time cost. `mult` scales the base `attend`
+# effects. `attendees` are the odds weights for who you can meet there.
+meetings:
+  city_commission:
+    label: "City Commission meeting"
+    when: { weekday: 1, every_other_week: true }          # sourced: Tuesdays, usually every other week
+    time: "7:00 pm"
+    hours: 3
+    mult: { opinion: 1.3, heat: 1.0 }
+    meet_chance: 0.6
+    attendees: { local_reporter: 3, neighbor_activist: 3, developer_staffer: 1.5, public_interest_lawyer: 1, state_regulator: 0.5, lobbyist: 0.7, police_officer: 0.5 }
+  planning_commission:
+    label: "Planning Commission hearing"
+    when: { weekday: 3, nth: 1 }                          # game approximation
+    time: "evening"
+    hours: 3
+    mult: { opinion: 1.1, heat: 1.0 }
+    meet_chance: 0.55
+    attendees: { developer_staffer: 3, neighbor_activist: 3, public_interest_lawyer: 1.5, local_reporter: 2, lobbyist: 1 }
+  web_user_group:
+    label: "web developers' user group"
+    when: { weekday: 2, nth: 2 }
+    time: "evening"
+    hours: 3
+    mult: { opinion: 0.2, heat: 0.0 }
+    meet_chance: 0.7
+    attendees: { techie: 6, corporate_whistleblower: 0.8, local_reporter: 0.5, lobbyist: 0.3 }
+  ai_builders_meetup:
+    label: "AI builders' meetup"
+    when: { weekday: 3, nth: 4 }
+    time: "evening"
+    hours: 3
+    mult: { opinion: 0.2, heat: 0.0 }
+    meet_chance: 0.7
+    attendees: { techie: 5, corporate_whistleblower: 1.5, local_reporter: 0.8, lobbyist: 0.8 }
+  neighborhood_association:
+    label: "neighborhood association meeting"
+    when: { weekday: 0, nth: 1 }
+    time: "evening"
+    hours: 2
+    mult: { opinion: 0.9, heat: 0.5 }
+    meet_chance: 0.6
+    attendees: { neighbor_activist: 6, union_rep: 1, local_reporter: 0.7, police_officer: 1 }
+  labor_hall:
+    label: "labor hall meeting"
+    when: { weekday: 3, nth: 3 }
+    time: "evening"
+    hours: 3
+    mult: { opinion: 0.7, heat: 0.5 }
+    meet_chance: 0.6
+    attendees: { union_rep: 6, neighbor_activist: 2, rural_coop_manager: 0.5 }
+  ratepayers_group:
+    label: "ratepayers and environment group"
+    when: { weekday: 5, nth: 1 }
+    time: "morning"
+    hours: 2
+    mult: { opinion: 1.0, heat: 0.5 }
+    meet_chance: 0.65
+    attendees: { neighbor_activist: 4, rural_coop_manager: 2, state_regulator: 1, union_rep: 1, local_reporter: 1 }
+  library_talk:
+    label: "public library community talk"
+    when: { weekday: 5 }
+    time: "morning"
+    hours: 2
+    mult: { opinion: 0.3, heat: 0.0 }
+    meet_chance: 0.45
+    attendees: { librarian: 4, neighbor_activist: 2, techie: 1, local_reporter: 0.5 }
+
+  # Templates for dated real events (see `events` in the city file). They have no
+  # `when`, so they never repeat on their own; an event borrows one by `kind`.
+  business_mixer:
+    label: "business networking event"
+    hours: 2
+    mult: { opinion: 0.2, heat: 0.0 }
+    meet_chance: 0.7
+    attendees: { lobbyist: 3, developer_staffer: 3, state_regulator: 1, public_interest_lawyer: 1, techie: 1, local_reporter: 0.7 }
+  policy_forum:
+    label: "public policy forum"
+    hours: 2
+    mult: { opinion: 0.9, heat: 0.8 }
+    meet_chance: 0.65
+    attendees: { state_regulator: 2, lobbyist: 2, police_officer: 1.5, public_interest_lawyer: 1.5, local_reporter: 2, developer_staffer: 1 }
+  civic_festival:
+    label: "community festival"
+    hours: 2
+    mult: { opinion: 0.3, heat: 0.0 }
+    meet_chance: 0.5
+    attendees: { neighbor_activist: 3, librarian: 1.5, union_rep: 1, local_reporter: 1, techie: 1, rural_coop_manager: 0.5 }
+  fan_convention:
+    label: "fan convention"
+    hours: 4
+    mult: { opinion: 0.1, heat: 0.0 }
+    meet_chance: 0.7
+    attendees: { techie: 6, corporate_whistleblower: 0.6, librarian: 0.8, lobbyist: 0.3 }
+  webinar:
+    label: "online briefing"
+    hours: 1
+    mult: { opinion: 0.2, heat: 0.0 }
+    meet_chance: 0.2
+    attendees: { lobbyist: 2, developer_staffer: 2, local_reporter: 1, state_regulator: 1 }
+
+# What you can do with a contact. Success chance p = bias + sum(coef * ctx), where ctx has
+#   trust, bond (0..1), owes, leverage, honesty, talkative, corruptibility, skills (0..1).
+# Failures split into plain fails and backfires by `backfire_share`.
+# Hooks: a contact action that can reveal a way to fix the laptop.
+hooks:
+  lead_npc:
+    actions: [ask]
+    types: [techie]
+    min_trust: 25
+    p: 0.35
+    msg: "{name} mentions they can swap the dead battery in your laptop, for a favor. Come back when they trust you more."
+
+# Each outcome has contact-side effects, player-side effects (slice state), and text.
+# `plant` effects apply, on top, when the contact is secretly reporting on you.
+contact_actions:
+  coffee:
+    hours: 2
+    cost: 8
+    help: "Coffee and small talk. Builds trust slowly."
+    p: { bias: 0.6, terms: { trust: 0.3, talkative: 0.2 } }
+    backfire_share: 0.1
+    success:
+      contact: { trust: { bias: 4, noise: 1 } }
+      player: { legibility: { bias: 0.5 } }
+      text: "{name} laughs at your joke and stays for a second cup."
+    fail:
+      contact: { trust: { bias: 0.5 } }
+      text: "{name} is distracted. The conversation goes nowhere."
+    backfire:
+      contact: { trust: { bias: -2 } }
+      text: "You say the wrong thing. {name} leaves early."
+  favor:
+    hours: 2
+    help: "Do something for them. They will remember."
+    p: { bias: 0.85 }
+    backfire_share: 0.0
+    success:
+      contact: { trust: { bias: 6 }, owes: { bias: 1 } }
+      player: { burnout: { bias: 0.5 } }
+      text: "You help {name} with a small, real problem. They say they owe you one."
+    fail:
+      contact: { trust: { bias: 1 } }
+      text: "You try to help {name}, but it does not come to much."
+  ask:
+    hours: 1
+    help: "Ask for information or help. Needs some trust."
+    requires_contact: { trust: 20 }
+    p: { bias: 0.25, terms: { trust: 0.5, talkative: 0.2, owes: 0.05 } }
+    backfire_share: 0.25
+    success:
+      contact: { trust: { bias: -1 }, exposure: { bias: 1 } }
+      uses_type_gives: true
+      text: "{name} lowers their voice and tells you what they know."
+    fail:
+      contact: { trust: { bias: -1 } }
+      text: "{name} shrugs. 'I really can't help with that.'"
+    backfire:
+      contact: { trust: { bias: -4 }, exposure: { bias: 5 } }
+      player: { case_file: { bias: 1 } }
+      text: "{name} gets nervous, and you are fairly sure they will mention this to someone."
+    plant: { case_file: { bias: 3 } }
+  confide:
+    hours: 2
+    help: "Share something real. Builds trust fast, and puts you in their hands."
+    requires_contact: { trust: 15 }
+    p: { bias: 0.5, terms: { trust: 0.4 } }
+    backfire_share: 0.3
+    success:
+      contact: { trust: { bias: 8 }, exposure: { bias: 10 }, bond: { bias: 3 } }
+      text: "You tell {name} more than you meant to. They listen, and tell you something back."
+    fail:
+      contact: { trust: { bias: 1 } }
+      text: "You start to say something, then decide against it. {name} lets it go."
+    backfire:
+      contact: { trust: { bias: -6 }, exposure: { bias: 8 } }
+      player: { legibility: { bias: 1.5 } }
+      text: "{name} reacts badly. You have said something you cannot take back."
+    plant: { case_file: { bias: 6 }, heat: { bias: 2 } }
+  flirt:
+    hours: 2
+    cost: 15
+    help: "Charm them. It can help, or go badly wrong."
+    requires_contact: { trust: 10 }
+    p: { bias: 0.35, terms: { trust: 0.3, bond: 0.2 } }
+    backfire_share: 0.5
+    success:
+      contact: { trust: { bias: 5 }, bond: { bias: 10 } }
+      player: { burnout: { bias: -1 } }
+      text: "The evening goes well. {name} smiles at you on the way out."
+    fail:
+      contact: { trust: { bias: -1 } }
+      text: "{name} is polite but clearly not interested."
+    backfire:
+      contact: { trust: { bias: -10 }, exposure: { bias: 4 } }
+      player: { cred: { bias: -2 } }
+      text: "{name} is offended and makes sure you know it."
+  bribe:
+    hours: 1
+    cost: 150
+    help: "Pay for help. Works on the corruptible; can be reported by the honest."
+    requires_contact: { trust: 10 }
+    p: { bias: 0.1, terms: { corruptibility: 0.75, honesty: -0.15, trust: 0.15 } }
+    backfire_share: 0.6
+    success:
+      contact: { trust: { bias: 3 }, owes: { bias: 1 }, leverage: { bias: 1 } }
+      uses_type_gives: true
+      player: { legibility: { bias: 1 } }
+      text: "{name} takes the envelope without looking at it and gives you what you asked for."
+    fail:
+      contact: { trust: { bias: -8 } }
+      text: "{name} pushes the envelope back. 'I will pretend this did not happen.'"
+    backfire:
+      contact: { trust: { bias: -20 }, hostile: { set: 1 } }
+      player: { heat: { bias: 8 }, case_file: { bias: 6 }, cred: { bias: -3 } }
+      text: "{name} stands up. 'I am going to report this.' They do."
+    plant: { case_file: { bias: 8 } }
+  extort:
+    hours: 2
+    help: "Use what you know about them. They must have something to hide."
+    requires_contact: { leverage: 1 }
+    p: { bias: 0.2, terms: { leverage: 0.1, honesty: -0.2, corruptibility: 0.3 } }
+    backfire_share: 0.6
+    success:
+      contact: { trust: { bias: -15 }, exposure: { bias: 5 }, leverage: { bias: -1 } }
+      uses_type_gives: true
+      player: { cred: { bias: -1 } }
+      text: "{name} goes pale, then agrees to everything you ask."
+    fail:
+      contact: { trust: { bias: -12 } }
+      text: "{name} calls your bluff. You walk away with nothing."
+    backfire:
+      contact: { trust: { bias: -30 }, hostile: { set: 1 } }
+      player: { heat: { bias: 10 }, case_file: { bias: 8 }, cred: { bias: -5 } }
+      text: "{name} does not flinch. 'You should be careful who you threaten.'"
+    plant: { case_file: { bias: 8 }, heat: { bias: 4 } }
+  recruit:
+    hours: 2
+    help: "Ask them to stand with you. A trusted ally helps every day."
+    requires_contact: { trust: 50 }
+    p: { bias: 0.1, terms: { trust: 0.6, owes: 0.1, bond: 0.1 } }
+    backfire_share: 0.2
+    success:
+      contact: { trust: { bias: 3 }, ally: { set: 1 } }
+      text: "{name} thinks it over and says yes. You are not alone."
+    fail:
+      contact: { trust: { bias: -2 } }
+      text: "{name} says not yet. They want to see more first."
+    backfire:
+      contact: { trust: { bias: -8 }, exposure: { bias: 6 } }
+      text: "{name} gets scared off. You hope they do not talk."
+    plant: { case_file: { bias: 5 } }
