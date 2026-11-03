@@ -126,6 +126,7 @@ class Contact:
     ally: bool = False
     hostile: bool = False
     plant: bool = False           # hidden: secretly reporting on you
+    agent: bool = False           # hidden: a counter-intelligence agent working the room
     revealed: bool = False
     history: list[dict[str, Any]] = field(default_factory=list)
 
@@ -142,6 +143,7 @@ class Sim:
     max_turns_override: int | None = None
     events: list[dict[str, Any]] = field(default_factory=list)   # real dated events from the city file
     quotes: dict[str, dict[str, Any]] = field(default_factory=dict)  # real delayed quotes at run start
+    show_all: bool = False        # admin: show every contact action
     feed: dict[str, list[dict[str, Any]]] = field(default_factory=dict)  # real headlines at run start (day 1)
     turn: int = 0
     state: dict[str, float] = field(default_factory=dict)
@@ -239,6 +241,7 @@ class Sim:
                     self.new_unlocks.append(name)
 
     def unlock_all(self) -> None:
+        self.show_all = True
         for n, a in self.rules["actions"].items():
             self.unlocked.add(n)
         for n in self.rules["shop"]:
@@ -457,7 +460,7 @@ class Sim:
         return max(c.skills.items(), key=lambda kv: kv[1]) if c.skills else None
 
     def new_contact(self, ctype: str, where: str | None = None, meeting_key: str | None = None,
-                    skill_pool: dict[str, float] | None = None) -> Contact:
+                    skill_pool: dict[str, float] | None = None, agent: bool = False) -> Contact:
         cr = self.rules["contacts"]
         spec = cr["types"][ctype]
         name = ""
@@ -471,7 +474,11 @@ class Sim:
         c = Contact(id=self._next_cid, name=name, type=ctype, met_turn=self.turn,
                     last_turn=self.turn, traits=traits, trust=self.rng.uniform(8, 14))
         c.skills, c.side = self._draw_skills(ctype, meeting_key, skill_pool)
-        c.plant = self.rng.random() < spec["traits"]["plant_p"]
+        c.plant = agent or self.rng.random() < spec["traits"]["plant_p"]
+        if agent:
+            c.agent = True
+            c.trust = min(100, c.trust + 12)      # unusually warm, quick to like you
+            c.leverage = 0.0
         c.leverage = 1.0 if self.rng.random() < 0.4 * (1 - traits["honesty"]) else 0.0
         c.history.append({"turn": self.turn, "date": self.date.isoformat(), "action": "met",
                           "outcome": "met", "text": f"Met at {where}." if where else "Met."})
@@ -487,6 +494,13 @@ class Sim:
             return ["You listen and take notes, but you do not end up talking to anyone."]
         people = 1 + (self.rng.random() < m.get("people_extra", 0.2))
         types = self.rules["contacts"]["types"]
+        ci = self.rules["contacts"].get("counter_intel") or {}
+        p_agent = m.get("watch", 0.0) * ci.get("scale", 1.0) * (
+            ci.get("base", 0.4) + ci.get("heat", 0.01) * self.state["heat"]
+            + ci.get("opinion", 0.004) * self.state.get("opinion", 0))
+        p_agent = min(ci.get("cap", 0.6), p_agent)
+        agent_here = (not any(c.agent for c in self.contacts if c.met_turn == self.turn)
+                      and self.rng.random() < p_agent)
         for _ in range(people):
             ctype = self._weighted(m["attendees"])
             known = [c for c in self.contacts if c.type == ctype and not c.hostile]
@@ -500,10 +514,20 @@ class Sim:
             else:
                 c = self.new_contact(ctype, where=place(m),
                                      meeting_key=(m.get("real") or {}).get("kind", key),
-                                     skill_pool=m.get("skills"))
+                                     skill_pool=m.get("skills"), agent=agent_here)
+                agent_here = False
                 msgs.append(f"You get talking with {c.name}, {a_or_an(types[ctype]['label'])}. [contact #{c.id}]")
         self._refresh_derived()
         return msgs
+
+    def contact_action_visible(self, c: Contact, action: str) -> bool:
+        """Options appear as the relationship deepens; admin sees all."""
+        if self.show_all:
+            return True
+        need = (self.rules["contacts"]["contact_actions"].get(action) or {}).get("visible") or {}
+        have = {"meetings": len(c.history), "trust": c.trust, "bond": c.bond,
+                "leverage": c.leverage, "owes": c.owes}
+        return all(have.get(k, 0) >= v for k, v in need.items())
 
     def contact_action_reason(self, c: Contact, action: str) -> str | None:
         ca = self.rules["contacts"]["contact_actions"].get(action)
@@ -511,6 +535,8 @@ class Sim:
             return "Unknown contact action."
         if c.hostile:
             return f"{c.name} will not talk to you."
+        if not self.contact_action_visible(c, action):
+            return f"You do not know {c.name} well enough for that."
         if ca["hours"] > self.hours_left:
             return f"Not enough hours left today (needs {ca['hours']})."
         if self.state["cash"] < ca.get("cost", 0):
@@ -526,7 +552,8 @@ class Sim:
         if c is None:
             return []
         return [(a, spec, self.contact_action_reason(c, a))
-                for a, spec in self.rules["contacts"]["contact_actions"].items()]
+                for a, spec in self.rules["contacts"]["contact_actions"].items()
+                if self.contact_action_visible(c, a)]
 
     def _contact_ctx(self, c: Contact) -> dict[str, float]:
         return {"trust": c.trust / 100, "bond": c.bond / 100, "owes": c.owes,
@@ -620,6 +647,7 @@ class Sim:
                     "cash": {"bias": -item["price"]},
                     item["flag"]: {"set": 1, "msg": f"Bought: {tokens[1]}."},
                     "legibility": {"bias": 0.5},
+                    **{k: {"bias": v} for k, v in (item.get("risk") or {}).items()},
                 },
             }
         return self.rules["actions"].get(name) if len(tokens) == 1 else None

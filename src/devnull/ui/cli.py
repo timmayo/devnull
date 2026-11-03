@@ -120,10 +120,13 @@ def show_commands(sim: Sim, admin: bool) -> None:
         print(f"  {name:<16} {spec['hours']:>4}   {mark}   {spec['help']}{tag}")
         if reason and not locked and sim.hours_left >= spec["hours"]:
             print(f"  {'':<16} {'':>4}         ({reason})")
-    shop = [i for i in sim.rules["shop"] if admin or f"buy {i}" in sim.unlocked]
-    if shop:
-        print("\nSHOP               hours  now   what it does")
-        for item in shop:
+    for market, title in (("public", "INTERNET (public web)"), ("darknet", "DARKNET")):
+        items = [i for i, sp in sim.rules["shop"].items()
+                 if sp["market"] == market and (admin or f"buy {i}" in sim.unlocked)]
+        if not items:
+            continue
+        print(f"\n{title:<18} hours  now   what it does")
+        for item in items:
             spec = sim.rules["shop"][item]
             reason = sim.why_not(f"buy {item}")
             mark = "yes" if reason is None else "no "
@@ -247,7 +250,7 @@ def show_contact(sim: Sim, c: Any, admin: bool) -> None:
         print("  You have something on them.")
     if admin:
         print(f"  [admin] trust {c.trust:.1f} bond {c.bond:.1f} exposure {c.exposure:.1f} "
-              f"plant {c.plant} traits {c.traits}")
+              f"plant {c.plant} agent {c.agent} traits {c.traits}")
     def fmt(skills: dict[str, int]) -> str:
         return ", ".join(f"{sim.skill_label(k)} ({sim.level_name(v)})"
                          for k, v in sorted(skills.items(), key=lambda kv: -kv[1]))
@@ -372,7 +375,7 @@ def do_meet(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
     c = sim.contact(int(args[0]))
     if c is None:
         return False, ["You do not know anyone with that number."]
-    names = list(sim.rules["contacts"]["contact_actions"])
+    names = [a for a in sim.rules["contacts"]["contact_actions"] if sim.contact_action_visible(c, a)]
     action = None
     if len(args) > 1:
         hits = [n for n in names if n.startswith(args[1].lower())]
@@ -387,6 +390,7 @@ def do_meet(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
             line = f"    {i}) {a:<8} {spec['hours']}h{cost:<6} {spec['help']}"
             print(line + (f"  ({reason})" if reason else ""))
             opts.append(a)
+        print("  (More options open up as you get to know them.)")
         action = pick_from("  Choose (blank to cancel) ", opts)
         if action is None:
             return False, ["You let it go."]
@@ -579,7 +583,7 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
             elif word == "meet":
                 done, msgs = do_meet(sim, args)
             elif word == "buy" and not admin and f"buy {args[0] if args else ''}" not in sim.unlocked:
-                done, msgs = False, ["There is nothing like that for sale that you know of."]
+                done, msgs = False, ["Nothing like that is for sale where you know to look."]
             else:
                 done, msgs = sim.act(cmd)
             for m in msgs:
