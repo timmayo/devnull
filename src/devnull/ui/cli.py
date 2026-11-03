@@ -100,6 +100,15 @@ def available_words(sim: Sim, admin: bool) -> list[str]:
 
 
 def show_commands(sim: Sim, admin: bool) -> None:
+    print("\nLOOK AROUND (free)")
+    print("  events [more|days]  What is on today and this week. Then 'attend' to go to one.")
+    print("  status              Your hours, cash, heat, laptop and more.")
+    print("  news                Read this morning's news again.")
+    print("  markets             Stock prices for the Mega Corps and neo-clouds.")
+    if sim.contacts or admin:
+        print("  contacts            The people you know. Then 'contact <n>' or 'meet <n>'.")
+    print("  help, commands      This list and the basics.")
+    print("  sleep               End the day.    wait <days>  Skip ahead.    quit  Leave.")
     print("\nACTIONS            hours  now   what it does")
     for name, spec in sim.rules["actions"].items():
         locked = name not in sim.unlocked
@@ -125,8 +134,8 @@ def show_commands(sim: Sim, admin: bool) -> None:
         print("  contacts         list the people you know")
         print("  contact <n>      what you know about one person and what has happened")
         print("  meet <n> [act]   spend time with a contact (coffee, favor, ask, ...)")
-    print("\nOTHER: help, commands, status, news, events [more|days], markets, sleep, wait <days>, quit"
-          + (", admin" if admin else ""))
+    if admin:
+        print("\nADMIN: admin set|reveal|spawn|unlock|hours|skip")
     print("New commands appear as you unlock them.")
 
 
@@ -395,7 +404,7 @@ def prompt(sim: Sim, admin: bool, ref: dict[str, int] | None = None) -> str:
 def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
     print(wrap(city.get("display", {}).get("disclaimer", "")))
     print(render(sim, city))
-    print("\nType 'events' to see what is on today, 'commands' for what you can do, 'status' for where you stand.")
+    print("\nStart with 'commands' to see what you can do. Try 'events' to see what is on today.")
     if mode() == "plain":
         print("(Your terminal does not show clickable links, so links print after the text. "
               "Windows Terminal or VS Code's terminal make them clickable.)")
@@ -434,7 +443,7 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
         if word == "help":
             print(wrap("Each day you have a few free hours after your job. Spend them on actions "
                        "(see 'commands'), then 'sleep' to end the day. Meetings happen on certain "
-                       "days: 'attend' one and you may meet people. 'contacts' lists them; "
+                       "days: type 'events' to see them, then 'attend' one and you may meet people. 'contacts' lists them; "
                        "'meet <n>' lets you spend time with one. The news is how you learn what "
                        "the world is doing. 'wait 7' sleeps a week without acting."))
             print("Commands: commands, status, news, sleep, wait <days>, quit, and whatever you unlock.")
