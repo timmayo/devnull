@@ -1,0 +1,9 @@
+# Keep line endings consistent across Windows and Linux.
+* text=auto eol=lf
+
+# Binary files: never convert.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
