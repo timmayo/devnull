@@ -17,6 +17,7 @@ import yaml
 
 from devnull import __version__
 from devnull.core.digest import describe, render
+from devnull.ui import intro
 from devnull.core.termlinks import GREEN, RED, enable_vt, fill_link, mode, paint
 from devnull.core.sim import Sim, load_rules
 
@@ -601,14 +602,18 @@ def main(argv: list[str] | None = None) -> int:
                         help="override the start date (default: today)")
     parser.add_argument("--no-quotes", action="store_true",
                         help="do not fetch live stock quotes or headlines (offline play)")
+    parser.add_argument("--no-intro", action="store_true", help="skip the opening screen")
     parser.add_argument("--admin", action="store_true",
                         help="testing: unlock every command and show hidden state on request")
     args = parser.parse_args(argv)
 
     enable_vt()
-    print(f"/dev/null  v{__version__}")
-    print("Know Your Enemy.\n")
     cities = load_cities()
+    if not args.no_intro:
+        intro.show(animate=True)
+    else:
+        print(f"/dev/null  v{__version__}")
+        print("Know Your Enemy.\n")
     city = choose_city(cities, args.city)
     seed = args.seed if args.seed is not None else random.randrange(2**31)
     quotes: dict[str, Any] = {}
