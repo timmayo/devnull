@@ -1,28 +1,58 @@
-# Vertical slice update rules (v0). Explicit edges for the 10 slice variables.
+# Vertical slice update rules (v0). Explicit edges for the slice variables.
 #
-# Names are short ids; they map to world_state.yaml as:
+# Names are short ids; the first ten map to world_state.yaml as:
 #   cash=player.cash  legibility=player.legibility  heat=player.heat
 #   ai=world_meters.ai_capability  opinion=world_meters.public_opinion_ai
 #   market=world_meters.market_sentiment  case_file=police.case_file_on_player
 #   fbi=fbi.open_case_status  nsa=nsa.collection_coverage  trust=npcs.trust
+# Added for the opening: regulation, laptop, lead_store, lead_npc, burnout, cover.
 #
 # An expression is:  value = bias + sum(coef * source) + noise * N(0,1)
 # Sources are read from the state AFTER the player's actions this turn, so
 # every edge has a one-turn lag.
 #
 # Variable kinds:
-#   relax: x += rate * (expr - x)      moves toward a target
-#   add:   x += expr                   drift or accumulation
-#   ladder: fbi only, see below
+#   relax:    x += rate * (expr - x)      moves toward a target
+#   add:      x += expr                   drift or accumulation
+#   logistic: S-curve, terms scale the rate
+#   ladder:   fbi only, see below
 #
 # Every number here is a first guess for tuning, not a fact.
 
-turns: 60
-upkeep: 40            # rent and bills per turn, taken from cash
-actions_per_turn: 2
+# 1 turn = 1 day. A run starts on the day the player first picks a city (the
+# real date on their machine, saved with the run) and lasts up to `years`
+# years. Any 8-year window contains exactly two US presidential elections and
+# four federal general elections, so two full major cycles are guaranteed.
+# National results are seeded and fictional; real results are never encoded.
+calendar:
+  years: 8
+  elections: federal_general      # Tuesday after the first Monday of November, even years
+  count_delay_days: 1             # ballots are counted the day after
+
+# Daily life. Turn 0 is the first morning: a cheap apartment, a day job the
+# player dislikes, and a cheap laptop whose battery is dead (it only runs
+# while plugged in).
+daily:
+  upkeep: 62                      # rent, food, transit, phone: per day
+  job:
+    days: [0, 1, 2, 3, 4]         # Monday to Friday (Python weekday numbers)
+    pay: 110                      # take-home per worked day; low on purpose
+    burnout_gain: 0.8
+  off_day_burnout_loss: 2.2
+  free_hours: { workday: 4, offday: 10 }
+  burnout_hours_penalty:          # [burnout above, hours lost that day]
+    - [60, 1]
+    - [85, 2]
+    - [95, 99]
+
+# Online actions on a laptop that only runs plugged in are tied to the
+# apartment's connection, which leaves a trail. Applied while laptop == 0.
+tethered_extra:
+  legibility: 1.5
+  case_file: 0.5
 
 start:
-  cash: 500
+  cash: 350
   legibility: 5
   heat: 0
   ai: 30
@@ -32,6 +62,12 @@ start:
   fbi: 0
   nsa: 40
   trust: 20
+  regulation: 10
+  laptop: 0             # 0 = cheap, battery dead; 1 = working battery, mobile
+  lead_store: 0         # 1 once the player has found where to buy a laptop
+  lead_npc: 0           # 1 once an NPC has offered to help with a laptop
+  burnout: 15
+  cover: 30             # the day job is a plausible, boring cover story
 
 ranges:
   cash: [-1000000, 1000000]
@@ -44,13 +80,25 @@ ranges:
   fbi: [0, 4]           # 0 none, 1 lead, 2 preliminary, 3 full, 4 grand_jury
   nsa: [0, 100]
   trust: [0, 100]
+  regulation: [0, 100]   # world_state regulatory_pressure; moved by elections
+  laptop: [0, 2]
+  lead_store: [0, 1]
+  lead_npc: [0, 1]
+  burnout: [0, 100]
+  cover: [0, 100]
 
 world:
   ai:
-    kind: add
-    bias: 0.8
-    terms: { market: 0.01, opinion: 0.01 }
-    noise: 0.2
+    kind: logistic        # S-curve; drivers scale the growth rate multiplicatively
+    rate: 0.001           # per day; unopposed it goes ~30 -> ~90 over 8 years
+    cap: 100
+    terms: { market: 0.012, opinion: 0.01, regulation: -0.03 }
+    noise: 0.02
+  regulation:
+    kind: add             # elections add to it; this is the daily decay of past wins
+    bias: 0
+    terms: { regulation: -0.001 }
+    noise: 0
   market:
     kind: relax
     rate: 0.15
@@ -65,9 +113,9 @@ world:
     noise: 0
   opinion:
     kind: add
-    bias: 0.3             # corporate persuasion pushes opinion up
+    bias: 0.85            # corporate persuasion pushes opinion up
     terms: { opinion: -0.01 }   # mean reversion
-    noise: 0.5
+    noise: 1.5
   heat:
     kind: relax
     rate: 0.12            # decays toward zero
@@ -78,18 +126,22 @@ world:
     kind: relax
     rate: 0.30
     bias: 0
-    terms: { nsa: 0.12, ai: 0.10, heat: 0.4 }
+    terms: { nsa: 0.12, ai: 0.10, heat: 0.4, cover: -0.12 }
     noise: 0
   case_file:
     kind: add
-    bias: -0.8
+    bias: -1.25
     terms: { legibility: 0.06, heat: 0.12 }
-    noise: 0.3
+    noise: 1.0
   trust:
     kind: add
     bias: -0.3
     terms: {}
     noise: 0
+
+# Elections: applied on the day after each federal general election.
+election:
+  regulation: { bias: 0, terms: { opinion: -0.6 }, noise: 4 }
 
 # FBI case ladder. Advances one level with probability p_up when case_file is
 # at or above the threshold for the next level; falls one level with
@@ -103,43 +155,91 @@ ladder:
   p_down: 0.10
   drop_margin: 20
 
-# Player actions. Each effect is an expression added to the variable.
+# Player actions. Each action costs `hours` of the day's free hours.
+#   requires:     every listed variable must be >= the value
+#   requires_max: every listed variable must be <= the value
+#   online:       true -> uses the laptop (see tethered_extra)
+# An effect is an expression added to the variable, or a chance to set it:
+#   { set: 1, p: 0.25 }          set the variable to 1 with probability p
+#   { ..., if: { trust: 25 } }   only applies when trust >= 25
 actions:
-  work:
+  extra_shift:
+    hours: 3
     effects:
-      cash: { bias: 60 }
+      cash: { bias: 45 }
+      burnout: { bias: 2.5 }
+  rest:
+    hours: 2
+    effects:
+      burnout: { bias: -4 }
   trade:
+    hours: 1
+    online: true
     effects:
       cash: { bias: 10, terms: { market: 1.0 }, noise: 20 }
       legibility: { bias: 0.5 }
   attend:
+    hours: 2
     effects:
-      opinion: { bias: -0.8 }
+      opinion: { bias: -0.8, terms: { laptop: -0.4, opinion: -0.006 } }   # live coverage needs a mobile laptop
       trust: { bias: 1 }
       heat: { bias: 1 }
       case_file: { bias: 0.5 }
+      burnout: { bias: 0.5 }
   feed:
+    hours: 1
+    online: true
     effects:
-      opinion: { bias: -1.5 }
+      opinion: { bias: -1.5, terms: { opinion: -0.012 } }   # diminishing returns: harder to move the further you have
       heat: { bias: 3 }
       legibility: { bias: 1 }
+      burnout: { bias: 0.3 }
   leak:
+    hours: 2
+    online: true
     requires: { trust: 20 }
     effects:
-      opinion: { bias: 0, terms: { trust: -0.08 } }   # better sources land harder
+      opinion: { bias: 0, terms: { trust: -0.08, opinion: -0.018 } }   # better sources land harder
       market: { bias: -5 }
       heat: { bias: 12 }
       case_file: { bias: 3 }
       trust: { bias: -2 }
+      burnout: { bias: 1.5 }
   meet:
+    hours: 2
     effects:
       trust: { bias: 4 }
       legibility: { bias: 1 }
+      burnout: { bias: 0.3 }
+      lead_npc: { set: 1, p: 0.10, if: { trust: 25 } }   # a contact offers to help with the laptop
   lay_low:
+    hours: 3
     effects:
       heat: { bias: -6 }
       case_file: { bias: -3 }
       legibility: { bias: -1 }
+  # Ways to fix the laptop. The player has to find them.
+  browse_store:                       # walk the electronics shops and pawn shops
+    hours: 2
+    requires_max: { lead_store: 0 }
+    effects:
+      lead_store: { set: 1, p: 0.08 }
+  upgrade_store:                      # buy a used laptop with a working battery
+    hours: 2
+    requires: { lead_store: 1, cash: 420 }
+    requires_max: { laptop: 0 }
+    effects:
+      cash: { bias: -420 }
+      laptop: { set: 1 }
+      legibility: { bias: 1 }         # a purchase trail
+  upgrade_npc:                        # a trusted contact swaps in a battery for a favor
+    hours: 2
+    requires: { lead_npc: 1, trust: 35, cash: 150 }
+    requires_max: { laptop: 0 }
+    effects:
+      cash: { bias: -150 }
+      laptop: { set: 1 }
+      trust: { bias: 2 }
 
 # Endings checked after the last turn, first match wins. Caught ends the run early.
 endings:

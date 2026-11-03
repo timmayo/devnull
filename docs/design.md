@@ -89,6 +89,15 @@ Actions that hurt the AI buildout most are the ones most likely to trip it, sinc
 - **Wins that decay:** every victory has a Win Durability and needs maintenance (watchdogs, follow-up elections). Decay happens at election and session boundaries.
 - **Fail-soft states** instead of game over: Under Investigation, Legal Defense, Lying Low, Operating Through Proxies, Exile / Relocation.
 
+## 5b. Time
+
+- **1 turn = 1 day.** The simulation ticks daily; the player can batch quiet days (lay low, maintain, work) so a long run does not mean thousands of keypresses. A news digest summarizes skipped days.
+- **A run is up to 8 years.** It starts on Tuesday 2026-11-03, a US federal general election day (a midterm), and ends on the midterm election day 8 years later, 2034-11-07 (2,926 turns). That spans five federal elections: 2026 (turn 0), 2028, 2030, 2032 and 2034.
+- **Elections.** Ballots are counted the day after election day. The national result is seeded and fictional; real results are never encoded. In the slice an election moves `regulation` in proportion to public opinion, and `regulation` then decays daily and slows the AI clock.
+- **Endings are thresholds, not the calendar.** Most runs end early; the date is only a backstop.
+- **Capability Clock** is an S-curve (logistic). Public opinion, market sentiment and regulation scale its rate. Pressure can slow it, not stop it.
+- Local-election dates (Grand Rapids) are still `VERIFY`.
+
 ## 6. Interface
 
 Command-line style. The end-of-turn **news digest** is the primary screen: local paper, wire service, corp press releases, social feed. The player infers hidden state from coverage. Verbs stay few, with heavy consequences.
