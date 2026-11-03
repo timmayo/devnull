@@ -1,0 +1,150 @@
+# Vertical slice update rules (v0). Explicit edges for the 10 slice variables.
+#
+# Names are short ids; they map to world_state.yaml as:
+#   cash=player.cash  legibility=player.legibility  heat=player.heat
+#   ai=world_meters.ai_capability  opinion=world_meters.public_opinion_ai
+#   market=world_meters.market_sentiment  case_file=police.case_file_on_player
+#   fbi=fbi.open_case_status  nsa=nsa.collection_coverage  trust=npcs.trust
+#
+# An expression is:  value = bias + sum(coef * source) + noise * N(0,1)
+# Sources are read from the state AFTER the player's actions this turn, so
+# every edge has a one-turn lag.
+#
+# Variable kinds:
+#   relax: x += rate * (expr - x)      moves toward a target
+#   add:   x += expr                   drift or accumulation
+#   ladder: fbi only, see below
+#
+# Every number here is a first guess for tuning, not a fact.
+
+turns: 60
+upkeep: 40            # rent and bills per turn, taken from cash
+actions_per_turn: 2
+
+start:
+  cash: 500
+  legibility: 5
+  heat: 0
+  ai: 30
+  opinion: 0
+  market: 20
+  case_file: 0
+  fbi: 0
+  nsa: 40
+  trust: 20
+
+ranges:
+  cash: [-1000000, 1000000]
+  legibility: [0, 100]
+  heat: [0, 100]
+  ai: [0, 100]
+  opinion: [-100, 100]
+  market: [-100, 100]
+  case_file: [0, 100]
+  fbi: [0, 4]           # 0 none, 1 lead, 2 preliminary, 3 full, 4 grand_jury
+  nsa: [0, 100]
+  trust: [0, 100]
+
+world:
+  ai:
+    kind: add
+    bias: 0.8
+    terms: { market: 0.01, opinion: 0.01 }
+    noise: 0.2
+  market:
+    kind: relax
+    rate: 0.15
+    bias: -15
+    terms: { ai: 0.7 }
+    noise: 3
+  nsa:
+    kind: relax
+    rate: 0.10
+    bias: 30
+    terms: { ai: 0.6 }
+    noise: 0
+  opinion:
+    kind: add
+    bias: 0.3             # corporate persuasion pushes opinion up
+    terms: { opinion: -0.01 }   # mean reversion
+    noise: 0.5
+  heat:
+    kind: relax
+    rate: 0.12            # decays toward zero
+    bias: 0
+    terms: {}
+    noise: 0
+  legibility:
+    kind: relax
+    rate: 0.30
+    bias: 0
+    terms: { nsa: 0.12, ai: 0.10, heat: 0.4 }
+    noise: 0
+  case_file:
+    kind: add
+    bias: -0.8
+    terms: { legibility: 0.06, heat: 0.12 }
+    noise: 0.3
+  trust:
+    kind: add
+    bias: -0.3
+    terms: {}
+    noise: 0
+
+# FBI case ladder. Advances one level with probability p_up when case_file is
+# at or above the threshold for the next level; falls one level with
+# probability p_down when case_file is more than `drop_margin` below the
+# threshold for the current level.
+ladder:
+  var: fbi
+  source: case_file
+  thresholds: [50, 65, 80, 92]
+  p_up: 0.25
+  p_down: 0.10
+  drop_margin: 20
+
+# Player actions. Each effect is an expression added to the variable.
+actions:
+  work:
+    effects:
+      cash: { bias: 60 }
+  trade:
+    effects:
+      cash: { bias: 10, terms: { market: 1.0 }, noise: 20 }
+      legibility: { bias: 0.5 }
+  attend:
+    effects:
+      opinion: { bias: -0.8 }
+      trust: { bias: 1 }
+      heat: { bias: 1 }
+      case_file: { bias: 0.5 }
+  feed:
+    effects:
+      opinion: { bias: -1.5 }
+      heat: { bias: 3 }
+      legibility: { bias: 1 }
+  leak:
+    requires: { trust: 20 }
+    effects:
+      opinion: { bias: 0, terms: { trust: -0.08 } }   # better sources land harder
+      market: { bias: -5 }
+      heat: { bias: 12 }
+      case_file: { bias: 3 }
+      trust: { bias: -2 }
+  meet:
+    effects:
+      trust: { bias: 4 }
+      legibility: { bias: 1 }
+  lay_low:
+    effects:
+      heat: { bias: -6 }
+      case_file: { bias: -3 }
+      legibility: { bias: -1 }
+
+# Endings checked after the last turn, first match wins. Caught ends the run early.
+endings:
+  - { id: caught,        when: "fbi >= 4" }
+  - { id: broke,         when: "cash <= -300" }
+  - { id: pressure_won,  when: "opinion <= -25 and ai < 85" }
+  - { id: runaway,       when: "ai >= 85" }
+  - { id: stalemate,     when: "True" }
