@@ -29,7 +29,7 @@ real:
     mayor_powers:    { value: "Elected at large; official head of the city; presides when the Commission makes decisions. Vote and veto powers not stated on the page.", source: "https://www.grandrapidsmi.gov/Government/Departments/Office-of-the-City-Commission", retrieved: "2026-11-03", status: VERIFY_vote_veto_and_term }
     council_size:    { value: "6 ward commissioners plus the mayor (7 members, implied by '2 per ward' x 3 wards plus mayor). cast_templates.council_members uses 6; the mayor is a separate role.", source: "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/", retrieved: "2026-11-03", status: partial }
     ward_system:     { value: "3 wards, 2 commissioners each; four-year overlapping terms; one commissioner per ward chosen every two years", source: "https://www.grandrapidsmi.gov/Government/Departments/Office-of-the-City-Commission", retrieved: "2026-11-03" }
-    meeting_schedule: { value: "Regular meetings on Tuesdays, usually every other week, 7:00 pm; standing committees meet the morning of regular meeting days; written communications for the agenda are due 2:00 pm the Wednesday before; schedule published before Jan 1", source: "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/", retrieved: "2026-11-03" }
+    meeting_schedule: { value: "Regular meetings on Tuesdays, usually every other week; the adopted 2026 schedule lists 2:00 pm for some meetings and 7:00 pm for others (7:00 pm meetings may be held at a neighborhood location, with community engagement from 5:30 pm); standing committees meet the morning of regular meeting days; written communications for the agenda are due 2:00 pm the Wednesday before; schedule published before Jan 1", source: "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/", retrieved: "2026-11-03" }
     election_calendar: { value: VERIFY, note: "commissioner staggering is known (see ward_system); mayor term length, nonpartisan status, and election dates still needed", source: "city charter / Kent County clerk", retrieved: VERIFY }
     recall_rules:    { value: "Michigan Election Law: signatures equal to 25% of the votes cast for governor in the official's district; 60 days to collect; petition reason must be clear and factual (county election commission decides, appeal to circuit court); election at least 95 days after filing, on the next May or November election date; terms longer than two years cannot be recalled in the first or last year. Grand Rapids charter recall provisions not yet checked.", source: "https://ballotpedia.org/Michigan_Recall_Law (secondary); primary: MCL 168.951 et seq.", retrieved: "2026-11-03", status: VERIFY_against_statute_and_charter }
 
@@ -99,7 +99,7 @@ fictional:
 display:
   disclaimer: "Set in a real city. Items marked [real] are real, dated and linked to their source. Everything else (all characters, organizations and events in the story) is fictional."
   digest_notes:                   # real texture shown in the morning news
-    tuesday: "The City Commission usually meets on Tuesdays at 7:00 pm."   # source: grandrapidsmi.gov City Commission page, retrieved 2026-11-03
+    tuesday: "The City Commission meets on scheduled Tuesdays, at 2:00 pm or 7:00 pm."   # source: adopted 2026 CC schedule, grandrapidsmi.gov, retrieved 2026-11-03
 
 # ---------------------------------------------------------------
 # NEWS
@@ -123,6 +123,14 @@ news:
       source: "Kent County Elections and FOX 17"
       published: 2026-10-20
       url: "https://www.kentcountymi.gov/662/Candidates-Proposals"
+      retrieved: 2026-11-03
+  national_real:
+    - id: monitors_2026
+      window: [2026-10-26, 2026-11-03]
+      text: "Federal election monitors are deploying to polling sites across the country, including in Michigan, for the Nov 3 election."
+      source: "WBUR Here & Now (via WLRN)"
+      published: 2026-10-26
+      url: "https://www.wlrn.org/national-politics/2026-10-26/what-an-election-monitor-and-trainer-expect-in-michigan-on-nov-3"
       retrieved: 2026-11-03
   fillers:
     all:
@@ -154,6 +162,9 @@ news:
 # relying on them. Not yet covered: Eventbrite and Meetup listings (the game's
 # recurring meeting types stand in for those).
 # Sources: https://www.experiencegr.com/events/  https://grandrapids.org/events/
+#   https://events.grandrapidsmi.gov/meetings (city meetings; the page would not load for me on
+#   2026-11-03, so the City Commission dates below come from the city's adopted 2026 schedule PDF)
+#   Eventbrite and Meetup are listed as sources but not scraped.
 # ---------------------------------------------------------------
 events:
     - id: restaurant_week
@@ -308,4 +319,44 @@ events:
       venue: "Sheraton Grand Rapids Airport"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/business-exchange-luncheon-12-17/"
+      retrieved: 2026-11-03
+    - id: cc_2026_11_10
+      title: "City Commission meeting"
+      start: 2026-11-10
+      time: "2:00 pm"
+      hours: 3
+      kind: city_commission
+      venue: "Commission Chambers, 9th floor, City Hall"
+      source: "City of Grand Rapids, adopted 2026 City Commission schedule"
+      url: "https://www.grandrapidsmi.gov/media/rsnigned/adopted-2026-cc-schedule.pdf"
+      retrieved: 2026-11-03
+    - id: cc_2026_11_17
+      title: "City Commission meeting (neighborhood location)"
+      start: 2026-11-17
+      time: "7:00 pm"
+      hours: 3
+      kind: city_commission
+      venue: "neighborhood location, to be announced"
+      source: "City of Grand Rapids, adopted 2026 City Commission schedule"
+      url: "https://www.grandrapidsmi.gov/media/rsnigned/adopted-2026-cc-schedule.pdf"
+      retrieved: 2026-11-03
+    - id: cc_2026_12_01
+      title: "City Commission meeting"
+      start: 2026-12-01
+      time: "2:00 pm"
+      hours: 3
+      kind: city_commission
+      venue: "Commission Chambers, 9th floor, City Hall"
+      source: "City of Grand Rapids, adopted 2026 City Commission schedule"
+      url: "https://www.grandrapidsmi.gov/media/rsnigned/adopted-2026-cc-schedule.pdf"
+      retrieved: 2026-11-03
+    - id: cc_2026_12_15
+      title: "City Commission meeting"
+      start: 2026-12-15
+      time: "7:00 pm"
+      hours: 3
+      kind: city_commission
+      venue: "Commission Chambers, 9th floor, City Hall"
+      source: "City of Grand Rapids, adopted 2026 City Commission schedule"
+      url: "https://www.grandrapidsmi.gov/media/rsnigned/adopted-2026-cc-schedule.pdf"
       retrieved: 2026-11-03

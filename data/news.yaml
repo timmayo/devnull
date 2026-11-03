@@ -1,0 +1,99 @@
+# Stories the game itself generates for the morning digest. All fictional and
+# generic: no real names, firms, streets or outlets. Real stories come from the
+# city file (`news.real_events`) and the live feeds (data/feeds.yaml).
+#
+# Each story: p = bias + sum(coef * lagged state), clamped to 0..0.9 (the news
+# lags reality by 3 days). Optional gates:
+#   when:        { var: minimum }              all must hold
+#   after_event: code                          fires only within 3 days of a game event
+#   trend:       { var, days, min|max }        change over the last N days
+# `text` is a list; one is picked at random.
+
+local:
+  - id: standoff
+    p: { bias: 0.060, terms: { case_file: 0.0003 } }
+    text:
+      - "Police spend hours negotiating with a man barricaded in a house on the west side. No injuries reported."
+      - "A standoff closes several blocks near downtown for the afternoon; a suspect surrenders after hours of talks."
+      - "Officers respond to a reported hostage situation at an apartment complex; it ends without injuries."
+  - id: layoffs
+    p: { bias: 0.040, terms: { market: -0.0008 } }
+    text:
+      - "A regional manufacturer says it will lay off about 120 workers as orders slow."
+      - "A west Michigan distribution center will cut its second shift, affecting roughly 80 jobs."
+      - "A local software shop lets go of a third of its staff, citing automation and tighter budgets."
+  - id: hiring
+    p: { bias: 0.060, terms: { ai: 0.0006, market: 0.0005 } }
+    text:
+      - "A contractor building a data center campus says it will hire 200 tradespeople this year."
+      - "A health system announces plans to hire hundreds of nurses and technicians."
+      - "A food processor adds a night shift and posts 90 openings."
+  - id: biz_boost
+    p: { bias: 0.040, terms: { ai: 0.0006, public_concern: -0.0005 } }
+    text:
+      - "A downtown business leader tells a breakfast crowd that data centers bring jobs and tax revenue, and that the region cannot afford to say no."
+      - "The head of a local trade group says the data center boom is the best thing to happen to the building trades in a decade."
+  - id: biz_worry
+    p: { bias: 0.030, terms: { public_concern: 0.001, elite_alarm: 0.0003 } }
+    text:
+      - "The head of a manufacturers' group warns that power costs are becoming a deciding factor for local plants."
+      - "A restaurant owner says her electric bill is up and asks who is paying for the new data centers."
+      - "A longtime local banker says AI worries him less than whether anyone is checking the books on the buildout."
+  - id: biz_shrug
+    p: { bias: 0.080 }
+    text:
+      - "A small-business owner says her customers use AI like a search engine and her biggest worry is the holiday rush."
+      - "A hardware store owner says business is steady and nobody in his aisles is talking about AI."
+  - id: power_bills
+    when: { ai: 45 }
+    p: { bias: 0.080 }
+    text:
+      - "Customers brace for higher winter power bills; the utility points to rising demand."
+      - "Residents pack a hearing on a proposed rate increase tied to new large customers."
+  - id: crackdown_local
+    after_event: fbi_up
+    p: { bias: 0.3 }
+    text:
+      - "Neighbors report unmarked cars on a quiet street near the river; police say it is not their operation."
+
+national:
+  - id: fbi_raids
+    after_event: fbi_up
+    p: { bias: 0.6 }
+    text:
+      - "FBI agents carry out searches in several states in an inquiry into leaks and network intrusions. Officials decline to say more."
+      - "Federal agents raid offices and homes in a sweeping probe of what officials call coordinated digital sabotage."
+  - id: fbi_background
+    p: { bias: 0.040, terms: { fbi: 0.01 } }
+    text:
+      - "FBI agents raid a small firm in a fraud case; the company says it is cooperating."
+  - id: market_surge
+    trend: { var: market, days: 7, min: 6 }
+    p: { bias: 0.6 }
+    text:
+      - "Technology shares surge as investors bet on faster AI spending."
+      - "Stocks of AI infrastructure companies jump on strong demand forecasts."
+  - id: market_plunge
+    trend: { var: market, days: 7, max: -6 }
+    p: { bias: 0.6 }
+    text:
+      - "Technology shares tumble as investors question the cost of the AI buildout."
+      - "AI infrastructure stocks slide on worries about debt and power supply."
+  - id: elite_warn
+    p: { bias: 0.080, terms: { elite_alarm: 0.0012 } }
+    text:
+      - "The head of a leading AI lab warns again that the technology could threaten humanity, then announces a larger training run."
+      - "Executives of the biggest tech firms sign a letter calling for guardrails on advanced AI; critics call it a marketing move."
+  - id: hearing
+    p: { bias: 0.060, terms: { regulation: 0.0006, public_concern: 0.0006 } }
+    text:
+      - "A Senate panel holds a hearing on AI and electricity demand."
+      - "Lawmakers in Washington spar over whether to preempt state rules on data centers."
+  - id: public_shrug
+    p: { bias: 0.100, terms: { public_concern: -0.001 } }
+    text:
+      - "A new survey finds most Americans use AI mainly for quick answers, the way they used search engines."
+  - id: jobs
+    p: { bias: 0.060 }
+    text:
+      - "Hiring slows in tech and logistics while health care keeps adding jobs."

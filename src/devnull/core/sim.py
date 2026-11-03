@@ -25,6 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RULES = REPO_ROOT / "data" / "slice_rules.yaml"
 DEFAULT_CONTACTS = REPO_ROOT / "data" / "contacts.yaml"
 DEFAULT_MARKET = REPO_ROOT / "data" / "market.yaml"
+DEFAULT_NEWS = REPO_ROOT / "data" / "news.yaml"
 
 
 def load_rules(path: Path = DEFAULT_RULES, contacts_path: Path = DEFAULT_CONTACTS) -> dict[str, Any]:
@@ -36,6 +37,9 @@ def load_rules(path: Path = DEFAULT_RULES, contacts_path: Path = DEFAULT_CONTACT
     if DEFAULT_MARKET.exists():
         with open(DEFAULT_MARKET, encoding="utf-8") as f:
             rules["market_tape"] = yaml.safe_load(f)
+    if DEFAULT_NEWS.exists():
+        with open(DEFAULT_NEWS, encoding="utf-8") as f:
+            rules["news"] = yaml.safe_load(f)
     return rules
 
 
@@ -132,6 +136,7 @@ class Sim:
     max_turns_override: int | None = None
     events: list[dict[str, Any]] = field(default_factory=list)   # real dated events from the city file
     quotes: dict[str, dict[str, Any]] = field(default_factory=dict)  # real delayed quotes at run start
+    feed: dict[str, list[dict[str, Any]]] = field(default_factory=dict)  # real headlines at run start (day 1)
     turn: int = 0
     state: dict[str, float] = field(default_factory=dict)
     history: list[dict[str, float]] = field(default_factory=list)
@@ -239,7 +244,12 @@ class Sim:
         Events borrow a meeting template (`kind`) for who attends; their `real`
         key holds the source details."""
         meetings = self.rules.get("contacts", {}).get("meetings", {})
-        out = [(k, m) for k, m in meetings.items() if "when" in m and scheduled(m["when"], d)]
+        listed = {(ev["kind"], ev["start"].year) for ev in self.events}
+        out = [(k, m) for k, m in meetings.items()
+               if "when" in m and scheduled(m["when"], d)
+               and not (m.get("approx_unless_listed") and (k, d.year) in listed)]
+        if d == self.start_date:                       # day 1 always has somewhere to go
+            out += [(k, m) for k, m in meetings.items() if m.get("day1")]
         for ev in self.events:
             if ev["start"] <= d <= ev.get("end", ev["start"]) and ev["kind"] in meetings:
                 tmpl = meetings[ev["kind"]]
@@ -312,7 +322,7 @@ class Sim:
         msgs: list[str] = []
         if self.rng.random() >= m["meet_chance"]:
             return ["You listen and take notes, but you do not end up talking to anyone."]
-        people = 1 + (self.rng.random() < 0.2)
+        people = 1 + (self.rng.random() < m.get("people_extra", 0.2))
         types = self.rules["contacts"]["types"]
         for _ in range(people):
             ctype = self._weighted(m["attendees"])

@@ -16,7 +16,7 @@ from typing import Any
 import yaml
 
 from devnull import __version__
-from devnull.core.digest import render
+from devnull.core.digest import describe, render
 from devnull.core.sim import Sim, load_rules
 
 CITIES_DIR = Path(__file__).resolve().parents[3] / "cities"
@@ -34,7 +34,7 @@ BANDS = [(10, "low"), (25, "moderate"), (45, "high"), (101, "severe")]
 WAKE_EVENTS = ("records_arrived", "lawsuit_stage", "lawsuit_result", "election", "contact_met")
 
 # Always available, whatever you have unlocked.
-BASIC = ["help", "commands", "status", "news", "upcoming", "sleep", "wait", "quit"]
+BASIC = ["help", "commands", "status", "news", "events", "markets", "sleep", "wait", "quit"]
 
 
 def band(x: float) -> str:
@@ -124,7 +124,7 @@ def show_commands(sim: Sim, admin: bool) -> None:
         print("  contacts         list the people you know")
         print("  contact <n>      what you know about one person and what has happened")
         print("  meet <n> [act]   spend time with a contact (coffee, favor, ask, ...)")
-    print("\nOTHER: help, commands, status, news, upcoming [days], sleep, wait <days>, quit"
+    print("\nOTHER: help, commands, status, news, events [days], markets, sleep, wait <days>, quit"
           + (", admin" if admin else ""))
     print("New commands appear as you unlock them.")
 
@@ -206,17 +206,44 @@ def show_contact(sim: Sim, c: Any, admin: bool) -> None:
         print(wrap(f"{h['date']}  {h['action']} ({h['outcome']}): {h['text']}", "    "))
 
 
-def show_upcoming(sim: Sim, days: int) -> None:
-    items = sim.upcoming(days)
-    if not items:
-        print(f"  Nothing scheduled in the next {days} days.")
-        return
-    print(f"\n  Coming up (next {days} days):")
-    for d, key, m in items:
-        tag = "[real] " if m.get("real") else ""
-        print(wrap(f"{d:%a %b %d}: {tag}{m['label']}, {m['time']} ({m['hours']}h)", "  "))
+def show_events(sim: Sim, days: int) -> None:
+    """Today's gatherings, then the next occurrence of each one coming up."""
+    today = sim.meetings_today()
+    print("\n  TODAY")
+    if not today:
+        print("    Nothing on today.")
+    for i, (_, m) in enumerate(today, 1):
+        print(wrap(f"{i}. {describe(m)}", "    "))
         if m.get("real"):
-            print("      " + m["real"]["url"])
+            print("        " + m["real"]["url"])
+    items = sim.upcoming(days)
+    print(f"\n  EVENTS (next {days} days)")
+    if not items:
+        print("    Nothing scheduled.")
+    for d, key, m in items:
+        end = m["real"].get("end") if m.get("real") else None
+        span = f" (through {end:%b} {end.day})" if end and end != d else ""
+        print(wrap(f"{d:%a %b} {d.day}: {describe(m)}{span}", "    "))
+        if m.get("real"):
+            print("        " + m["real"]["url"])
+    print("\n  'attend' goes to something happening today.")
+
+
+def show_markets(sim: Sim) -> None:
+    tape = sim.rules.get("market_tape")
+    if not tape or not sim.prices:
+        print("  No quotes. They are fetched when a run starts (offline, or started with --no-quotes).")
+        return
+    if sim.prices_real:
+        q = next(iter(sim.quotes.values()))
+        print(f"\n  MARKETS - real delayed quotes ({q['source']}, {q['asof']})")
+    else:
+        print("\n  MARKETS - simulated from the last real quotes")
+    for g in tape["groups"].values():
+        print("\n  " + g["title"])
+        for sym, name in g["tickers"].items():
+            if sym in sim.prices:
+                print("    %-6s %-22s %9.2f  %+6.2f%%" % (sym, name, sim.prices[sym], sim.price_change[sym]))
 
 
 def a_or_an(label: str) -> str:
@@ -403,8 +430,10 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
             show_status(sim, admin)
         elif word == "news":
             print(render(sim, city))
-        elif word == "upcoming":
-            show_upcoming(sim, int(args[0]) if args and args[0].isdigit() else 30)
+        elif word == "events":
+            show_events(sim, int(args[0]) if args and args[0].isdigit() else 30)
+        elif word == "markets":
+            show_markets(sim)
         elif word == "contacts":
             show_contacts(sim, admin)
         elif word == "contact":
@@ -454,7 +483,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--start-date", type=date.fromisoformat, default=None,
                         help="override the start date (default: today)")
     parser.add_argument("--no-quotes", action="store_true",
-                        help="do not fetch live delayed stock quotes")
+                        help="do not fetch live stock quotes or headlines (offline play)")
     parser.add_argument("--admin", action="store_true",
                         help="testing: unlock every command and show hidden state on request")
     args = parser.parse_args(argv)
@@ -471,7 +500,12 @@ def main(argv: list[str] | None = None) -> int:
         from devnull.core.market import fetch_quotes
         print("\nFetching delayed stock quotes...")
         quotes = fetch_quotes([s for g in tape["groups"].values() for s in g["tickers"]])
-    sim = Sim(seed=seed, rules=rules, quotes=quotes, start_date=args.start_date or date.today(),
+    feed: dict[str, Any] = {}
+    if not args.no_quotes:
+        from devnull.core.feeds import fetch_feeds
+        print("Fetching today's headlines...")
+        feed = fetch_feeds(city["city"]["display_name"], city["city"]["state"])
+    sim = Sim(seed=seed, rules=rules, quotes=quotes, feed=feed, start_date=args.start_date or date.today(),
               events=city.get("events") or [])
     print(f"\n{city['city']['display_name']}, {city['city']['state']}. "
           f"Your run begins {sim.start_date:%B %d, %Y} and lasts up to 8 years "

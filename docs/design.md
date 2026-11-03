@@ -213,3 +213,21 @@ the digest says so. Real companies appear as market data only and never take
 plot actions. **Before release:** use a licensed market-data feed (the free
 endpoints are for personal use) and have the use of company names and tickers
 reviewed along with the other trademark questions.
+
+## 5e. News sections and Day 1
+
+The digest has LOCAL NEWS and NATIONAL NEWS. Each mixes: curated real items
+(city file, with source, date and link), live headlines fetched at run start
+(`devnull.core.feeds`, day 1 only, from `data/feeds.yaml`), and stories the game
+generates from its own state (`data/news.yaml`, via `devnull.core.news`): police
+standoffs, layoffs and hiring, local business leaders' views, FBI raids after
+the case against the player escalates, big market moves, and CEO-versus-public
+sentiment. Generated stories are generic and fictional and lag reality by three
+days. Real items are always tagged `[real]`.
+
+`events` shows today's gatherings and the next occurrence of each; `markets`
+shows the tape. Neither appears in the digest (it only lists what is on today).
+Real City Commission dates come from the city's adopted 2026 schedule; the
+recurring Tuesday approximation applies only in years the city file does not
+list. Day 1 always includes a made-up neighbors' open house with high odds of
+meeting people.

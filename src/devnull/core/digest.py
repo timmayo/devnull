@@ -2,7 +2,8 @@
 
 The player never sees most of the world state. The digest is how they infer
 it: coverage is lagged, noisy and sometimes wrong. Text is plain ASCII so it
-prints on any terminal. All headlines are generic and fictional.
+prints on any terminal. Stories marked [real] are real, sourced and linked;
+everything else is generic and fictional.
 
 Uses its own random stream (seed + turn) so reading the digest never changes
 the simulation.
@@ -13,6 +14,7 @@ from __future__ import annotations
 import random
 from typing import Any
 
+from devnull.core.news import game_stories
 from devnull.core.sim import Sim
 
 MONTHS = ["January", "February", "March", "April", "May", "June", "July",
@@ -96,24 +98,34 @@ def season(d) -> str:
             6: "summer", 7: "summer", 8: "summer"}.get(d.month, "fall")
 
 
-def local_news(sim: Sim, city: dict[str, Any] | None, rng: random.Random) -> list[str]:
-    """Real dated items (with source links) plus generic local color. Not about AI."""
+def real_lines(items: list[dict[str, Any]], d) -> list[str]:
+    """Curated real items (with source and link) whose window covers the date."""
     out: list[str] = []
-    news = (city or {}).get("news") or {}
-    for item in news.get("real_events", []):
+    for item in items:
         start, end = item["window"]
-        if start <= sim.date <= end:
+        if start <= d <= end:
             out.append("[real] " + item["text"])
             out.append("Source: %s, %s" % (item["source"], item["published"].strftime("%b %d, %Y").replace(" 0", " ")))
             out.append(item["url"])
-    note = calendar_note(sim.date)
-    if note:
-        out.append(note)
-    fillers = news.get("fillers") or {}
-    pool = list(fillers.get("all", [])) + list(fillers.get(season(sim.date), []))
-    if pool:
-        out.extend(rng.sample(pool, min(2, len(pool))))
     return out
+
+
+def feed_lines(sim: Sim, scope: str) -> list[str]:
+    """Live headlines; only on day 1, when they describe the same day."""
+    out: list[str] = []
+    if sim.turn != 0:
+        return out
+    for it in sim.feed.get(scope, []):
+        out.append("[real] " + it["title"])
+        out.append("Source: %s, %s" % (it["source"], it["published"][:10]))
+        out.append(it["link"])
+    return out
+
+
+def filler_lines(city: dict[str, Any] | None, sim: Sim, rng: random.Random, n: int) -> list[str]:
+    fillers = ((city or {}).get("news") or {}).get("fillers") or {}
+    pool = list(fillers.get("all", [])) + list(fillers.get(season(sim.date), []))
+    return rng.sample(pool, min(n, len(pool))) if pool else []
 
 
 def election_line(sim: Sim) -> str | None:
@@ -125,6 +137,12 @@ def election_line(sim: Sim) -> str | None:
         if t + 1 == sim.turn:
             return "Ballots from yesterday's election are being counted."
     return None
+
+
+def describe(m: dict[str, Any]) -> str:
+    tag = "[real] " if m.get("real") else ""
+    where = " - " + m["real"]["venue"] if m.get("real") and m["real"].get("venue") else ""
+    return "%s%s, %s (%dh)%s" % (tag, m["label"], m["time"], m["hours"], where)
 
 
 def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, list[str]]]:
@@ -179,66 +197,48 @@ def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, lis
     if news:
         sections.append(("OVERNIGHT", news))
 
-    # -- local news (real and generic; not about AI) ---------------------
-    local = local_news(sim, city, rng)
-    if local:
-        sections.append(("LOCAL", local))
+    news_cfg = (city or {}).get("news") or {}
+    meetings = sim.meetings_today()
 
-    # -- the tape ----------------------------------------------------------
-    tape = sim.rules.get("market_tape")
-    if tape and sim.prices:
-        if sim.prices_real:
-            q = next(iter(sim.quotes.values()))
-            head = "MARKETS - real delayed quotes (%s, %s)" % (q["source"], q["asof"])
-        else:
-            head = "MARKETS - simulated from the last real quotes"
-        rows = []
-        for g in tape["groups"].values():
-            rows.append("  " + g["title"])
-            for sym, name in g["tickers"].items():
-                if sym in sim.prices:
-                    rows.append("    %-6s %-22s %9.2f  %+6.2f%%" % (sym, name, sim.prices[sym],
-                                                                      sim.price_change[sym]))
-        sections.append((head, rows))
-    elif tape and sim.turn == 0:
-        sections.append(("MARKETS", ["Quotes unavailable right now (offline or blocked)."]))
-
-    # -- the news (lagged, noisy) ----------------------------------------
-    headlines = [
-        pick(AI_LINES, lag["ai"] + rng.gauss(0, 4)),
-        pick(OPINION_LINES, lag["opinion"] + rng.gauss(0, 8)),
-    ]
-    extra: list[str] = []
-    week_ago = sim.history[max(0, len(sim.history) - 8)]["market"]
-    move = lag["market"] - week_ago + rng.gauss(0, 3)
-    extra.append("Tech shares rally." if move > 5 else
-                 "Tech shares slide on talk of tighter scrutiny." if move < -5 else
-                 "Markets are flat.")
-    extra.append(pick(REG_LINES, lag["regulation"] + rng.gauss(0, 5)))
-    headlines.extend(rng.sample(extra, 1))
-    if sim.turn == 0:
-        headlines.insert(0, ELITE_LINES[-1][1])
-        headlines.insert(1, "Meanwhile, most people say they use AI as a glorified search engine "
-                            "and do not see what the fuss is about.")
-    else:
-        headlines.insert(0, pick(ELITE_LINES, lag["elite_alarm"] + rng.gauss(0, 6)))
-        headlines.insert(1, pick(PUBLIC_LINES, lag["public_concern"] + rng.gauss(0, 5)))
+    # -- local news: real stories, then this game's own ------------------
+    local: list[str] = real_lines(news_cfg.get("real_events", []), sim.date)
+    local += feed_lines(sim, "local")
+    local += game_stories(sim, "local", rng)
+    local.append(pick(AI_LINES, lag["ai"] + rng.gauss(0, 4)))
+    local.append(pick(OPINION_LINES, lag["opinion"] + rng.gauss(0, 8)))
     line = election_line(sim)
     if line:
-        headlines.append(line)
-    meetings = sim.meetings_today()
+        local.append(line)
+    note = calendar_note(sim.date)
+    if note:
+        local.append(note)
     if city and sim.date.weekday() == 1 and not meetings:
-        note = (city.get("display", {}).get("digest_notes") or {}).get("tuesday")
-        if note:
-            headlines.append(note)
-    sections.append(("AI, MARKETS AND POLITICS", headlines))
+        tue = (city.get("display", {}).get("digest_notes") or {}).get("tuesday")
+        if tue:
+            local.append(tue)
+    local += filler_lines(city, sim, rng, 1)
+    sections.append(("LOCAL NEWS", local))
 
-    # -- meetings and events: today, then upcoming -----------------------
-    def describe(m: dict[str, Any]) -> str:
-        tag = "[real] " if m.get("real") else ""
-        where = " - " + m["real"]["venue"] if m.get("real") and m["real"].get("venue") else ""
-        return "%s%s, %s (%dh)%s" % (tag, m["label"], m["time"], m["hours"], where)
+    # -- national news ---------------------------------------------------
+    nat: list[str] = real_lines(news_cfg.get("national_real", []), sim.date)
+    nat += feed_lines(sim, "national")
+    if sim.turn == 0:                     # every run opens with the same split
+        nat.append(ELITE_LINES[-1][1])
+        nat.append("Meanwhile, most people say they use AI as a glorified search engine "
+                   "and do not see what the fuss is about.")
+    else:
+        nat.append(pick(ELITE_LINES, lag["elite_alarm"] + rng.gauss(0, 6)))
+        nat.append(pick(PUBLIC_LINES, lag["public_concern"] + rng.gauss(0, 5)))
+    nat += game_stories(sim, "national", rng)
+    week_ago = sim.history[max(0, len(sim.history) - 8)]["market"]
+    move = lag["market"] - week_ago + rng.gauss(0, 3)
+    nat.append("Tech shares rally." if move > 5 else
+               "Tech shares slide on talk of tighter scrutiny." if move < -5 else
+               "Markets are flat.")
+    nat.append(pick(REG_LINES, lag["regulation"] + rng.gauss(0, 5)))
+    sections.append(("NATIONAL NEWS", nat))
 
+    # -- today's gatherings (the full list is the 'events' command) ------
     if meetings:
         todays: list[str] = []
         for i, (key, m) in enumerate(meetings, 1):
@@ -246,16 +246,6 @@ def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, lis
             if m.get("real"):
                 todays.append(m["real"]["url"])
         sections.append(("TODAY - meetings and events (type 'attend')", todays))
-    soon: list[str] = []
-    for d, key, m in sim.upcoming(14)[:8]:
-        when = "%s %s %d" % (DAYS[d.weekday()][:3], MONTHS[d.month - 1][:3], d.day)
-        end = m["real"].get("end") if m.get("real") else None
-        span = " (through %s %d)" % (MONTHS[end.month - 1][:3], end.day) if end and end != d else ""
-        soon.append("%s: %s%s" % (when, describe(m), span))
-        if m.get("real"):
-            soon.append(m["real"]["url"])
-    if soon:
-        sections.append(("UPCOMING - next two weeks ('upcoming' for more)", soon))
 
     # -- signs you are being watched (hidden state, inferred) ------------
     signs: list[str] = []

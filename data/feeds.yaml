@@ -1,0 +1,17 @@
+# Live headline feeds, fetched when a run starts and shown on day 1 only (they
+# describe today; later in-game days have no real feed). Headlines and links
+# only, always labeled [real] with the outlet. Free RSS for personal use; a
+# released game needs a licensed news source (see docs/design.md).
+
+max_age_hours: 72
+per_section: 3
+
+local:
+  # {city} and {state} are filled from the city file.
+  - name: "Google News"
+    url: "https://news.google.com/rss/search?q=%22{city}%22+{state}&hl=en-US&gl=US&ceid=US:en"
+national:
+  - name: "NPR"
+    url: "https://feeds.npr.org/1001/rss.xml"
+  - name: "BBC News (US & Canada)"
+    url: "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml"
