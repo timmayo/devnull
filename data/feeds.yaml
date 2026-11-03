@@ -4,7 +4,7 @@
 # released game needs a licensed news source (see docs/design.md).
 
 max_age_hours: 72
-per_section: 3
+per_section: 6
 
 local:
   # {city} and {state} are filled from the city file.

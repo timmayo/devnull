@@ -97,7 +97,7 @@ fictional:
 # DISPLAY
 # ---------------------------------------------------------------
 display:
-  disclaimer: "Set in a real city. Items marked [real] are real, dated and linked to their source. Everything else (all characters, organizations and events in the story) is fictional."
+  disclaimer: "Set in a real city. Items with a link are real and point to their source. Everything else (all characters, organizations and events in the story) is fictional."
   digest_notes:                   # real texture shown in the morning news
     tuesday: "The City Commission meets on scheduled Tuesdays, at 2:00 pm or 7:00 pm."   # source: adopted 2026 CC schedule, grandrapidsmi.gov, retrieved 2026-11-03
 

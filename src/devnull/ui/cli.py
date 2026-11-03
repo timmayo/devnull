@@ -17,6 +17,7 @@ import yaml
 
 from devnull import __version__
 from devnull.core.digest import describe, render
+from devnull.core.termlinks import enable_vt, fill_link, mode
 from devnull.core.sim import Sim, load_rules
 
 CITIES_DIR = Path(__file__).resolve().parents[3] / "cities"
@@ -208,14 +209,16 @@ def show_contact(sim: Sim, c: Any, admin: bool) -> None:
 
 def show_events(sim: Sim, days: int) -> None:
     """Today's gatherings, then the next occurrence of each one coming up."""
+    def line(text: str, m: dict[str, Any]) -> str:
+        url = m["real"]["url"] if m.get("real") else None
+        return fill_link(text, url, 78, "    ", "      ")
+
     today = sim.meetings_today()
     print("\n  TODAY")
     if not today:
         print("    Nothing on today.")
     for i, (_, m) in enumerate(today, 1):
-        print(wrap(f"{i}. {describe(m)}", "    "))
-        if m.get("real"):
-            print("        " + m["real"]["url"])
+        print(line(f"{i}. {describe(m)}", m))
     items = sim.upcoming(days)
     print(f"\n  EVENTS (next {days} days)")
     if not items:
@@ -223,10 +226,8 @@ def show_events(sim: Sim, days: int) -> None:
     for d, key, m in items:
         end = m["real"].get("end") if m.get("real") else None
         span = f" (through {end:%b} {end.day})" if end and end != d else ""
-        print(wrap(f"{d:%a %b} {d.day}: {describe(m)}{span}", "    "))
-        if m.get("real"):
-            print("        " + m["real"]["url"])
-    print("\n  'attend' goes to something happening today.")
+        print(line(f"{d:%a %b} {d.day}: {describe(m)}{span}", m))
+    print("\n  Events with a link are real; click or Ctrl+click it. 'attend' goes to something on today.")
 
 
 def show_markets(sim: Sim) -> None:
@@ -384,7 +385,10 @@ def prompt(sim: Sim, admin: bool, ref: dict[str, int] | None = None) -> str:
 def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
     print(wrap(city.get("display", {}).get("disclaimer", "")))
     print(render(sim, city))
-    print("\nType 'commands' to see what you can do, 'status' for where you stand, 'help' for the rest.")
+    print("\nType 'events' to see what is on today, 'commands' for what you can do, 'status' for where you stand.")
+    if mode() == "plain":
+        print("(Your terminal does not show clickable links, so links print after the text. "
+              "Windows Terminal or VS Code's terminal make them clickable.)")
     morning, ref = snap(sim), None          # ref = yesterday morning (none on day 1)
     day = sim.turn
     while True:
@@ -488,6 +492,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="testing: unlock every command and show hidden state on request")
     args = parser.parse_args(argv)
 
+    enable_vt()
     print(f"/dev/null  v{__version__}")
     print("Know Your Enemy.\n")
     cities = load_cities()

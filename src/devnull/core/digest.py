@@ -16,9 +16,11 @@ from typing import Any
 
 from devnull.core.news import game_stories
 from devnull.core.sim import Sim
+from devnull.core.termlinks import fill_link
 
 MONTHS = ["January", "February", "March", "April", "May", "June", "July",
           "August", "September", "October", "November", "December"]
+MAX_STORIES = 10
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 AI_LINES = [
@@ -98,28 +100,17 @@ def season(d) -> str:
             6: "summer", 7: "summer", 8: "summer"}.get(d.month, "fall")
 
 
-def real_lines(items: list[dict[str, Any]], d) -> list[str]:
-    """Curated real items (with source and link) whose window covers the date."""
-    out: list[str] = []
-    for item in items:
-        start, end = item["window"]
-        if start <= d <= end:
-            out.append("[real] " + item["text"])
-            out.append("Source: %s, %s" % (item["source"], item["published"].strftime("%b %d, %Y").replace(" 0", " ")))
-            out.append(item["url"])
-    return out
+def real_lines(items: list[dict[str, Any]], d) -> list[Any]:
+    """Curated real items whose window covers the date: (text, url) pairs."""
+    return [("%s (%s)" % (i["text"], i["source"]), i["url"])
+            for i in items if i["window"][0] <= d <= i["window"][1]]
 
 
-def feed_lines(sim: Sim, scope: str) -> list[str]:
+def feed_lines(sim: Sim, scope: str) -> list[Any]:
     """Live headlines; only on day 1, when they describe the same day."""
-    out: list[str] = []
     if sim.turn != 0:
-        return out
-    for it in sim.feed.get(scope, []):
-        out.append("[real] " + it["title"])
-        out.append("Source: %s, %s" % (it["source"], it["published"][:10]))
-        out.append(it["link"])
-    return out
+        return []
+    return [("%s (%s)" % (it["title"], it["source"]), it["link"]) for it in sim.feed.get(scope, [])]
 
 
 def filler_lines(city: dict[str, Any] | None, sim: Sim, rng: random.Random, n: int) -> list[str]:
@@ -140,9 +131,8 @@ def election_line(sim: Sim) -> str | None:
 
 
 def describe(m: dict[str, Any]) -> str:
-    tag = "[real] " if m.get("real") else ""
     where = " - " + m["real"]["venue"] if m.get("real") and m["real"].get("venue") else ""
-    return "%s%s, %s (%dh)%s" % (tag, m["label"], m["time"], m["hours"], where)
+    return "%s, %s (%dh)%s" % (m["label"], m["time"], m["hours"], where)
 
 
 def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, list[str]]]:
@@ -217,7 +207,7 @@ def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, lis
         if tue:
             local.append(tue)
     local += filler_lines(city, sim, rng, 1)
-    sections.append(("LOCAL NEWS", local))
+    sections.append(("LOCAL NEWS", local[:MAX_STORIES]))
 
     # -- national news ---------------------------------------------------
     nat: list[str] = real_lines(news_cfg.get("national_real", []), sim.date)
@@ -236,16 +226,7 @@ def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, lis
                "Tech shares slide on talk of tighter scrutiny." if move < -5 else
                "Markets are flat.")
     nat.append(pick(REG_LINES, lag["regulation"] + rng.gauss(0, 5)))
-    sections.append(("NATIONAL NEWS", nat))
-
-    # -- today's gatherings (the full list is the 'events' command) ------
-    if meetings:
-        todays: list[str] = []
-        for i, (key, m) in enumerate(meetings, 1):
-            todays.append("%d. %s" % (i, describe(m)))
-            if m.get("real"):
-                todays.append(m["real"]["url"])
-        sections.append(("TODAY - meetings and events (type 'attend')", todays))
+    sections.append(("NATIONAL NEWS", nat[:MAX_STORIES]))
 
     # -- signs you are being watched (hidden state, inferred) ------------
     signs: list[str] = []
@@ -275,12 +256,9 @@ def render(sim: Sim, city: dict[str, Any] | None = None, width: int = 78) -> str
         out.append("")
         out.append(title)
         for ln in lines:
-            if ln.startswith("  "):                   # pre-formatted rows
-                out.append(ln)
-                continue
-            if ln.startswith("http"):                 # links are never wrapped
-                out.append("      " + ln)
-                continue
-            out.append(textwrap.fill(ln, width=width, initial_indent="  - ",
-                                     subsequent_indent="    "))
+            if isinstance(ln, tuple):                 # (text, url): the whole item is a link
+                out.append(fill_link(ln[0], ln[1], width, "  - ", "    "))
+            else:
+                out.append(textwrap.fill(ln, width=width, initial_indent="  - ",
+                                         subsequent_indent="    "))
     return "\n".join(out)
