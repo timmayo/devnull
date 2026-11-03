@@ -1,0 +1,100 @@
+# cities/grand_rapids.yaml
+schema_version: 2
+
+city:
+  id: grand_rapids
+  display_name: "Grand Rapids"
+  state: "Michigan"
+
+# ---------------------------------------------------------------
+# REAL LAYER: facts only. Every entry needs a source and a date.
+# Nothing here may describe wrongdoing or conduct by a real party.
+# VERIFY = not yet researched; fill from the cited source.
+# ---------------------------------------------------------------
+real:
+  geography:
+    neighborhoods:   { value: VERIFY, source: "city planning dept", retrieved: VERIFY }
+    watershed:       { value: VERIFY, source: "USGS / EGLE", retrieved: VERIFY }
+    climate:         { value: VERIFY, source: "NOAA", retrieved: VERIFY }
+    industrial_corridors: { value: VERIFY, source: "city zoning map", retrieved: VERIFY }
+
+  demographics:
+    population:      { value: VERIFY, source: "Census ACS", retrieved: VERIFY }
+    median_income:   { value: VERIFY, source: "Census ACS", retrieved: VERIFY }
+    top_industries:  { value: VERIFY, source: "BLS / Census", retrieved: VERIFY }
+    tax_base_notes:  { value: VERIFY, source: "city budget docs", retrieved: VERIFY }
+
+  government_structure:           # structure only, no people
+    form:            { value: VERIFY, source: "city charter", retrieved: VERIFY }
+    mayor_powers:    { value: VERIFY, source: "city charter", retrieved: VERIFY }
+    council_size:    { value: VERIFY, source: "city charter", retrieved: VERIFY }
+    ward_system:     { value: VERIFY, source: "city charter", retrieved: VERIFY }
+    meeting_schedule: { value: VERIFY, source: "city clerk", retrieved: VERIFY }
+    election_calendar: { value: VERIFY, source: "county clerk", retrieved: VERIFY }
+    recall_rules:    { value: VERIFY, source: "state statute", retrieved: VERIFY }
+
+  law:
+    open_meetings:   { strength: VERIFY, citation: "state statute", retrieved: VERIFY }
+    public_records:  { strength: VERIFY, response_days: VERIFY, citation: "state statute", retrieved: VERIFY }
+    zoning_process:  { value: VERIFY, citation: "city zoning code", retrieved: VERIFY }
+    utility_commission: { type: VERIFY, citation: "state statute", retrieved: VERIFY }
+    state_preemption_baseline: { value: VERIFY, source: "legislature / counsel review", retrieved: VERIFY }
+
+  conditions:
+    utility_rate_trend: { value: VERIFY, source: "commission filings", retrieved: VERIFY }
+    water_supply:       { value: VERIFY, source: "city water dept", retrieved: VERIFY }
+    grid_operator:      { value: VERIFY, source: "FERC / ISO docs", retrieved: VERIFY }
+    existing_dc_activity: { value: VERIFY, source: "public reporting", retrieved: VERIFY }
+
+  # Real institutions appear as neutral background ONLY.
+  # They supply facts (rate structure, department size). They never act in the plot.
+  background_institutions:
+    police_department:  { staffing: VERIFY, source: "city budget", retrieved: VERIFY }
+    utility:            { rate_structure: VERIFY, source: "tariff filings", retrieved: VERIFY }
+    local_press:        { type: "daily / weekly", source: VERIFY, retrieved: VERIFY }
+
+# ---------------------------------------------------------------
+# FICTIONAL LAYER: generated from the seed. Nothing here is real.
+# ---------------------------------------------------------------
+fictional:
+  generation:
+    seed_source: "run_seed"
+    name_pools:
+      surnames:  "pools/mi_surnames.txt"
+      given:     "pools/given_names.txt"
+    collision_check:
+      enabled: true
+      rule: >
+        reject any generated name + role that matches a real person holding
+        that role in this city, now or in the recent past. Applies to every
+        role, including mayor and police chief.
+      blocklist: "pools/real_officials_blocklist.txt"   # maintained per city
+      include_roles: [mayor, police_chief, council_member, city_manager, city_attorney]
+
+  cast_templates:
+    mayor:             { count: 1 }                       # fictional, may be any alignment
+    council_members:   { count_from: "real.government_structure.council_size" }
+    city_staff:        { roles: [city_manager, planning_director, city_attorney] }
+    police:            { roles: [police_chief, patrol_officer, sergeant, detective] }
+    lawyers:           { roles: [public_interest, corporate_counsel] }
+    reporters:         { roles: [local_reporter, editor] }
+    developer:         { type: "generated shell developer + parent corp" }
+    pacs:              { count: 2 }
+    proposed_site:     { type: "fictional parcel in a real zoned corridor" }
+
+  fictional_analogues:
+    utility_actor:  "generated; inherits rate structure from the real utility's public tariff"
+    outlet_actor:   "generated outlet name; real outlet never appears as an actor"
+
+  plot_rules:
+    - "Real people never appear."
+    - "Real companies, utility, and outlets never take plot actions."
+    - "Fictional office-holders may take any alignment, including corrupt or incompetent."
+    - "Fictional office-holders get invented backgrounds; never copy a real incumbent's biography, party, term dates, or distinctive traits."
+    - "Scenario must not mirror a live local dispute."
+
+# ---------------------------------------------------------------
+# DISPLAY
+# ---------------------------------------------------------------
+display:
+  disclaimer: "Set in a real city. All characters, organizations, and events in the story are fictional."
