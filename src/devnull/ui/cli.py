@@ -89,36 +89,6 @@ def visible_keys(sim: Sim, admin: bool) -> list[str]:
     return sim.rules["cmdset"].visible_keys(sim.state, sim.unlocked, admin)
 
 
-def balanced_wrap(text: str, width: int = 78) -> str:
-    """Wrap to as few lines as `width` allows, then even the lines out so no short last line is left alone."""
-    lines = len(textwrap.wrap(text, width=width)) or 1
-    w = width
-    while w > 20 and len(textwrap.wrap(text, width=w - 1)) == lines:
-        w -= 1
-    return textwrap.fill(text, width=w)
-
-
-def wrap_paragraph(text: str, width: int = 78) -> str:
-    """Sentences that fit share a line; one that is too long is balanced over two or more lines
-    instead of leaving a short last line."""
-    import re
-    out: list[str] = []
-    cur = ""
-    for sent in (x for x in re.split(r"(?<=[.!?])\s+", text.strip()) if x):
-        if cur and len(cur) + 1 + len(sent) <= width:
-            cur += " " + sent
-            continue
-        if cur:
-            out.append(cur)
-        cur = sent
-        if len(cur) > width:
-            out.append(balanced_wrap(cur, width))
-            cur = ""
-    if cur:
-        out.append(cur)
-    return "\n".join(out)
-
-
 def show_commands(sim: Sim, admin: bool) -> None:
     cmds = sim.rules.get("commands", {}).get("commands", {})
     print("\nLOOK AROUND (free)")
@@ -653,7 +623,6 @@ def check_commands(sim: Sim) -> list[str]:
 
 
 def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
-    print(wrap_paragraph(city.get("display", {}).get("disclaimer", "")))
     print(render(sim, city))
     print("\nStart with 'commands' to see what you can do. Try 'events' to see what is on today, 'news' for the headlines.")
     if mode() == "plain":
@@ -737,9 +706,10 @@ def main(argv: list[str] | None = None) -> int:
         feed = fetch_feeds(city["city"]["display_name"], city["city"]["state"])
     sim = Sim(seed=seed, rules=rules, quotes=quotes, feed=feed, start_date=args.start_date or date.today(),
               events=city.get("events") or [])
-    print("\n" + balanced_wrap(f"{city['city']['display_name']}, {city['city']['state']}. "
-                            f"Your run begins {sim.start_date:%B %d, %Y} and lasts up to 8 years "
-                            f"(to {sim.end_date:%B %d, %Y})."))
+    print("\n" + wrap(f"{city['city']['display_name']}, {city['city']['state']}. "
+                    f"Your run begins {sim.start_date:%B %d, %Y} and lasts up to 8 years "
+                    f"(to {sim.end_date:%B %d, %Y}). "
+                    + city.get("display", {}).get("disclaimer", "")))
     problems = check_commands(sim)
     if problems:
         print(f"data/commands.yaml has {len(problems)} problem(s):")
