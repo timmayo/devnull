@@ -1,6 +1,6 @@
 # /dev/null: design doc
 
-*Know Your Enemy.*
+*Take the Power Back!*
 
 Status: early design. This is a working document; expect it to change.
 

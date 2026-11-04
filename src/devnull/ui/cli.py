@@ -599,7 +599,7 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="devnull", description="/dev/null: Know Your Enemy.")
+    parser = argparse.ArgumentParser(prog="devnull", description="/dev/null: Take the Power Back!")
     parser.add_argument("--seed", type=int, default=None, help="RNG seed (default: random)")
     parser.add_argument("--city", default=None, help="city id or name (default: choose)")
     parser.add_argument("--start-date", type=date.fromisoformat, default=None,
@@ -617,7 +617,7 @@ def main(argv: list[str] | None = None) -> int:
         intro.show(animate=True)
     else:
         print(f"/dev/null  v{__version__}")
-        print("Know Your Enemy.\n")
+        print("Take the Power Back!\n")
     city = choose_city(cities, args.city)
     seed = args.seed if args.seed is not None else random.randrange(2**31)
     quotes: dict[str, Any] = {}

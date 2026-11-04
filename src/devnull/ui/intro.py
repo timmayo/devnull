@@ -58,7 +58,7 @@ def screen(city: str | None = None, years: int = 8) -> list[tuple[str, str | Non
         ("", None),
         (spaced("/dev/null"), "1"),
         ("", None),
-        (spaced("KNOW YOUR ENEMY."), "2"),
+        (spaced("TAKE THE POWER BACK!"), "2"),
         ("", None),
         (f"FILE 0000-0000    CLASSIFICATION: {BAR * 11}", None),
         (f"SUBJECT: you  ·  CITY: {where}  ·  YEARS: {years}", None),
