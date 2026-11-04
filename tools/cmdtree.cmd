@@ -2,8 +2,8 @@
 setlocal
 set "ROOT=%~dp0.."
 set "PY=%ROOT%\.venv\Scripts\python.exe"
-rem Points at the NEW-format file for now. Switch to commands.yaml after migration.
-set "CMDS=%ROOT%\data\commands2.yaml"
+rem Reads data\commands.yaml. Try:  .\tools\cmdtree.cmd --check --deep      .\tools\cmdtree.cmd --view gate -d
+set "CMDS=%ROOT%\data\commands.yaml"
 
 if not exist "%PY%" (
   echo .venv not found. Run .\play.cmd once first to create it.

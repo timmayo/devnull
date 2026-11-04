@@ -21,6 +21,8 @@ from typing import Any, Callable
 
 import yaml
 
+from devnull.core import commands as cmdtable
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RULES = REPO_ROOT / "data" / "slice_rules.yaml"
 DEFAULT_PEOPLE = REPO_ROOT / "data" / "people.yaml"
@@ -46,8 +48,13 @@ def load_rules(path: Path = DEFAULT_RULES, people_path: Path = DEFAULT_PEOPLE) -
         with open(DEFAULT_NEWS, encoding="utf-8") as f:
             rules["news"] = yaml.safe_load(f)
     if DEFAULT_COMMANDS.exists():
-        with open(DEFAULT_COMMANDS, encoding="utf-8") as f:
-            rules["commands"] = yaml.safe_load(f)
+        data = cmdtable.load_file(DEFAULT_COMMANDS)
+        problems = cmdtable.check(data, rules=rules)
+        if problems:
+            raise cmdtable.CommandFileError(
+                f"{DEFAULT_COMMANDS.name} has {len(problems)} problem(s):\n  - " + "\n  - ".join(problems))
+        rules["cmdset"] = cmdtable.CommandSet(data)           # resolves what the player types
+        rules["commands"] = cmdtable.to_legacy(data)           # the shape apply_commands and the docs read
         apply_commands(rules)
     return rules
 

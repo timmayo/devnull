@@ -11,7 +11,8 @@ import random
 import textwrap
 from datetime import date
 from pathlib import Path
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Callable
 
 import yaml
 
@@ -19,6 +20,7 @@ from devnull import __version__
 from devnull.core.digest import describe, render
 from devnull.ui import intro
 from devnull.core.termlinks import GREEN, RED, enable_vt, fill_link, mode, paint
+from devnull.core import commands as cmdtable
 from devnull.core.sim import Sim, load_rules
 
 CITIES_DIR = Path(__file__).resolve().parents[3] / "cities"
@@ -34,10 +36,6 @@ ENDINGS = {
 
 BANDS = [(10, "low"), (25, "moderate"), (45, "high"), (101, "severe")]
 WAKE_EVENTS = ("records_arrived", "lawsuit_stage", "lawsuit_result", "election", "person_met")
-
-# Always available, whatever you have unlocked.
-BASIC = ["help", "commands", "status", "news", "events", "markets", "sleep", "wait", "quit"]
-
 
 def band(x: float) -> str:
     return next(label for edge, label in BANDS if x < edge)
@@ -86,18 +84,9 @@ def trust_band(sim: Sim, trust: float) -> str:
     return "inner circle"
 
 
-def available_words(sim: Sim, admin: bool) -> list[str]:
-    """Command words the player may type right now."""
-    words = list(BASIC)
-    actions = list(sim.rules["actions"]) if admin else sim.visible_actions()
-    words += actions
-    if sim.people or admin:
-        words += ["people", "person", "meet"]
-    if admin or sim.visible_shop():
-        words.append("buy")
-    if admin:
-        words.append("admin")
-    return words
+def visible_keys(sim: Sim, admin: bool) -> list[str]:
+    """Commands the player may type right now (data/commands.yaml: always_available, hidden_until, unlocks)."""
+    return sim.rules["cmdset"].visible_keys(sim.state, sim.unlocked, admin)
 
 
 def show_commands(sim: Sim, admin: bool) -> None:
@@ -139,11 +128,14 @@ def show_commands(sim: Sim, admin: bool) -> None:
             print(f"  {'buy ' + item:<16} {1:>4}   {mark}   ${spec['price']}. {spec['note']}{tag}")
     if sim.people or admin:
         print("\nPEOPLE")
-        print("  people           list the people you know")
-        print("  person <n>       what you know about one person and what has happened")
-        print("  meet <n> [act]   spend time with someone you know (coffee, favor, ask, ...)")
+        for k, c in cmds.items():
+            if c["group"] == "people" and not c.get("parent"):
+                print(f"  {c['usage']:<20} {c['help'][:1].upper() + c['help'][1:]}")
+                opts = [x["usage"].split()[-1] for x in cmds.values() if x.get("parent") == k]
+                if opts:
+                    print(f"  {'':<20} options (open as you know them better): {', '.join(opts)}")
     if admin:
-        print("\nADMIN: admin set|reveal|spawn|unlock|hours|skip")
+        print(f"\nADMIN: {cmds['admin']['usage']}")
     print("New commands appear as you unlock them.")
 
 
@@ -444,17 +436,6 @@ def admin_cmd(sim: Sim, args: list[str]) -> None:
         print("  Unknown admin command.")
 
 
-def resolve_command(text: str, sim: Sim, admin: bool) -> str | None:
-    """Exact name, or a unique prefix among the commands the player can use."""
-    parts = text.split()
-    word, rest = parts[0].lower(), parts[1:]
-    names = available_words(sim, admin)
-    if word in names:
-        return " ".join([word] + rest)
-    matches = [n for n in names if n.startswith(word)]
-    return " ".join([matches[0]] + rest) if len(matches) == 1 else None
-
-
 def flush_unlocks(sim: Sim) -> None:
     for name in sim.new_unlocks:
         spec = sim.rules["actions"].get(name)
@@ -492,6 +473,150 @@ def prompt(sim: Sim, admin: bool, ref: dict[str, int] | None = None) -> str:
             f"{' ADMIN' if admin else ''}] > ")
 
 
+@dataclass
+class Session:
+    """What a command handler needs: the sim, the city, admin mode and where the player is."""
+    sim: Sim
+    city: dict[str, Any]
+    admin: bool = False
+    context: str = "world"
+
+
+def _report(s: Session, done: bool, msgs: list[str]) -> bool:
+    for m in msgs:
+        print(wrap(m, "  "))
+    if done:
+        print(f"  ({s.sim.hours_left}h left today)")
+    flush_unlocks(s.sim)
+    return False
+
+
+def cmd_help(s: Session, key: str, args: list[str]) -> bool:
+    print(wrap("Each day you have a few free hours after your job. Spend them on actions "
+               "(see 'commands'), then 'sleep' to end the day. Meetings happen on certain "
+               "days: type 'events' to see them, then 'attend' one and you may meet people. 'people' lists them; "
+               "'meet <n>' lets you spend time with one. The news is how you learn what "
+               "the world is doing. 'wait 7' sleeps a week without acting."))
+    print("Commands: commands, status, news, sleep, wait <days>, quit, and whatever you unlock.")
+    return False
+
+
+def cmd_commands(s: Session, key: str, args: list[str]) -> bool:
+    show_commands(s.sim, s.admin)
+    return False
+
+
+def cmd_status(s: Session, key: str, args: list[str]) -> bool:
+    show_status(s.sim, s.admin)
+    return False
+
+
+def cmd_news(s: Session, key: str, args: list[str]) -> bool:
+    print(render(s.sim, s.city, view="news"))
+    return False
+
+
+def cmd_events(s: Session, key: str, args: list[str]) -> bool:
+    days = 7
+    if args and args[0].isdigit():
+        days = int(args[0])
+    elif args and args[0].startswith("m"):
+        days = 30
+    show_events(s.sim, days)
+    return False
+
+
+def cmd_markets(s: Session, key: str, args: list[str]) -> bool:
+    show_markets(s.sim)
+    return False
+
+
+def cmd_people(s: Session, key: str, args: list[str]) -> bool:
+    show_people(s.sim, s.admin)
+    return False
+
+
+def cmd_person(s: Session, key: str, args: list[str]) -> bool:
+    c = s.sim.person(int(args[0])) if args and args[0].isdigit() else None
+    if c is None:
+        print("  Usage: person <number>. See 'people'.")
+    else:
+        show_person(s.sim, c, s.admin)
+    return False
+
+
+def cmd_sleep(s: Session, key: str, args: list[str]) -> bool:
+    """`sleep` ends the day; `wait [days]` sleeps several and stops early when something happens."""
+    sim = s.sim
+    days = 1
+    if key == "wait":
+        days = int(args[0]) if args and args[0].isdigit() else 7
+    for _ in range(days):
+        mark = len(sim.log)
+        sim.end_day()
+        if sim.ending:
+            break
+        sim.begin_day()
+        if days > 1 and any(c in WAKE_EVENTS for _, c, _ in sim.log[mark:]):
+            break
+    if sim.ending:
+        print("\n" + wrap(ENDINGS[sim.ending]))
+        print(f"The run lasted {sim.turn} days.")
+        return True
+    print(render(sim, s.city))
+    print("\n  Headlines: 'news'.   What is on today: 'events'.")
+    flush_unlocks(sim)
+    return False
+
+
+def cmd_quit(s: Session, key: str, args: list[str]) -> bool:
+    return True
+
+
+def cmd_attend(s: Session, key: str, args: list[str]) -> bool:
+    return _report(s, *do_attend(s.sim, args))
+
+
+def cmd_research(s: Session, key: str, args: list[str]) -> bool:
+    return _report(s, *do_research(s.sim, args))
+
+
+def cmd_meet(s: Session, key: str, args: list[str]) -> bool:
+    return _report(s, *do_meet(s.sim, args))
+
+
+def cmd_buy(s: Session, key: str, args: list[str]) -> bool:
+    item = args[0] if args else ""
+    if not s.admin and f"buy {item}" not in s.sim.unlocked:
+        return _report(s, False, ["Nothing like that is for sale where you know to look."])
+    return _report(s, *s.sim.act(" ".join(["buy"] + args)))
+
+
+def cmd_action(s: Session, key: str, args: list[str]) -> bool:
+    """Any action whose numbers live in slice_rules.yaml (the command's `rule`)."""
+    return _report(s, *s.sim.act(" ".join([key] + args)))
+
+
+def cmd_admin(s: Session, key: str, args: list[str]) -> bool:
+    admin_cmd(s.sim, args)
+    return False
+
+
+# Every `handler:` in data/commands.yaml must be a key here (checked at startup).
+HANDLERS: dict[str, Callable[[Session, str, list[str]], bool]] = {
+    "cmd_help": cmd_help, "cmd_commands": cmd_commands, "cmd_status": cmd_status, "cmd_news": cmd_news,
+    "cmd_events": cmd_events, "cmd_markets": cmd_markets, "cmd_people": cmd_people, "cmd_person": cmd_person,
+    "cmd_sleep": cmd_sleep, "cmd_wait": cmd_sleep, "cmd_quit": cmd_quit, "cmd_attend": cmd_attend,
+    "cmd_research": cmd_research, "cmd_meet": cmd_meet, "cmd_buy": cmd_buy, "cmd_action": cmd_action,
+    "cmd_admin": cmd_admin,
+}
+
+
+def check_commands(sim: Sim) -> list[str]:
+    """The same checks as tools/cmdtree.py --check, plus: every handler exists, every gate variable is real."""
+    return cmdtable.check(sim.rules["cmdset"].data, handlers=set(HANDLERS), rules=sim.rules, state_keys=set(sim.state))
+
+
 def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
     print(wrap(city.get("display", {}).get("disclaimer", "")))
     print(render(sim, city))
@@ -499,103 +624,46 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
     if mode() == "plain":
         print("(Your terminal does not show clickable links, so links print after the text. "
               "Windows Terminal or VS Code's terminal make them clickable.)")
+    s = Session(sim, city, admin)
+    cs: cmdtable.CommandSet = sim.rules["cmdset"]
     morning, ref = snap(sim), None          # ref = yesterday morning (none on day 1)
     day = sim.turn
     while True:
         if sim.turn != day:                  # a new day started (sleep, wait, admin skip)
             ref, morning, day = morning, snap(sim), sim.turn
         try:
-            raw = input(prompt(sim, admin, ref)).strip()
+            raw = input(prompt(sim, s.admin, ref)).strip()
         except EOFError:
             print()
             return
         if not raw:
             continue
-        if raw.split()[0].lower() == "admin":
-            args = raw.split()[1:]
-            if not args and not admin:
-                admin = True
+        word, *rest = raw.split()
+        if word.lower() == "admin":          # typing `admin` turns admin mode on, so it is handled before lookup
+            if not rest and not s.admin:
+                s.admin = True
                 sim.unlock_all()
                 print("  Admin mode on. Everything is unlocked. Type 'admin' again for options.")
-            elif args and admin:
-                admin_cmd(sim, args)
-            elif not args:
+            elif rest and s.admin:
+                admin_cmd(sim, rest)
+            elif not rest:
                 admin_cmd(sim, [])
             else:
                 print("Unknown command. Type 'help'.")
             continue
-        cmd = resolve_command(raw, sim, admin)
-        if cmd is None:
-            print("Unknown command. Type 'help'.")
+        res = cs.resolve(word, visible_keys(sim, s.admin))
+        if res.key is None:
+            if res.how == "ambiguous":
+                print(wrap(f"That could be {', '.join(res.matches)}. Type more of the word.", "  "))
+            else:
+                print("Unknown command. Type 'help'.")
             continue
-        word, *args = cmd.split()
-        if word == "quit":
+        why = cs.why_not(res.key, sim.state, s.context, s.admin)
+        if why:
+            print(wrap(why, "  "))
+            continue
+        if HANDLERS[cs.handler(res.key)](s, res.key, rest):
             return
-        if word == "help":
-            print(wrap("Each day you have a few free hours after your job. Spend them on actions "
-                       "(see 'commands'), then 'sleep' to end the day. Meetings happen on certain "
-                       "days: type 'events' to see them, then 'attend' one and you may meet people. 'people' lists them; "
-                       "'meet <n>' lets you spend time with one. The news is how you learn what "
-                       "the world is doing. 'wait 7' sleeps a week without acting."))
-            print("Commands: commands, status, news, sleep, wait <days>, quit, and whatever you unlock.")
-        elif word == "commands":
-            show_commands(sim, admin)
-        elif word == "status":
-            show_status(sim, admin)
-        elif word == "news":
-            print(render(sim, city, view="news"))
-        elif word == "events":
-            days = 7
-            if args and args[0].isdigit():
-                days = int(args[0])
-            elif args and args[0].startswith("m"):
-                days = 30
-            show_events(sim, days)
-        elif word == "markets":
-            show_markets(sim)
-        elif word == "people":
-            show_people(sim, admin)
-        elif word == "person":
-            c = sim.person(int(args[0])) if args and args[0].isdigit() else None
-            if c is None:
-                print("  Usage: person <number>. See 'people'.")
-            else:
-                show_person(sim, c, admin)
-        elif word in ("sleep", "wait"):
-            days = 1
-            if word == "wait":
-                days = int(args[0]) if args and args[0].isdigit() else 7
-            for _ in range(days):
-                mark = len(sim.log)
-                sim.end_day()
-                if sim.ending:
-                    break
-                sim.begin_day()
-                if days > 1 and any(c in WAKE_EVENTS for _, c, _ in sim.log[mark:]):
-                    break
-            if sim.ending:
-                print("\n" + wrap(ENDINGS[sim.ending]))
-                print(f"The run lasted {sim.turn} days.")
-                return
-            print(render(sim, city))
-            print("\n  Headlines: 'news'.   What is on today: 'events'.")
-            flush_unlocks(sim)
-        else:
-            if word == "attend":
-                done, msgs = do_attend(sim, args)
-            elif word == "research":
-                done, msgs = do_research(sim, args)
-            elif word == "meet":
-                done, msgs = do_meet(sim, args)
-            elif word == "buy" and not admin and f"buy {args[0] if args else ''}" not in sim.unlocked:
-                done, msgs = False, ["Nothing like that is for sale where you know to look."]
-            else:
-                done, msgs = sim.act(cmd)
-            for m in msgs:
-                print(wrap(m, "  "))
-            if done:
-                print(f"  ({sim.hours_left}h left today)")
-            flush_unlocks(sim)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -637,6 +705,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\n{city['city']['display_name']}, {city['city']['state']}. "
           f"Your run begins {sim.start_date:%B %d, %Y} and lasts up to 8 years "
           f"(to {sim.end_date:%B %d, %Y}).   seed {seed}")
+    problems = check_commands(sim)
+    if problems:
+        print(f"data/commands.yaml has {len(problems)} problem(s):")
+        for p in problems:
+            print("  - " + p)
+        return 1
     if args.admin:
         sim.unlock_all()
     play(sim, city, admin=args.admin)

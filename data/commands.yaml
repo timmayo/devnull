@@ -1,176 +1,672 @@
 # /dev/null commands: the one file you edit.
-# The game's `commands` list, the command tree and the reference doc are all generated from this file.
+# The game's command list, the dispatcher, the command tree and the reference doc all read this file.
+# Check it with:  .\tools\cmdtree.cmd --check      View it with:  .\tools\cmdtree.cmd
+# Rebuild the docs with:  python tools/gen_docs.py
 #
-# Fields
-#   group    where it sits in the tree (see `groups`)
-#   parent   nest under another command (a step that follows it)
-#   usage    what the player types
-#   hours    cost in hours (0 = free)
-#   cost     cash cost, if any
-#   unlock   day1, or the state that makes it appear: { evidence: 5 }   (all must be true)
-#   needs    state needed to actually run it (shown as the reason when it cannot)
-#   online   true if it leaves an online trail (bigger if the laptop battery is dead)
-#   help     the one-line description the player sees
-#   rule     name of the entry in slice_rules.yaml that holds the numbers (effects, odds)
-#   notes    yours: not read by the game
+# contexts   where the player is. A command only works in the contexts it lists.
+# gates      named conditions. `when` is a set of state values that must all be at least the number given
+#            (the same test the game used for `unlock` and `needs`). `scope: person` gates look at one
+#            person you know (meetings, trust, bond, leverage, owes). `hint` is shown when the gate fails.
+# groups     how `commands` and the docs are laid out, in `order`.
+# commands   one entry per thing you can type. Fields:
+#   group, aliases, syntax, summary, contexts
+#   hidden_until  gates that must hold before the command appears (sticky, announced when it appears)
+#   requires      gates that must hold to run it (the hint says what is missing)
+#   args          typed arguments (documentation for now)
+#   handler       the Python function that runs it (cmd_action runs a rule in slice_rules.yaml)
+#   time_cost     hours it takes      cost  cash it costs      online  true if it leaves an online trail
+#   parent        draws it under another command in the tree
+#   rule          where its numbers live: an action name, shop.<item> or people_actions.<name>
+#   locked_message  shown instead of the gate hints when a `requires` gate fails
+#   type          shop category       risk  chance of being noticed (planned)
+#   planned       true = designed but not in the game yet; the game ignores it
+#   always_available  shown whatever you have unlocked
+# Words the player types are the command keys whose syntax starts with the same word (meet, buy, admin
+# also have sub-entries such as meet_coffee that carry their own hours, cost and gates).
 
 version: 1
 
+contexts:
+  world:  { description: "Out in the city, on foot" }
+  shell:  { description: "Logged into a terminal on your laptop (not in the game yet)" }
+
+gates:
+  people_n_1: { description: Knows at least one person, when: {people_n: 1}, hint: You need to know someone first. }
+  skills_5: { description: Know-how 5 or more, when: {skills: 5}, hint: Needs know-how 5+. }
+  evidence_1: { description: Evidence 1 or more, when: {evidence: 1}, hint: Needs evidence 1+. }
+  evidence_10: { description: Evidence 10 or more, when: {evidence: 10}, hint: Needs evidence 10+. }
+  evidence_5: { description: Evidence 5 or more, when: {evidence: 5}, hint: Needs evidence 5+. }
+  press_trust_20: { description: Press trust 20 or more, when: {press_trust: 20}, hint: Needs press trust 20+. }
+  evidence_15: { description: Evidence 15 or more, when: {evidence: 15}, hint: Needs evidence 15+. }
+  evidence_20: { description: Evidence 20 or more, when: {evidence: 20}, hint: Needs evidence 20+. }
+  cash_300: { description: $300 on hand, when: {cash: 300}, hint: Needs $300. }
+  trust_25: { description: Trust 25 or more, when: {trust: 25}, hint: Needs trust 25+. }
+  trust_40: { description: Trust 40 or more, when: {trust: 40}, hint: Needs trust 40+. }
+  terms_1: { description: Holds at least one signed agreement, when: {terms: 1}, hint: You need a signed agreement first. }
+  os_1: { description: Has Linux installed, when: {os: 1}, hint: Needs Linux installed. }
+  laptop_1: { description: Has a working laptop, when: {laptop: 1}, hint: Needs a working laptop. }
+  skills_15: { description: Know-how 15 or more, when: {skills: 15}, hint: Needs know-how 15+. }
+  sk_network_security_1: { description: network security skill level 1 or more, when: {sk_network_security: 1}, hint: Needs network security skill 1+. }
+  lead_linux_1: { description: Has the Linux lead, when: {lead_linux: 1}, hint: Needs the Linux lead. }
+  lead_store_1: { description: Has the store lead, when: {lead_store: 1}, hint: Needs the store lead. }
+  cash_420: { description: $420 on hand, when: {cash: 420}, hint: Needs $420. }
+  lead_npc_1: { description: Has the developer lead, when: {lead_npc: 1}, hint: Needs the developer lead. }
+  techie_trust_35: { description: Developer trust 35 or more, when: {techie_trust: 35}, hint: Needs developer trust 35+. }
+  cash_150: { description: $150 on hand, when: {cash: 150}, hint: Needs $150. }
+  darknet_1: { description: Has darknet access, when: {darknet: 1}, hint: Needs darknet access. }
+  person_meetings_2: { description: You have met them 2+ times, when: {meetings: 2}, hint: You need to meet them more first (2+ times)., scope: person }
+  person_trust_15: { description: They trust you 15+, when: {trust: 15}, hint: They do not trust you enough yet (15+)., scope: person }
+  person_trust_20: { description: They trust you 20+, when: {trust: 20}, hint: They do not trust you enough yet (20+)., scope: person }
+  person_meetings_3: { description: You have met them 3+ times, when: {meetings: 3}, hint: You need to meet them more first (3+ times)., scope: person }
+  person_trust_25: { description: They trust you 25+, when: {trust: 25}, hint: They do not trust you enough yet (25+)., scope: person }
+  person_trust_10: { description: They trust you 10+, when: {trust: 10}, hint: They do not trust you enough yet (10+)., scope: person }
+  person_meetings_4: { description: You have met them 4+ times, when: {meetings: 4}, hint: You need to meet them more first (4+ times)., scope: person }
+  person_leverage_1: { description: You have leverage on them (1+), when: {leverage: 1}, hint: You have nothing on them to use., scope: person }
+  person_meetings_5: { description: You have met them 5+ times, when: {meetings: 5}, hint: You need to meet them more first (5+ times)., scope: person }
+  person_trust_40: { description: They trust you 40+, when: {trust: 40}, hint: They do not trust you enough yet (40+)., scope: person }
+  person_trust_50: { description: They trust you 50+, when: {trust: 50}, hint: They do not trust you enough yet (50+)., scope: person }
+  person_trust_12: { description: They trust you 12+, when: {trust: 12}, hint: They do not trust you enough yet (12+)., scope: person }
+  admin_mode: { description: Admin mode is on (--admin), special: admin }
+  laptop_powered: { description: Laptop is plugged in or has working battery, planned: true }
+  has_network: { description: Connected to a network, planned: true }
+  learned_nmap: { description: Player has acquired nmap, planned: true }
+
 groups:
-  look_around: { title: LOOK AROUND,   note: "Free. Costs no hours." }
-  actions:     { title: ACTIONS,       note: "Cost hours. Appear when unlocked." }
-  internet:    { title: INTERNET,      note: "The public web. Open from Day 1." }
-  darknet:     { title: DARKNET,       note: "Opens at network security level 1." }
-  people:      { title: PEOPLE,        note: "After you meet someone. Options open as the relationship deepens." }
-  admin:       { title: ADMIN,         note: "Testing only (--admin)." }
+  look_around: { title: LOOK AROUND, description: Free. Costs no hours., order: 1 }
+  actions: { title: ACTIONS, description: Cost hours. Appear when unlocked., order: 2 }
+  internet: { title: INTERNET, description: The public web. Open from Day 1., order: 3 }
+  darknet: { title: DARKNET, description: Opens at network security level 1., order: 4 }
+  people: { title: PEOPLE, description: After you meet someone. Options open as the relationship deepens., order: 5 }
+  admin: { title: ADMIN, description: Testing only (--admin)., order: 6 }
+  system: { title: System, description: Game and session control, order: 7 }
+  movement: { title: Movement, description: Getting around the city, order: 8 }
+  inspect: { title: Observation, description: Looking at things and people, order: 9 }
+  social: { title: Social, description: Talking to NPCs, order: 10 }
+  hacking: { title: Hacking, description: Tools available from the shell, order: 11 }
 
 commands:
+
   # ---- LOOK AROUND ----
   events:
-    { group: look_around, usage: "events [more | <days>]", hours: 0, unlock: day1, help: "today's list and the week ahead (30 days with 'more')" }
+    group: look_around
+    syntax: events [more | <days>]
+    summary: today's list and the week ahead (30 days with 'more')
+    contexts: [world, shell]
+    handler: cmd_events
+    time_cost: 0
+    always_available: true
   status:
-    { group: look_around, usage: "status", hours: 0, unlock: day1, help: "hours, cash, heat, burnout, legibility, skills, laptop" }
+    group: look_around
+    syntax: status
+    summary: hours, cash, heat, burnout, legibility, skills, laptop
+    contexts: [world, shell]
+    handler: cmd_status
+    time_cost: 0
+    always_available: true
   news:
-    { group: look_around, usage: "news", hours: 0, unlock: day1, help: "local and national headlines" }
+    group: look_around
+    syntax: news
+    summary: local and national headlines
+    contexts: [world, shell]
+    handler: cmd_news
+    time_cost: 0
+    always_available: true
   markets:
-    { group: look_around, usage: "markets", hours: 0, unlock: day1, help: "Mega Corp and neo-cloud prices" }
+    group: look_around
+    syntax: markets
+    summary: Mega Corp and neo-cloud prices
+    contexts: [world, shell]
+    handler: cmd_markets
+    time_cost: 0
+    always_available: true
   people:
-    { group: look_around, usage: "people", hours: 0, unlock: { people_n: 1 }, help: "the people you know" }
+    group: look_around
+    syntax: people
+    summary: the people you know
+    contexts: [world, shell]
+    hidden_until: [people_n_1]
+    handler: cmd_people
+    time_cost: 0
   person:
-    { group: look_around, usage: "person <n>", hours: 0, unlock: { people_n: 1 }, help: "one person: standing, skills, history" }
+    group: look_around
+    syntax: person <n>
+    summary: 'one person: standing, skills, history'
+    contexts: [world, shell]
+    hidden_until: [people_n_1]
+    handler: cmd_person
+    time_cost: 0
   commands:
-    { group: look_around, usage: "commands", hours: 0, unlock: day1, help: "what you can do now" }
+    group: look_around
+    syntax: commands
+    summary: what you can do now
+    contexts: [world, shell]
+    handler: cmd_commands
+    time_cost: 0
+    always_available: true
   help:
-    { group: look_around, usage: "help", hours: 0, unlock: day1, help: "the basics" }
+    group: look_around
+    aliases: [h, '?']
+    syntax: help
+    summary: the basics
+    contexts: [world, shell]
+    handler: cmd_help
+    time_cost: 0
+    always_available: true
   sleep:
-    { group: look_around, usage: "sleep", hours: 0, unlock: day1, help: "end the day" }
+    group: look_around
+    syntax: sleep
+    summary: end the day
+    contexts: [world, shell]
+    handler: cmd_sleep
+    time_cost: 0
+    always_available: true
   wait:
-    { group: look_around, usage: "wait [<days>]", hours: 0, unlock: day1, help: "skip ahead (default 7); stops early if something happens" }
+    group: look_around
+    syntax: wait [<days>]
+    summary: skip ahead (default 7); stops early if something happens
+    contexts: [world, shell]
+    handler: cmd_wait
+    time_cost: 0
+    always_available: true
   quit:
-    { group: look_around, usage: "quit", hours: 0, unlock: day1, help: "leave" }
+    group: look_around
+    aliases: [exit]
+    syntax: quit
+    summary: leave
+    contexts: [world, shell]
+    handler: cmd_quit
+    time_cost: 0
+    always_available: true
 
-  # ---- ACTIONS (numbers live in slice_rules.yaml under the same name) ----
+  # ---- ACTIONS ----
   extra_shift:
-    { group: actions, usage: "extra_shift", hours: 3, unlock: day1,
-      help: "Pick up a shift. +$45, more burnout.", rule: extra_shift }
+    group: actions
+    syntax: extra_shift
+    summary: Pick up a shift. +$45, more burnout.
+    contexts: [world]
+    handler: cmd_action
+    time_cost: 3
+    rule: extra_shift
   rest:
-    { group: actions, usage: "rest", hours: 2, unlock: day1,
-      help: "Sleep, eat, stop. Lowers burnout.", rule: rest }
+    group: actions
+    syntax: rest
+    summary: Sleep, eat, stop. Lowers burnout.
+    contexts: [world]
+    handler: cmd_action
+    time_cost: 2
+    rule: rest
   trade:
-    { group: actions, usage: "trade", hours: 1, unlock: day1, online: true,
-      help: "Small trades. Pays when market sentiment is up.", rule: trade }
+    group: actions
+    syntax: trade
+    summary: Small trades. Pays when market sentiment is up.
+    contexts: [world]
+    handler: cmd_action
+    time_cost: 1
+    online: true
+    rule: trade
   attend:
-    { group: actions, parent: events, usage: "attend <n>", hours: 2, unlock: day1,
-      help: "Go to something on today (see events). Moves opinion; you may meet people.", rule: attend }
+    group: actions
+    syntax: attend <n>
+    summary: Go to something on today (see events). Moves opinion; you may meet people.
+    contexts: [world]
+    handler: cmd_attend
+    time_cost: 2
+    parent: events
+    rule: attend
   feed:
-    { group: actions, usage: "feed", hours: 1, unlock: day1, online: true,
-      help: "Post. Moves opinion, makes noise.", rule: feed }
+    group: actions
+    syntax: feed
+    summary: Post. Moves opinion, makes noise.
+    contexts: [world]
+    handler: cmd_action
+    time_cost: 1
+    online: true
+    rule: feed
   lay_low:
-    { group: actions, usage: "lay_low", hours: 3, unlock: day1,
-      help: "Stay quiet. Heat and suspicion fall.", rule: lay_low }
+    group: actions
+    syntax: lay_low
+    summary: Stay quiet. Heat and suspicion fall.
+    contexts: [world]
+    handler: cmd_action
+    time_cost: 3
+    rule: lay_low
   records:
-    { group: actions, usage: "records", hours: 1, unlock: day1, online: true,
-      help: "File a public-records request. Answers arrive in days or weeks.", rule: records }
+    group: actions
+    syntax: records
+    summary: File a public-records request. Answers arrive in days or weeks.
+    contexts: [world]
+    handler: cmd_action
+    time_cost: 1
+    online: true
+    rule: records
   trace:
-    { group: actions, usage: "trace", hours: 2, unlock: day1, online: true, needs: { skills: 5 },
-      help: "Follow the money and the shell companies. Better with Linux.", rule: trace }
+    group: actions
+    syntax: trace
+    summary: Follow the money and the shell companies. Better with Linux.
+    contexts: [world]
+    requires: [skills_5]
+    handler: cmd_action
+    time_cost: 2
+    online: true
+    rule: trace
+    locked_message: You are not skilled enough yet.
   verify:
-    { group: actions, usage: "verify", hours: 2, unlock: { evidence: 1 }, needs: { evidence: 10 },
-      help: "Corroborate what you hold. Makes publishing and court safer.", rule: verify }
+    group: actions
+    syntax: verify
+    summary: Corroborate what you hold. Makes publishing and court safer.
+    contexts: [world]
+    hidden_until: [evidence_1]
+    requires: [evidence_10]
+    handler: cmd_action
+    time_cost: 2
+    rule: verify
+    locked_message: You have little to verify.
   leak:
-    { group: actions, usage: "leak", hours: 2, unlock: { evidence: 5 }, online: true, needs: { press_trust: 20, evidence: 10 },
-      help: "Give evidence to the press. Big effect, big heat. Unverified leaks cost credibility.", rule: leak }
+    group: actions
+    syntax: leak
+    summary: Give evidence to the press. Big effect, big heat. Unverified leaks cost credibility.
+    contexts: [world]
+    hidden_until: [evidence_5]
+    requires: [press_trust_20, evidence_10]
+    handler: cmd_action
+    time_cost: 2
+    online: true
+    rule: leak
+    locked_message: You need a reporter who trusts you and something worth leaking.
   file:
-    { group: actions, usage: "file", hours: 3, unlock: { evidence: 15 }, needs: { evidence: 20, cash: 300 },
-      help: "File a lawsuit. Costs $300; takes months; strength depends on your evidence.", rule: file }
+    group: actions
+    syntax: file
+    summary: File a lawsuit. Costs $300; takes months; strength depends on your evidence.
+    contexts: [world]
+    hidden_until: [evidence_15]
+    requires: [evidence_20, cash_300]
+    handler: cmd_action
+    time_cost: 3
+    rule: file
+    locked_message: You need evidence worth filing, $300, and no case already open.
   negotiate:
-    { group: actions, usage: "negotiate", hours: 3, unlock: { evidence: 10, trust: 25 }, needs: { trust: 40, evidence: 15 },
-      help: "Sit down for accountability terms. A reform, not a blocked site.", rule: negotiate }
+    group: actions
+    syntax: negotiate
+    summary: Sit down for accountability terms. A reform, not a blocked site.
+    contexts: [world]
+    hidden_until: [evidence_10, trust_25]
+    requires: [trust_40, evidence_15]
+    handler: cmd_action
+    time_cost: 3
+    rule: negotiate
+    locked_message: You need trust and leverage before anyone will sit down.
   maintain:
-    { group: actions, usage: "maintain", hours: 2, unlock: { terms: 1 }, needs: { terms: 1 },
-      help: "Watch that agreements are followed. Keeps terms from eroding.", rule: maintain }
+    group: actions
+    syntax: maintain
+    summary: Watch that agreements are followed. Keeps terms from eroding.
+    contexts: [world]
+    hidden_until: [terms_1]
+    requires: [terms_1]
+    handler: cmd_action
+    time_cost: 2
+    rule: maintain
+    locked_message: There are no agreements to watch.
   hack:
-    { group: actions, usage: "hack", hours: 3, unlock: { os: 1 }, online: true, needs: { os: 1, laptop: 1, skills: 15, sk_network_security: 1 },
-      help: "Breach a system. Real evidence, real risk. Needs Linux and skill.", rule: hack }
+    group: actions
+    syntax: hack
+    summary: Breach a system. Real evidence, real risk. Needs Linux and skill.
+    contexts: [world]
+    hidden_until: [os_1]
+    requires: [os_1, laptop_1, skills_15, sk_network_security_1]
+    handler: cmd_action
+    time_cost: 3
+    online: true
+    rule: hack
+    locked_message: You need a working laptop running Linux, more skill, and some network security knowledge (research it).
   research:
-    { group: actions, usage: "research <topic> [online | library | course]", hours: 2, unlock: day1, online: true,
-      help: "Study a topic (a menu): levels you up and opens new abilities. Online, at the library, or a paid course.", rule: research }
+    group: actions
+    syntax: research <topic> [online | library | course]
+    summary: 'Study a topic (a menu): levels you up and opens new abilities. Online, at the library, or a paid course.'
+    contexts: [world]
+    handler: cmd_research
+    time_cost: 2
+    online: true
+    rule: research
   install_linux:
-    { group: actions, usage: "install_linux", hours: 3, unlock: { lead_linux: 1 }, online: true, needs: { lead_linux: 1, laptop: 1 },
-      help: "Install Linux next to Windows 11.", rule: install_linux }
+    group: actions
+    syntax: install_linux
+    summary: Install Linux next to Windows 11.
+    contexts: [world]
+    hidden_until: [lead_linux_1]
+    requires: [lead_linux_1, laptop_1]
+    handler: cmd_action
+    time_cost: 3
+    online: true
+    rule: install_linux
+    locked_message: You need to know how, and a laptop that runs on battery.
   browse_store:
-    { group: actions, usage: "browse_store", hours: 2, unlock: day1,
-      help: "Walk the electronics and pawn shops.", rule: browse_store }
+    group: actions
+    syntax: browse_store
+    summary: Walk the electronics and pawn shops.
+    contexts: [world]
+    handler: cmd_action
+    time_cost: 2
+    rule: browse_store
   upgrade_store:
-    { group: actions, usage: "upgrade_store", hours: 2, unlock: { lead_store: 1 }, needs: { lead_store: 1, cash: 420 },
-      help: "Buy a used laptop with a working battery ($420).", rule: upgrade_store }
+    group: actions
+    syntax: upgrade_store
+    summary: Buy a used laptop with a working battery ($420).
+    contexts: [world]
+    hidden_until: [lead_store_1]
+    requires: [lead_store_1, cash_420]
+    handler: cmd_action
+    time_cost: 2
+    rule: upgrade_store
+    locked_message: You need to have found a seller, $420, and a dead battery.
   upgrade_npc:
-    { group: actions, usage: "upgrade_npc", hours: 2, unlock: { lead_npc: 1 }, needs: { lead_npc: 1, techie_trust: 35, cash: 150 },
-      help: "Have a developer you trust swap in a battery for a favor ($150).", rule: upgrade_npc }
+    group: actions
+    syntax: upgrade_npc
+    summary: Have a developer you trust swap in a battery for a favor ($150).
+    contexts: [world]
+    hidden_until: [lead_npc_1]
+    requires: [lead_npc_1, techie_trust_35, cash_150]
+    handler: cmd_action
+    time_cost: 2
+    rule: upgrade_npc
+    locked_message: You need a developer's offer, their trust (35), $150, and a dead battery.
 
   # ---- INTERNET and DARKNET ----
   buy_burner_phone:
-    { group: internet, usage: "buy burner_phone", hours: 1, cost: 80, unlock: { people_n: 1 }, type: hardware,
-      help: "A prepaid phone for meetings.", rule: shop.burner_phone }
+    group: internet
+    syntax: buy burner_phone
+    summary: A prepaid phone for meetings.
+    contexts: [world]
+    hidden_until: [people_n_1]
+    handler: cmd_buy
+    time_cost: 1
+    cost: 80
+    type: hardware
+    rule: shop.burner_phone
   buy_vpn:
-    { group: internet, usage: "buy vpn", hours: 1, cost: 15, unlock: day1, type: apps,
-      help: "Hides your apartment's connection from the sites you visit.", rule: shop.vpn }
+    group: internet
+    syntax: buy vpn
+    summary: Hides your apartment's connection from the sites you visit.
+    contexts: [world]
+    handler: cmd_buy
+    time_cost: 1
+    cost: 15
+    type: apps
+    rule: shop.vpn
   buy_used_laptop:
-    { group: darknet, usage: "buy used_laptop", hours: 1, cost: 300, unlock: { darknet: 1 }, type: hardware,
-      help: "A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky.", rule: shop.used_laptop }
+    group: darknet
+    syntax: buy used_laptop
+    summary: A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky.
+    contexts: [world]
+    hidden_until: [darknet_1]
+    handler: cmd_buy
+    time_cost: 1
+    cost: 300
+    type: hardware
+    rule: shop.used_laptop
   buy_anon_accounts:
-    { group: darknet, usage: "buy anon_accounts", hours: 1, cost: 120, unlock: { darknet: 1 }, type: apps,
-      help: "Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.", rule: shop.anon_accounts }
+    group: darknet
+    syntax: buy anon_accounts
+    summary: Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.
+    contexts: [world]
+    hidden_until: [darknet_1]
+    handler: cmd_buy
+    time_cost: 1
+    cost: 120
+    type: apps
+    rule: shop.anon_accounts
+  buy:
+    group: internet
+    syntax: buy <item>
+    summary: Buy something from the web or the darknet (see 'commands')
+    contexts: [world]
+    handler: cmd_buy
+    time_cost: 1
 
   # ---- PEOPLE (meet <n> <action>) ----
   meet:
-    { group: people, usage: "meet <n> [action]", hours: 0, unlock: { people_n: 1 }, help: "spend time with someone you know" }
+    group: people
+    syntax: meet <n> [action]
+    summary: spend time with someone you know
+    contexts: [world]
+    hidden_until: [people_n_1]
+    handler: cmd_meet
+    time_cost: 0
   meet_coffee:
-    { group: people, parent: meet, usage: "meet <n> coffee", hours: 2, cost: 8, unlock: day1,
-      help: "Coffee and small talk. Builds trust slowly.", rule: people_actions.coffee }
+    group: people
+    syntax: meet <n> coffee
+    summary: Coffee and small talk. Builds trust slowly.
+    contexts: [world]
+    handler: cmd_meet
+    time_cost: 2
+    cost: 8
+    parent: meet
+    rule: people_actions.coffee
   meet_favor:
-    { group: people, parent: meet, usage: "meet <n> favor", hours: 2, unlock: { meetings: 2, trust: 15 },
-      help: "Do something for them. They will remember.", rule: people_actions.favor }
+    group: people
+    syntax: meet <n> favor
+    summary: Do something for them. They will remember.
+    contexts: [world]
+    hidden_until: [person_meetings_2, person_trust_15]
+    handler: cmd_meet
+    time_cost: 2
+    parent: meet
+    rule: people_actions.favor
   meet_ask:
-    { group: people, parent: meet, usage: "meet <n> ask", hours: 1, unlock: { meetings: 2 }, needs: { trust: 20 },
-      help: "Ask for information or help. Needs some trust.", rule: people_actions.ask }
+    group: people
+    syntax: meet <n> ask
+    summary: Ask for information or help. Needs some trust.
+    contexts: [world]
+    hidden_until: [person_meetings_2]
+    requires: [person_trust_20]
+    handler: cmd_meet
+    time_cost: 1
+    parent: meet
+    rule: people_actions.ask
   meet_confide:
-    { group: people, parent: meet, usage: "meet <n> confide", hours: 2, unlock: { meetings: 3, trust: 20 }, needs: { trust: 15 },
-      help: "Share something real. Builds trust fast, and puts you in their hands.", rule: people_actions.confide }
+    group: people
+    syntax: meet <n> confide
+    summary: Share something real. Builds trust fast, and puts you in their hands.
+    contexts: [world]
+    hidden_until: [person_meetings_3, person_trust_20]
+    requires: [person_trust_15]
+    handler: cmd_meet
+    time_cost: 2
+    parent: meet
+    rule: people_actions.confide
   meet_flirt:
-    { group: people, parent: meet, usage: "meet <n> flirt", hours: 2, cost: 15, unlock: { meetings: 3, trust: 25 }, needs: { trust: 10 },
-      help: "Charm them. It can help, or go badly wrong.", rule: people_actions.flirt }
+    group: people
+    syntax: meet <n> flirt
+    summary: Charm them. It can help, or go badly wrong.
+    contexts: [world]
+    hidden_until: [person_meetings_3, person_trust_25]
+    requires: [person_trust_10]
+    handler: cmd_meet
+    time_cost: 2
+    cost: 15
+    parent: meet
+    rule: people_actions.flirt
   meet_bribe:
-    { group: people, parent: meet, usage: "meet <n> bribe", hours: 1, cost: 150, unlock: { meetings: 4, trust: 25 }, needs: { trust: 10 },
-      help: "Pay for help. Works on the corruptible; can be reported by the honest.", rule: people_actions.bribe }
+    group: people
+    syntax: meet <n> bribe
+    summary: Pay for help. Works on the corruptible; can be reported by the honest.
+    contexts: [world]
+    hidden_until: [person_meetings_4, person_trust_25]
+    requires: [person_trust_10]
+    handler: cmd_meet
+    time_cost: 1
+    cost: 150
+    parent: meet
+    rule: people_actions.bribe
   meet_extort:
-    { group: people, parent: meet, usage: "meet <n> extort", hours: 2, unlock: { meetings: 3, trust: 20, leverage: 1 }, needs: { leverage: 1 },
-      help: "Use what you know about them. They must have something to hide.", rule: people_actions.extort }
+    group: people
+    syntax: meet <n> extort
+    summary: Use what you know about them. They must have something to hide.
+    contexts: [world]
+    hidden_until: [person_meetings_3, person_trust_20, person_leverage_1]
+    requires: [person_leverage_1]
+    handler: cmd_meet
+    time_cost: 2
+    parent: meet
+    rule: people_actions.extort
   meet_recruit:
-    { group: people, parent: meet, usage: "meet <n> recruit", hours: 2, unlock: { meetings: 5, trust: 40 }, needs: { trust: 50 },
-      help: "Ask them to stand with you. A trusted ally helps every day.", rule: people_actions.recruit }
+    group: people
+    syntax: meet <n> recruit
+    summary: Ask them to stand with you. A trusted ally helps every day.
+    contexts: [world]
+    hidden_until: [person_meetings_5, person_trust_40]
+    requires: [person_trust_50]
+    handler: cmd_meet
+    time_cost: 2
+    parent: meet
+    rule: people_actions.recruit
   meet_learn:
-    { group: people, parent: meet, usage: "meet <n> learn", hours: 2, unlock: { meetings: 2, trust: 12 }, needs: { trust: 20 },
-      help: "Ask them to teach you their best skill. Higher level, bigger gain.", rule: people_actions.learn }
+    group: people
+    syntax: meet <n> learn
+    summary: Ask them to teach you their best skill. Higher level, bigger gain.
+    contexts: [world]
+    hidden_until: [person_meetings_2, person_trust_12]
+    requires: [person_trust_20]
+    handler: cmd_meet
+    time_cost: 2
+    parent: meet
+    rule: people_actions.learn
 
   # ---- ADMIN ----
   admin_set:
-    { group: admin, usage: "admin set <var> <n>", hours: 0, unlock: admin, help: "set any state value" }
+    group: admin
+    syntax: admin set <var> <n>
+    summary: set any state value
+    contexts: [world]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
   admin_skill:
-    { group: admin, usage: "admin skill <topic> <level>", hours: 0, unlock: admin, help: "set a skill level" }
+    group: admin
+    syntax: admin skill <topic> <level>
+    summary: set a skill level
+    contexts: [world]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
   admin_reveal:
-    { group: admin, usage: "admin reveal", hours: 0, unlock: admin, help: "show hidden state" }
+    group: admin
+    syntax: admin reveal
+    summary: show hidden state
+    contexts: [world]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
   admin_spawn:
-    { group: admin, usage: "admin spawn [type]", hours: 0, unlock: admin, help: "create a person" }
+    group: admin
+    syntax: admin spawn [type]
+    summary: create a person
+    contexts: [world]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
   admin_unlock:
-    { group: admin, usage: "admin unlock", hours: 0, unlock: admin, help: "unlock every command" }
+    group: admin
+    syntax: admin unlock
+    summary: unlock every command
+    contexts: [world]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
   admin_hours:
-    { group: admin, usage: "admin hours <n>", hours: 0, unlock: admin, help: "set free hours today" }
+    group: admin
+    syntax: admin hours <n>
+    summary: set free hours today
+    contexts: [world]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
   admin_skip:
-    { group: admin, usage: "admin skip <n>", hours: 0, unlock: admin, help: "skip days" }
+    group: admin
+    syntax: admin skip <n>
+    summary: skip days
+    contexts: [world]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
+  admin:
+    group: admin
+    syntax: admin [set | skill | reveal | spawn | unlock | hours | skip]
+    summary: 'Admin mode: type ''admin'' to turn it on, then ''admin'' again for options'
+    contexts: [world, shell]
+    hidden_until: [admin_mode]
+    handler: cmd_admin
+    time_cost: 0
 
-# Unlock note: for people options, the keys are about the relationship with that one person:
-#   meetings = times you have met them, trust, leverage. For everything else the keys are your own state.
-#
-# Research topics, person types and city events stay in research.yaml, people.yaml and the city file.
-# They are content, not commands.
+  # ---- PLANNED (designed, not in the game yet) ----
+  go:
+    group: movement
+    aliases: [walk, travel]
+    syntax: go <place>
+    summary: Travel to a location (costs time)
+    contexts: [world]
+    args: [{ name: place, type: location, required: true }]
+    handler: cmd_go
+    planned: true
+  look:
+    group: inspect
+    aliases: [l]
+    syntax: look [target]
+    summary: Describe your surroundings or something in them
+    contexts: [world]
+    args: [{ name: target, type: entity, required: false }]
+    handler: cmd_look
+    planned: true
+  inventory:
+    group: inspect
+    aliases: [inv, i]
+    syntax: inventory
+    summary: List what you're carrying
+    contexts: [world, shell]
+    handler: cmd_inventory
+    planned: true
+  talk:
+    group: social
+    aliases: [speak, ask]
+    syntax: talk <npc> [topic]
+    summary: Start a conversation with someone nearby
+    contexts: [world]
+    args: [{ name: npc, type: npc, required: true }, { name: topic, type: topic, required: false }]
+    handler: cmd_talk
+    planned: true
+  save:
+    group: system
+    syntax: save
+    summary: Save your progress
+    contexts: [world, shell]
+    handler: cmd_save
+    planned: true
+  scan:
+    group: hacking
+    syntax: scan <target>
+    summary: Scan a host for open services
+    contexts: [shell]
+    requires: [laptop_powered, has_network, learned_nmap]
+    args: [{ name: target, type: host, required: true }]
+    handler: cmd_scan
+    time_cost: 1
+    risk: 0.05
+    planned: true
+  connect:
+    group: hacking
+    aliases: [ssh]
+    syntax: connect <host>
+    summary: Open a session on a host you have access to
+    contexts: [shell]
+    requires: [laptop_powered, has_network]
+    args: [{ name: host, type: host, required: true }]
+    handler: cmd_connect
+    planned: true
+  terminal:
+    group: system
+    aliases: [laptop, sh]
+    syntax: terminal
+    summary: Open your laptop terminal
+    contexts: [world]
+    requires: [laptop_powered]
+    handler: cmd_open_terminal
+    planned: true

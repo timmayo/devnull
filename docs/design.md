@@ -189,9 +189,16 @@ ask, confide, flirt, bribe, extort, recruit; each has a success, fail and
 backfire outcome, recorded in the history. Trust drifts down after three weeks
 of silence. Allies give small daily benefits.
 
-**Unlocks.** Commands appear when their `unlock` condition is met (sticky), and
-the CLI announces each new one. `status` is always available. Admin mode
-(`--admin`, or type `admin`) unlocks everything and adds `admin set|reveal|spawn|unlock|hours|skip`.
+**Unlocks.** `data/commands.yaml` is the one source for commands (see its header).
+A command appears when its `hidden_until` gates hold (sticky), and the CLI announces
+each new one; it runs when its `requires` gates hold, and a failing gate prints a hint
+instead of "unknown command". A gate is a named condition (`when:` values that must be
+at least the number given). Commands also list the `contexts` where they work (only
+`world` exists so far). Typed words resolve as exact name, then alias, then a unique
+prefix; an ambiguous prefix lists the candidates. `planned: true` marks designed commands
+the game ignores. `tools/cmdtree.py --check --deep` and the game's startup run the same
+checks. `status` is always available. Admin mode (`--admin`, or type `admin`) unlocks
+everything and adds `admin set|skill|reveal|spawn|unlock|hours|skip`.
 
 ## 5d. Events, meetings and the tape
 

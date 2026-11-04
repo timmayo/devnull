@@ -8,7 +8,8 @@ Usage examples:
     python tools\\cmdtree.py --view gate          # gate > commands that need it
     python tools\\cmdtree.py -g hacking           # only one group
     python tools\\cmdtree.py -c shell             # only one context
-    python tools\\cmdtree.py --check              # validate references only
+    python tools\\cmdtree.py --check              # validate the file
+    python tools\\cmdtree.py --check --deep       # also check rule references against slice_rules.yaml / people.yaml
 """
 import argparse
 import os
@@ -16,6 +17,9 @@ import sys
 from pathlib import Path
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from devnull.core.commands import check as check_data  # noqa: E402  (the game runs the same checks at startup)
 
 USE_COLOR = True
 
@@ -57,7 +61,7 @@ def find_file(arg):
     if here.exists():
         return here
     script_dir = Path(__file__).resolve().parent
-    for p in (script_dir / "commands.yaml", script_dir.parent / "commands.yaml"):
+    for p in (script_dir.parent / "data" / "commands.yaml", script_dir / "commands.yaml", script_dir.parent / "commands.yaml"):
         if p.exists():
             return p
     sys.exit("commands.yaml not found. Use -f to give the path.")
@@ -103,6 +107,12 @@ def command_node(name, c, details):
     hid = [str(r) for r in as_list(c.get("hidden_until"))]
     if hid:
         label += " " + magenta(f"[hidden until: {', '.join(hid)}]")
+    if c.get("planned"):
+        label += " " + red("[planned]")
+    cost = ", ".join(x for x in (f"{c['time_cost']}h" if c.get("time_cost") else "",
+                                 f"${c['cost']}" if c.get("cost") else "") if x)
+    if cost:
+        label += dim(f" ({cost})")
     if c.get("summary"):
         label += dim(f" - {c['summary']}")
 
@@ -116,7 +126,7 @@ def command_node(name, c, details):
             kids.append(("args:     " + " ".join(fmt_arg(a) for a in c["args"]), []))
         if c.get("handler"):
             kids.append((f"handler:  {c['handler']}", []))
-        for key in ("time_cost", "risk", "always_available", "locked_message"):
+        for key in ("time_cost", "cost", "online", "type", "rule", "risk", "always_available", "locked_message"):
             if key in c:
                 kids.append((f"{key}: {c[key]}", []))
     return (label, kids)
@@ -142,20 +152,33 @@ def filter_commands(data, only_group, only_context):
 
 
 def view_group(data, cmds, details):
+    """Commands by group. A command with a `parent` is drawn under it, whatever its own group."""
     groups = data["groups"]
+    kids_of = {}
+    for n, c in cmds.items():
+        if c.get("parent") in cmds:
+            kids_of.setdefault(c["parent"], []).append(n)
+
+    def node(n, c):
+        label, kids = command_node(n, c, details)
+        return (label, kids + [node(k, cmds[k]) for k in kids_of.get(n, [])])
+
+    def is_root(c):
+        return c.get("parent") not in cmds
+
     nodes = []
     seen = set()
     for gid, g in sorted_groups(groups):
-        members = [(n, c) for n, c in cmds.items() if c.get("group") == gid]
+        members = [(n, c) for n, c in cmds.items() if c.get("group") == gid and is_root(c)]
+        count = sum(1 for c in cmds.values() if c.get("group") == gid)
         seen.update(n for n, _ in members)
-        if not members and (len(cmds) != len(data["commands"])):
+        if not count and (len(cmds) != len(data["commands"])):
             continue  # hide empty groups when filtering
-        kids = [command_node(n, c, details) for n, c in members] or [(dim("(no commands)"), [])]
-        nodes.append((group_label(gid, g, len(members)), kids))
-    orphans = [(n, c) for n, c in cmds.items() if n not in seen]
+        kids = [node(n, c) for n, c in members] or [(dim("(no commands)"), [])]
+        nodes.append((group_label(gid, g, count), kids))
+    orphans = [(n, c) for n, c in cmds.items() if n not in seen and is_root(c)]
     if orphans:
-        kids = [command_node(n, c, details) for n, c in orphans]
-        nodes.append((red("(ungrouped / unknown group)") + dim(f" ({len(orphans)})"), kids))
+        nodes.append((red("(ungrouped / unknown group)") + dim(f" ({len(orphans)})"), [node(n, c) for n, c in orphans]))
     return "commands", nodes
 
 
@@ -177,11 +200,13 @@ def view_gate(data, cmds, details):
     nodes = []
     for gate, info in data["gates"].items():
         members = [(n, c) for n, c in cmds.items()
-                   if str(gate) in [str(x) for x in as_list(c.get("requires"))]]
+                   if str(gate) in [str(x) for x in as_list(c.get("requires")) + as_list(c.get("hidden_until"))]]
         if not members:
             continue
         desc = (info or {}).get("description")
-        label = yellow(str(gate)) + (dim(f" - {desc}") if desc else "") + dim(f" ({len(members)})")
+        when = (info or {}).get("when")
+        label = (yellow(str(gate)) + (dim(f" - {desc}") if desc else "")
+                 + (dim(f"  when {when}") if when else "") + dim(f" ({len(members)})"))
         nodes.append((label, [command_node(n, c, details) for n, c in members]))
     free = [(n, c) for n, c in cmds.items() if not as_list(c.get("requires"))]
     if free:
@@ -201,45 +226,15 @@ def draw(nodes, prefix=""):
 
 # ---------------------------------------------------------------- checks
 
-def check(data):
-    problems = []
-    groups, contexts, gates = data["groups"], data["contexts"], data["gates"]
-    names = {}  # token -> owner command
-
-    for name, c in data["commands"].items():
-        c = c or {}
-        if not isinstance(name, str):
-            problems.append(f"command key {name!r} is not text (quote it in the YAML)")
-            name = str(name)
-        if c.get("group") not in groups:
-            problems.append(f"{name}: unknown group {c.get('group')!r}")
-        if not c.get("handler"):
-            problems.append(f"{name}: no handler")
-        if not c.get("contexts"):
-            problems.append(f"{name}: no contexts listed")
-        for ctx in as_list(c.get("contexts")):
-            if ctx not in contexts:
-                problems.append(f"{name}: unknown context {ctx!r}")
-        for key in ("requires", "hidden_until"):
-            for g in as_list(c.get(key)):
-                if g not in gates:
-                    problems.append(f"{name}: unknown gate {g!r} in {key}")
-
-        tokens = [name] + as_list(c.get("aliases"))
-        for t in tokens:
-            if not isinstance(t, str):
-                problems.append(
-                    f"{name}: alias {t!r} parsed as {type(t).__name__} - "
-                    f"quote it in the YAML (e.g. \"no\", \"yes\", \"on\", \"off\" become booleans)")
-                continue
-            if t in names and names[t] != name:
-                problems.append(f"{name}: '{t}' collides with command '{names[t]}'")
-            names[t] = name
-
-    for gid in groups:
-        if not any((c or {}).get("group") == gid for c in data["commands"].values()):
-            problems.append(f"group '{gid}' has no commands")
-    return problems
+def check(data, deep=False):
+    """Structural checks, shared with the game (devnull.core.commands.check). `deep` also loads
+    slice_rules.yaml and people.yaml to check `rule:` references and that every rule has a command."""
+    rules = None
+    if deep:
+        data_dir = Path(__file__).resolve().parents[1] / "data"
+        rules = yaml.safe_load((data_dir / "slice_rules.yaml").read_text(encoding="utf-8"))
+        rules["people"] = yaml.safe_load((data_dir / "people.yaml").read_text(encoding="utf-8"))
+    return check_data(data, rules=rules)
 
 
 # ---------------------------------------------------------------- main
@@ -253,6 +248,7 @@ def main():
     ap.add_argument("-g", "--group", help="only this group")
     ap.add_argument("-c", "--context", help="only this context")
     ap.add_argument("--check", action="store_true", help="validate and exit (no tree)")
+    ap.add_argument("--deep", action="store_true", help="with --check: also check rule references and coverage")
     ap.add_argument("--no-color", action="store_true")
     args = ap.parse_args()
 
@@ -267,7 +263,7 @@ def main():
 
     path = find_file(args.file)
     data = load(path)
-    problems = check(data)
+    problems = check(data, deep=args.deep)
 
     if not args.check:
         cmds = filter_commands(data, args.group, args.context)
@@ -276,8 +272,10 @@ def main():
         print(bold(f"{root}") + dim(f"  ({path})"))
         draw(nodes)
         print()
+        planned = sum(1 for c in data["commands"].values() if (c or {}).get("planned"))
         print(dim(f"{len(data['commands'])} commands, {len(data['groups'])} groups, "
-                  f"{len(data['gates'])} gates, {len(data['contexts'])} contexts"))
+                  f"{len(data['gates'])} gates, {len(data['contexts'])} contexts"
+                  + (f" ({planned} commands planned)" if planned else "")))
 
     if problems:
         print()
