@@ -88,7 +88,7 @@ def apply_commands(rules: dict[str, Any]) -> None:
             continue
         s["price"], s["note"] = c["cost"], c["help"]
         s["category"] = c.get("type", s.get("category"))
-        s["market"] = "darknet" if c.get("group") == "darknet" else "public"
+        s["market"] = "darknet" if c.get("screen") == "darknet" else "public"
         s["unlock"] = unlock_spec(c)
     pa = (rules.get("people") or {}).get("people_actions", {})
     for name, a in pa.items():

@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+from devnull.core import commands  # noqa: E402
 from devnull.core.sim import DEFAULT_COMMANDS, load_rules  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "tools"))
@@ -42,8 +43,8 @@ def names(cmd: dict, field: str, gates: dict) -> str:
 
 
 def cost_text(c: dict) -> str:
-    h = f"{c['time_cost']}h" if c.get("time_cost") else "free"
-    return h + (f" + ${c['cost']}" if c.get("cost") else "")
+    h = f"{commands.cmd_hours(c):g}h" if commands.cmd_hours(c) else "free"
+    return h + (f" + ${commands.cmd_money(c):g}" if commands.cmd_money(c) else "")
 
 
 def make_txt(path: Path) -> None:
@@ -159,12 +160,12 @@ def make_docx(rules: dict, path: Path) -> None:
     d.add_heading("Contexts", 1)
     d.add_paragraph("Where the player is. A command only works in the contexts it lists. Only `world` exists in the game today.")
     table(["Context", "Meaning"], [[k, v.get("description", "")] for k, v in cs["contexts"].items()], [1.5, 7.9])
-    planned = [(k, c) for k, c in new.items() if c.get("planned")]
+    planned = [(k, c) for k, c in new.items() if commands.is_planned(c)]
     if planned:
         d.add_heading("Planned commands", 1)
         d.add_paragraph("Designed but not in the game yet. The game ignores them.")
-        table(["Command", "What it will do", "Needs", "Where"],
-              [[c["syntax"], c["summary"], names(c, "requires", gates), ", ".join(map(str, c["contexts"]))] for k, c in planned],
+        table(["Command", "What it will do", "Needs", "Group"],
+              [[c.get("syntax") or k, commands.description_of(c), names(c, "requires", gates), c["group"]] for k, c in planned],
               [2.0, 4.0, 2.4, 1.0])
     d.add_heading("Research", 1)
     m = rules["research"]["methods"]

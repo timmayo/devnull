@@ -93,7 +93,7 @@ def show_commands(sim: Sim, admin: bool) -> None:
     cmds = sim.rules.get("commands", {}).get("commands", {})
     print("\nLOOK AROUND (free)")
     for c in cmds.values():
-        if c["group"] != "look_around":
+        if c.get("screen") != "look_around":
             continue
         need = c.get("unlock")
         if not admin and isinstance(need, dict) and not all(sim.state.get(k, 0) >= v for k, v in need.items()):
@@ -129,7 +129,7 @@ def show_commands(sim: Sim, admin: bool) -> None:
     if sim.people or admin:
         print("\nPEOPLE")
         for k, c in cmds.items():
-            if c["group"] == "people" and not c.get("parent"):
+            if c.get("screen") == "people" and not c.get("parent"):
                 print(f"  {c['usage']:<20} {c['help'][:1].upper() + c['help'][1:]}")
                 opts = [x["usage"].split()[-1] for x in cmds.values() if x.get("parent") == k]
                 if opts:

@@ -2,6 +2,9 @@
 
 No game state lives here and no UI code. The file format is documented at the top of
 data/commands.yaml. `tools/cmdtree.py --check` and the game's startup both call `check()`.
+
+`commands:` in the file is a list of `- name: ...` entries. `load_file` turns it into a dict keyed by name,
+so everything below works with `data["commands"][name]`.
 """
 
 from __future__ import annotations
@@ -29,6 +32,25 @@ def as_list(v: Any) -> list[Any]:
     return list(v) if isinstance(v, (list, tuple)) else [v]
 
 
+def commands_by_name(raw: Any) -> tuple[dict[str, Any], list[str]]:
+    """`commands:` as a dict keyed by name, plus any problems found while reading it.
+    The file lists commands as `- name: x`; a mapping of name -> entry is accepted too."""
+    problems: list[str] = []
+    if isinstance(raw, dict):
+        return dict(raw), problems
+    out: dict[str, Any] = {}
+    for i, c in enumerate(as_list(raw), 1):
+        if not isinstance(c, dict) or not c.get("name"):
+            problems.append(f"commands entry #{i} has no `name`")
+            continue
+        name = c["name"]
+        if name in out:
+            problems.append(f"command '{name}' is listed more than once")
+            continue
+        out[name] = {k: v for k, v in c.items() if k != "name"}
+    return out, problems
+
+
 def load_file(path: Path | str) -> dict[str, Any]:
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
@@ -36,11 +58,38 @@ def load_file(path: Path | str) -> dict[str, Any]:
         data.setdefault(section, {})
         if data[section] is None:
             data[section] = {}
+    data["commands"], data["_load_problems"] = commands_by_name(data["commands"])
     return data
 
 
+DEFAULT_CONTEXTS = ["world"]
+STATUSES = ("planned", "implemented")
+
+
 def is_planned(c: Mapping[str, Any] | None) -> bool:
-    return bool((c or {}).get("planned"))
+    """Planned unless `status: implemented` (the default), so a command is never live by accident."""
+    c = c or {}
+    if "planned" in c:                       # older files
+        return bool(c["planned"])
+    return c.get("status", "planned") != "implemented"
+
+
+def cmd_hours(c: Mapping[str, Any] | None) -> float:
+    cost = (c or {}).get("cost")
+    return (cost.get("hours", 0) or 0) if isinstance(cost, dict) else 0
+
+
+def cmd_money(c: Mapping[str, Any] | None) -> float:
+    cost = (c or {}).get("cost")
+    return (cost.get("money", 0) or 0) if isinstance(cost, dict) else 0
+
+
+def contexts_of(c: Mapping[str, Any] | None) -> list[str]:
+    return [str(x) for x in as_list((c or {}).get("contexts"))] or list(DEFAULT_CONTEXTS)
+
+
+def description_of(c: Mapping[str, Any] | None) -> str:
+    return str((c or {}).get("description") or (c or {}).get("summary") or "")
 
 
 def typed_word(key: str, c: Mapping[str, Any]) -> str:
@@ -59,7 +108,7 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
     rules       the loaded slice rules; `rule:` references must exist and every rule needs an entry.
     state_keys  the game's state variables; gate `when` keys must be among them.
     """
-    problems: list[str] = []
+    problems: list[str] = list(data.get("_load_problems") or [])
     groups, contexts, gates, cmds = data["groups"], data["contexts"], data["gates"], data["commands"]
 
     for gname, g in gates.items():
@@ -70,6 +119,11 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
         if g.get("special"):
             if g["special"] not in GATE_SPECIALS:
                 problems.append(f"gate {gname}: unknown special {g['special']!r}")
+            continue
+        if g.get("planned"):                    # its variable may not exist in the game yet
+            when = g.get("when")
+            if when is not None and not isinstance(when, dict):
+                problems.append(f"gate {gname}: `when` must be a set of variable: number pairs")
             continue
         when = g.get("when")
         if not isinstance(when, dict) or not when:
@@ -92,15 +146,15 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
         if not isinstance(key, str):
             problems.append(f"command key {key!r} is not text (quote it in the YAML)")
         planned = is_planned(c)
+        if c.get("status") is not None and c["status"] not in STATUSES:
+            problems.append(f"{name}: status must be one of {', '.join(STATUSES)}, got {c['status']!r}")
         if c.get("group") not in groups:
             problems.append(f"{name}: unknown group {c.get('group')!r}")
         if not planned and not c.get("handler"):
             problems.append(f"{name}: no handler")
         if not planned and handlers is not None and c.get("handler") and c["handler"] not in handlers:
             problems.append(f"{name}: handler {c['handler']!r} does not exist")
-        if not c.get("contexts"):
-            problems.append(f"{name}: no contexts listed")
-        for ctx in as_list(c.get("contexts")):
+        for ctx in contexts_of(c):
             if ctx not in contexts:
                 problems.append(f"{name}: unknown context {ctx!r}")
         for field_ in ("requires", "hidden_until"):
@@ -111,13 +165,25 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
                     problems.append(f"{name}: gate {g!r} is planned but this command is live")
         if c.get("parent") and c["parent"] not in cmds:
             problems.append(f"{name}: parent {c['parent']!r} is not a command")
+        elif c.get("parent") and not planned and is_planned(cmds[c["parent"]]):
+            problems.append(f"{name}: parent {c['parent']!r} is planned but this command is live")
         word = typed_word(name, c)
         if word != name and word not in words:
             problems.append(f"{name}: syntax starts with {word!r}, which is not a command")
-        for fld in ("time_cost", "cost"):
-            v = c.get(fld)
-            if v is not None and (not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0):
-                problems.append(f"{name}: {fld} must be a number of 0 or more, got {v!r}")
+        cost = c.get("cost")
+        if cost is not None:
+            if not isinstance(cost, dict):
+                problems.append(f"{name}: cost must look like {{ hours: 2, money: 15 }}, got {cost!r}")
+            else:
+                for k, v in cost.items():
+                    if k not in ("hours", "money"):
+                        problems.append(f"{name}: cost has unknown part {k!r} (use hours and money)")
+                    elif not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0:
+                        problems.append(f"{name}: cost {k} must be a number of 0 or more, got {v!r}")
+        ex = c.get("examples")
+        if ex is not None:
+            if not isinstance(ex, list) or not all(isinstance(e, dict) and e.get("cmd") and e.get("shows") for e in ex):
+                problems.append(f"{name}: examples must be a list of {{ cmd, shows }} pairs")
         if not planned and c.get("rule") and rules is not None:
             if not rule_exists(rules, str(c["rule"])):
                 problems.append(f"{name}: rule {c['rule']!r} not found in the rules data")
@@ -181,11 +247,13 @@ def to_legacy(data: Mapping[str, Any]) -> dict[str, Any]:
             unlock = merged(hidden)
         else:
             unlock = "admin" if c["group"] == "admin" else "day1"
-        e: dict[str, Any] = {"group": c["group"], "usage": c["syntax"], "hours": c.get("time_cost", 0),
-                             "unlock": unlock, "help": c["summary"]}
+        e: dict[str, Any] = {"group": c["group"], "usage": c.get("syntax") or key, "hours": cmd_hours(c),
+                             "unlock": unlock, "help": description_of(c), "screen": c.get("screen")}
         if c.get("requires"):
             e["needs"] = merged(as_list(c["requires"]))
-        for f in ("cost", "online", "type", "parent", "rule"):
+        if cmd_money(c):
+            e["cost"] = cmd_money(c)
+        for f in ("online", "type", "parent", "rule"):
             if f in c:
                 e[f] = c[f]
         legacy[key] = e
@@ -271,7 +339,7 @@ class CommandSet:
     def why_not(self, key: str, state: Mapping[str, float], context: str, admin: bool = False) -> str | None:
         """None if the command may run, else the hint to show. Contexts first, then `requires` gates."""
         c = self.words[key]
-        ctxs = [str(x) for x in as_list(c.get("contexts"))]
+        ctxs = contexts_of(c)
         if context not in ctxs:
             return f"You can't do that from here (it works in: {', '.join(ctxs) or 'nowhere yet'})."
         bad = self.failing(as_list(c.get("requires")), state, admin)

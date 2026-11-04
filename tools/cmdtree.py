@@ -6,7 +6,8 @@ Usage examples:
     python tools\\cmdtree.py -d                   # with details
     python tools\\cmdtree.py --view context       # context > group > command
     python tools\\cmdtree.py --view gate          # gate > commands that need it
-    python tools\\cmdtree.py -g hacking           # only one group
+    python tools\\cmdtree.py -g hack              # only one group
+    python tools\\cmdtree.py --status planned     # only planned (or implemented) commands
     python tools\\cmdtree.py -c shell             # only one context
     python tools\\cmdtree.py --check              # validate the file
     python tools\\cmdtree.py --check --deep       # also check rule references against slice_rules.yaml / people.yaml
@@ -19,7 +20,8 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devnull.core.commands import check as check_data  # noqa: E402  (the game runs the same checks at startup)
+from devnull.core.commands import (check as check_data, load_file, is_planned, cmd_hours, cmd_money,  # noqa: E402
+                                   contexts_of, description_of)  # (the game runs the same checks at startup)
 
 USE_COLOR = True
 
@@ -68,13 +70,7 @@ def find_file(arg):
 
 
 def load(path):
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    data.setdefault("contexts", {})
-    data.setdefault("gates", {})
-    data.setdefault("groups", {})
-    data.setdefault("commands", {})
-    return data
+    return load_file(path)  # commands come back as a dict keyed by name
 
 
 # ---------------------------------------------------------------- helpers
@@ -107,45 +103,51 @@ def command_node(name, c, details):
     hid = [str(r) for r in as_list(c.get("hidden_until"))]
     if hid:
         label += " " + magenta(f"[hidden until: {', '.join(hid)}]")
-    if c.get("planned"):
+    if is_planned(c):
         label += " " + red("[planned]")
-    cost = ", ".join(x for x in (f"{c['time_cost']}h" if c.get("time_cost") else "",
-                                 f"${c['cost']}" if c.get("cost") else "") if x)
+    cost = ", ".join(x for x in (f"{cmd_hours(c):g}h" if cmd_hours(c) else "",
+                                 f"${cmd_money(c):g}" if cmd_money(c) else "") if x)
     if cost:
         label += dim(f" ({cost})")
-    if c.get("summary"):
-        label += dim(f" - {c['summary']}")
+    if description_of(c):
+        label += dim(f" - {description_of(c)}")
 
     kids = []
     if details:
         if c.get("syntax"):
             kids.append((f"syntax:   {c['syntax']}", []))
-        if c.get("contexts"):
-            kids.append((f"contexts: {', '.join(map(str, as_list(c['contexts'])))}", []))
+        kids.append((f"contexts: {', '.join(contexts_of(c))}", []))
+        if c.get("status"):
+            kids.append((f"status:   {c['status']}", []))
         if c.get("args"):
             kids.append(("args:     " + " ".join(fmt_arg(a) for a in c["args"]), []))
         if c.get("handler"):
             kids.append((f"handler:  {c['handler']}", []))
-        for key in ("time_cost", "cost", "online", "type", "rule", "risk", "always_available", "locked_message"):
+        for key in ("screen", "online", "type", "rule", "risk", "always_available", "locked_message"):
             if key in c:
                 kids.append((f"{key}: {c[key]}", []))
+        for ex in as_list(c.get("examples")):
+            kids.append((f"example:  {ex.get('cmd')}", [(dim(str(ex.get('shows'))), [])]))
     return (label, kids)
 
 
 def group_label(gid, g, count):
     title = g.get("title", gid) if g else "(not defined in groups)"
-    return f"{bold(title)} {dim(f'[{gid}]')} {dim(f'({count})')}"
+    desc = f" - {g['description']}" if g and g.get("description") else ""
+    return f"{bold(title)} {dim(f'[{gid}]')} {dim(f'({count})')}{dim(desc)}"
 
 
 # ---------------------------------------------------------------- views
 
-def filter_commands(data, only_group, only_context):
+def filter_commands(data, only_group, only_context, only_status=None):
     out = {}
     for name, c in data["commands"].items():
         c = c or {}
         if only_group and c.get("group") != only_group:
             continue
-        if only_context and only_context not in [str(x) for x in as_list(c.get("contexts"))]:
+        if only_context and only_context not in contexts_of(c):
+            continue
+        if only_status and (("planned" if is_planned(c) else "implemented") != only_status):
             continue
         out[name] = c
     return out
@@ -186,7 +188,7 @@ def view_context(data, cmds, details):
     nodes = []
     for ctx, info in data["contexts"].items():
         in_ctx = {n: c for n, c in cmds.items()
-                  if str(ctx) in [str(x) for x in as_list(c.get("contexts"))]}
+                  if str(ctx) in contexts_of(c)}
         if not in_ctx:
             continue
         _, gnodes = view_group(data, in_ctx, details)
@@ -205,7 +207,8 @@ def view_gate(data, cmds, details):
             continue
         desc = (info or {}).get("description")
         when = (info or {}).get("when")
-        label = (yellow(str(gate)) + (dim(f" - {desc}") if desc else "")
+        label = (yellow(str(gate)) + (red(" [planned]") if (info or {}).get("planned") else "")
+                 + (dim(f" - {desc}") if desc else "")
                  + (dim(f"  when {when}") if when else "") + dim(f" ({len(members)})"))
         nodes.append((label, [command_node(n, c, details) for n, c in members]))
     free = [(n, c) for n, c in cmds.items() if not as_list(c.get("requires"))]
@@ -247,6 +250,7 @@ def main():
     ap.add_argument("-d", "--details", action="store_true", help="show syntax, args, handler, etc.")
     ap.add_argument("-g", "--group", help="only this group")
     ap.add_argument("-c", "--context", help="only this context")
+    ap.add_argument("--status", choices=["planned", "implemented"], help="only commands with this status")
     ap.add_argument("--check", action="store_true", help="validate and exit (no tree)")
     ap.add_argument("--deep", action="store_true", help="with --check: also check rule references and coverage")
     ap.add_argument("--no-color", action="store_true")
@@ -266,16 +270,15 @@ def main():
     problems = check(data, deep=args.deep)
 
     if not args.check:
-        cmds = filter_commands(data, args.group, args.context)
+        cmds = filter_commands(data, args.group, args.context, args.status)
         view = {"group": view_group, "context": view_context, "gate": view_gate}[args.view]
         root, nodes = view(data, cmds, args.details)
         print(bold(f"{root}") + dim(f"  ({path})"))
         draw(nodes)
         print()
-        planned = sum(1 for c in data["commands"].values() if (c or {}).get("planned"))
-        print(dim(f"{len(data['commands'])} commands, {len(data['groups'])} groups, "
-                  f"{len(data['gates'])} gates, {len(data['contexts'])} contexts"
-                  + (f" ({planned} commands planned)" if planned else "")))
+        planned = sum(1 for c in data["commands"].values() if is_planned(c))
+        print(dim(f"{len(data['commands'])} commands ({len(data['commands']) - planned} implemented, {planned} planned), "
+                  f"{len(data['groups'])} groups, {len(data['gates'])} gates, {len(data['contexts'])} contexts"))
 
     if problems:
         print()
