@@ -26,7 +26,7 @@ from devnull.core.policies import POLICIES  # noqa: E402
 from devnull.core.sim import load_rules, play  # noqa: E402
 
 KEYS = ["cash", "legibility", "heat", "ai", "opinion", "market", "case_file", "fbi", "nsa",
-        "trust", "regulation", "laptop", "burnout"]
+        "trust", "regulation", "laptop", "os", "evidence", "terms", "burnout"]
 BASE_START = date(2026, 11, 3)
 
 
