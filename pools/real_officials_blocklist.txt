@@ -1,0 +1,4 @@
+# Real office-holders in the chosen city, now or in the recent past. One per line: "Given Surname".
+# A generated name that matches a line here is rejected and re-rolled.
+# Maintained per city; fill this from the city's own published rosters before release.
+# Empty for now (the generated cast is private citizens and fictional roles).
