@@ -89,6 +89,36 @@ def visible_keys(sim: Sim, admin: bool) -> list[str]:
     return sim.rules["cmdset"].visible_keys(sim.state, sim.unlocked, admin)
 
 
+def balanced_wrap(text: str, width: int = 78) -> str:
+    """Wrap to as few lines as `width` allows, then even the lines out so no short last line is left alone."""
+    lines = len(textwrap.wrap(text, width=width)) or 1
+    w = width
+    while w > 20 and len(textwrap.wrap(text, width=w - 1)) == lines:
+        w -= 1
+    return textwrap.fill(text, width=w)
+
+
+def wrap_paragraph(text: str, width: int = 78) -> str:
+    """Sentences that fit share a line; one that is too long is balanced over two or more lines
+    instead of leaving a short last line."""
+    import re
+    out: list[str] = []
+    cur = ""
+    for sent in (x for x in re.split(r"(?<=[.!?])\s+", text.strip()) if x):
+        if cur and len(cur) + 1 + len(sent) <= width:
+            cur += " " + sent
+            continue
+        if cur:
+            out.append(cur)
+        cur = sent
+        if len(cur) > width:
+            out.append(balanced_wrap(cur, width))
+            cur = ""
+    if cur:
+        out.append(cur)
+    return "\n".join(out)
+
+
 def show_commands(sim: Sim, admin: bool) -> None:
     cmds = sim.rules.get("commands", {}).get("commands", {})
     print("\nLOOK AROUND (free)")
@@ -511,6 +541,11 @@ def cmd_status(s: Session, key: str, args: list[str]) -> bool:
     return False
 
 
+def cmd_seed(s: Session, key: str, args: list[str]) -> bool:
+    print(f"Seed: {s.sim.seed}   (replay this run with: devnull --seed {s.sim.seed})")
+    return False
+
+
 def cmd_news(s: Session, key: str, args: list[str]) -> bool:
     print(render(s.sim, s.city, view="news"))
     return False
@@ -604,7 +639,7 @@ def cmd_admin(s: Session, key: str, args: list[str]) -> bool:
 
 # Every `handler:` in data/commands.yaml must be a key here (checked at startup).
 HANDLERS: dict[str, Callable[[Session, str, list[str]], bool]] = {
-    "cmd_help": cmd_help, "cmd_commands": cmd_commands, "cmd_status": cmd_status, "cmd_news": cmd_news,
+    "cmd_help": cmd_help, "cmd_commands": cmd_commands, "cmd_status": cmd_status, "cmd_seed": cmd_seed, "cmd_news": cmd_news,
     "cmd_events": cmd_events, "cmd_markets": cmd_markets, "cmd_people": cmd_people, "cmd_person": cmd_person,
     "cmd_sleep": cmd_sleep, "cmd_wait": cmd_sleep, "cmd_quit": cmd_quit, "cmd_attend": cmd_attend,
     "cmd_research": cmd_research, "cmd_meet": cmd_meet, "cmd_buy": cmd_buy, "cmd_action": cmd_action,
@@ -618,7 +653,7 @@ def check_commands(sim: Sim) -> list[str]:
 
 
 def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
-    print(wrap(city.get("display", {}).get("disclaimer", "")))
+    print(wrap_paragraph(city.get("display", {}).get("disclaimer", "")))
     print(render(sim, city))
     print("\nStart with 'commands' to see what you can do. Try 'events' to see what is on today, 'news' for the headlines.")
     if mode() == "plain":
@@ -702,9 +737,9 @@ def main(argv: list[str] | None = None) -> int:
         feed = fetch_feeds(city["city"]["display_name"], city["city"]["state"])
     sim = Sim(seed=seed, rules=rules, quotes=quotes, feed=feed, start_date=args.start_date or date.today(),
               events=city.get("events") or [])
-    print(f"\n{city['city']['display_name']}, {city['city']['state']}. "
-          f"Your run begins {sim.start_date:%B %d, %Y} and lasts up to 8 years "
-          f"(to {sim.end_date:%B %d, %Y}).   seed {seed}")
+    print("\n" + balanced_wrap(f"{city['city']['display_name']}, {city['city']['state']}. "
+                            f"Your run begins {sim.start_date:%B %d, %Y} and lasts up to 8 years "
+                            f"(to {sim.end_date:%B %d, %Y})."))
     problems = check_commands(sim)
     if problems:
         print(f"data/commands.yaml has {len(problems)} problem(s):")

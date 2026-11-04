@@ -1274,6 +1274,16 @@ commands:
     handler: cmd_status
     always_available: true
     description: "hours, cash, heat, burnout, legibility, skills, laptop"
+  - name: seed
+    group: system
+    status: implemented
+    screen: look_around
+    contexts: [world, shell]
+    handler: cmd_seed
+    always_available: true
+    description: "show this run's seed, so you can replay it"
+    examples:
+      - { cmd: seed, shows: "Seed: 729164256 (replay this run with: devnull --seed 729164256)" }
   - name: commands
     group: system
     status: implemented

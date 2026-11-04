@@ -166,7 +166,7 @@ commands
 │   ├── take_plea [requires: charge_pending_1] [hidden until: charge_pending_1] [planned] (2h) - Take a plea deal. Ends the case, and probably the campaign.
 │   ├── verify [requires: evidence_10] [hidden until: evidence_1] (2h) - Corroborate what you hold. Makes publishing and court safer.
 │   └── file [requires: evidence_20, cash_300] [hidden until: evidence_15] (3h) - File a lawsuit. Costs $300; takes months; strength depends on your evidence.
-├── SYSTEM [system] (19) - Game and session control.
+├── SYSTEM [system] (20) - Game and session control.
 │   ├── show_status [planned] - Show your status: energy, money, heat, and the day.
 │   ├── advance_day [planned] - End the day and start the next. 1 turn = 1 day.
 │   ├── save_game [planned] - Save your game.
@@ -178,6 +178,7 @@ commands
 │   ├── quit_game [planned] - Quit to the desktop.
 │   ├── show_heat [planned] - Show how much heat police, FBI, and NSA have on you.
 │   ├── status - hours, cash, heat, burnout, legibility, skills, laptop
+│   ├── seed - show this run's seed, so you can replay it
 │   ├── commands - what you can do now
 │   ├── help (h, ?) - the basics
 │   ├── sleep - end the day
@@ -532,7 +533,7 @@ gates
 │   └── challenge_warrant [requires: warrant_served_1, lawyer_hired_1] [hidden until: warrant_served_1] [planned] (3h) - Challenge a warrant.
 ├── heat_total_20 - Heat 20 or more  when {'heat': 20} (1)
 │   └── contact_aclu [hidden until: heat_total_20] [planned] (1h) - Contact the ACLU or a civil liberties group.
-└── (no gate - always usable) (82)
+└── (no gate - always usable) (83)
     ├── pay_bills [planned] (1h, $650) - Pay rent and utilities. Miss it and the landlord notices.
     ├── sleep_night [planned] (8h) - Sleep a full night. Restores energy and focus.
     ├── cook_meal [planned] (1h, $5) - Cook something cheap. Keeps you fed without wrecking the budget.
@@ -590,6 +591,7 @@ gates
     ├── quit_game [planned] - Quit to the desktop.
     ├── show_heat [planned] - Show how much heat police, FBI, and NSA have on you.
     ├── status - hours, cash, heat, burnout, legibility, skills, laptop
+    ├── seed - show this run's seed, so you can replay it
     ├── commands - what you can do now
     ├── help (h, ?) - the basics
     ├── sleep - end the day
