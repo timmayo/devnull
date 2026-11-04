@@ -10,8 +10,8 @@ PRESS = ("local_reporter",)
 
 
 def socialize(sim: Sim, types: tuple[str, ...] | None = None, cap: float = 60) -> list[str]:
-    """Go to a meeting if there is one, and nurture the best matching contact."""
-    cands = [c for c in sim.contacts
+    """Go to a meeting if there is one, and nurture the best matching person."""
+    cands = [c for c in sim.people
              if not c.hostile and c.trust < cap and (types is None or c.type in types)]
     acts: list[str] = []
     if cands:
@@ -164,7 +164,7 @@ def schemer(sim: Sim) -> list[str]:
         return plan + socialize(sim, TECH)
     if s["cash"] < 100:
         return ["extra_shift"]
-    live = [c for c in sim.contacts if not c.hostile]
+    live = [c for c in sim.people if not c.hostile]
     squeeze = [c for c in live if c.leverage >= 1]
     if squeeze:
         return [f"meet {squeeze[0].id} extort"]

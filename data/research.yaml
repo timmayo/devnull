@@ -2,7 +2,7 @@
 #
 # `research` opens a menu. `research <topic> [method]` studies one directly.
 # Each session adds xp to the topic's skill. Levels: beginner, advanced, expert.
-# Self-study (online, library) tops out at advanced; a paid course or a contact who
+# Self-study (online, library) tops out at advanced; a paid course or a person who
 # is an expert can take you to expert. Every level-up shows its text and applies
 # its one-time `add` / `set` effects. Your levels also feed the rules as variables
 # named sk_<topic> (0-3), so actions get better as you learn (see slice_rules.yaml),
@@ -10,7 +10,7 @@
 #
 # All first guesses. Facts about real law are kept general on purpose.
 
-thresholds: [3, 9, 18]        # xp for beginner / advanced / expert (the same scale contacts teach on)
+thresholds: [3, 9, 18]        # xp for beginner / advanced / expert (the same scale people teach on)
 self_study_cap: 2             # online and library stop here
 
 methods:
@@ -48,7 +48,7 @@ topics:
     label: "network security"
     blurb: "How connections give you away, and how the people watching them think."
     levels:
-      1: { gives: "tethered trails shrink", text: "You learn how a connection gives you away: addresses, logs, DNS. You start closing the obvious gaps.", add: { skills: 2 } }
+      1: { gives: "tethered trails shrink; the darknet opens", text: "You learn how a connection gives you away: addresses, logs, DNS. You start closing the obvious gaps, and you learn how people reach hidden services. The darknet is now open to you.", add: { skills: 2 }, set: { darknet: 1 } }
       2: { gives: "status shows an estimate of your case file", text: "You can now read your own risk. Your status shows a rough estimate of what the police hold on you.", add: { skills: 3 } }
       3: { gives: "status shows FBI interest and NSA coverage", text: "You understand how the big collectors work. Your status now shows the FBI's level of interest and how much of your traffic the NSA sees.", add: { skills: 4 } }
   python:

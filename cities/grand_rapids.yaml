@@ -156,7 +156,7 @@ news:
 
 # ---------------------------------------------------------------
 # EVENTS
-# Real, dated, linked. Each borrows a meeting template (`kind`, in contacts.yaml)
+# Real, dated, linked. Each borrows a meeting template (`kind`, in people.yaml)
 # for who attends; the people you meet are always fictional. Titles, dates,
 # times and venues are copied from the sources below; check the link before
 # relying on them. Not yet covered: Eventbrite and Meetup listings (the game's
@@ -174,6 +174,8 @@ events:
       time: "all day"
       hours: 2
       kind: civic_festival
+      attendees: { neighbor_activist: 2, local_reporter: 1.5, union_rep: 1.5, lobbyist: 0.5 }     # who turns up (topic-specific)
+      skills: { hospitality: 3, marketing: 1, finance: 1 }     # skills of the people you meet here
       venue: "participating restaurants"
       source: "Experience Grand Rapids"
       url: "https://www.experiencegr.com/event/restaurant-week-gr/95758/"
@@ -184,6 +186,8 @@ events:
       time: "10:00 am"
       hours: 1
       kind: webinar
+      attendees: { lobbyist: 3, developer_staffer: 2, local_reporter: 1, state_regulator: 1 }     # who turns up (topic-specific)
+      skills: { lobbying: 2, finance: 1 }     # skills of the people you meet here
       venue: "Zoom"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/first-friday-update-11-6/"
@@ -194,6 +198,8 @@ events:
       time: "7:30 am"
       hours: 4
       kind: business_mixer
+      attendees: { union_rep: 2, developer_staffer: 2, techie: 1.5, state_regulator: 1, lobbyist: 1, local_reporter: 0.7 }     # who turns up (topic-specific)
+      skills: { human_resources: 3, labor_law: 1, data_analysis: 1 }     # skills of the people you meet here
       venue: "JW Marriott Grand Rapids"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/talent-human-resources-summit-2026/"
@@ -204,6 +210,8 @@ events:
       time: "4:00 pm"
       hours: 2
       kind: business_mixer
+      attendees: { developer_staffer: 3, union_rep: 2, lobbyist: 1.5, state_regulator: 1, public_interest_lawyer: 1 }     # who turns up (topic-specific)
+      skills: { construction: 3, finance: 2, labor_law: 1 }     # skills of the people you meet here
       venue: "Grand Rapids Chamber, 250 Monroe Ave"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/west-michigan-minority-contractors-11-12/"
@@ -214,6 +222,8 @@ events:
       time: "all day"
       hours: 4
       kind: fan_convention
+      attendees: { techie: 6, librarian: 1, neighbor_activist: 1, corporate_whistleblower: 0.5 }     # who turns up (topic-specific)
+      skills: { design_art: 3, hardware: 1, python: 1 }     # skills of the people you meet here
       venue: "DeVos Place"
       source: "Experience Grand Rapids"
       url: "https://www.experiencegr.com/event/grand-rapids-comic-con-2026/99694/"
@@ -224,6 +234,8 @@ events:
       time: "3:00 pm"
       hours: 2
       kind: business_mixer
+      attendees: { lobbyist: 2, state_regulator: 1.5, local_reporter: 1.5, public_interest_lawyer: 1.5, developer_staffer: 1 }     # who turns up (topic-specific)
+      skills: { leadership: 3, public_speaking: 2 }     # skills of the people you meet here
       venue: "The Big Room at SILVA"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/athena-leadership-forum-11-17/"
@@ -235,6 +247,8 @@ events:
       time: "afternoon"
       hours: 2
       kind: civic_festival
+      attendees: { neighbor_activist: 3, librarian: 1, union_rep: 1, rural_coop_manager: 1 }     # who turns up (topic-specific)
+      skills: { hospitality: 2, design_art: 1, organizing: 1 }     # skills of the people you meet here
       venue: "Grand Rapids Downtown Market"
       source: "Experience Grand Rapids"
       url: "https://www.experiencegr.com/event/christkindl-markt-2026/96332/"
@@ -255,6 +269,8 @@ events:
       time: "8:00 am"
       hours: 2
       kind: policy_forum
+      attendees: { techie: 3, police_officer: 3, state_regulator: 2, public_interest_lawyer: 2, local_reporter: 2, lobbyist: 1.5 }     # who turns up (topic-specific)
+      skills: { network_security: 3, police_procedure: 3, data_analysis: 2, litigation: 1, machine_learning: 1 }     # skills of the people you meet here
       venue: "Grand Rapids Chamber, 250 Monroe Ave"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/chamber-issues-forum-11-20/"
@@ -266,6 +282,8 @@ events:
       time: "evening"
       hours: 2
       kind: civic_festival
+      attendees: { neighbor_activist: 3, librarian: 1, rural_coop_manager: 1, local_reporter: 0.7 }     # who turns up (topic-specific)
+      skills: { design_art: 2, energy: 1, hospitality: 1 }     # skills of the people you meet here
       venue: "Frederik Meijer Gardens & Sculpture Park"
       source: "Experience Grand Rapids"
       url: "https://www.experiencegr.com/event/enlighten-presented-by-pnc-bank/96824/"
@@ -296,6 +314,8 @@ events:
       time: "7:30 am"
       hours: 2
       kind: policy_forum
+      attendees: { lobbyist: 3, state_regulator: 2, local_reporter: 2, developer_staffer: 1.5, public_interest_lawyer: 1 }     # who turns up (topic-specific)
+      skills: { lobbying: 3, records_law: 2, public_speaking: 1 }     # skills of the people you meet here
       venue: "Grand Rapids Chamber, 250 Monroe Ave"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/breakfast-with-legislators-12-7/"
@@ -306,6 +326,8 @@ events:
       time: "8:30 am"
       hours: 2
       kind: business_mixer
+      attendees: { lobbyist: 1, developer_staffer: 2, local_reporter: 1, neighbor_activist: 1.5 }     # who turns up (topic-specific)
+      skills: { marketing: 3, finance: 1, public_speaking: 1 }     # skills of the people you meet here
       venue: "Grand Rapids Chamber, 250 Monroe Ave"
       source: "Grand Rapids Chamber"
       url: "https://grandrapids.org/event/business-growth-workshop-12-8/"

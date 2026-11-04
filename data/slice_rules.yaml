@@ -52,7 +52,7 @@ daily:
 # Online actions on a laptop that only runs plugged in are tied to the
 # apartment's connection, which leaves a trail. Applied while laptop == 0.
 tethered_extra:
-  legibility: { bias: 1.5, terms: { gear_vpn: -1.0, sk_network_security: -0.4 } }
+  legibility: { bias: 1.5, terms: { gear_vpn: -1.0, gear_anon: -0.3, sk_network_security: -0.4 } }
   case_file: { bias: 0.5, terms: { gear_vpn: -0.4 } }
 
 start:
@@ -65,10 +65,10 @@ start:
   case_file: 0
   fbi: 0
   nsa: 40
-  trust: 0              # derived: average of your two best contacts' trust
-  press_trust: 0        # derived: trust of your best reporter contact
-  techie_trust: 0       # derived: trust of your best developer contact
-  contacts_n: 0         # derived: how many people you know
+  trust: 0              # derived: average of your two best people's trust
+  press_trust: 0        # derived: trust of your best reporter person
+  techie_trust: 0       # derived: trust of your best developer person
+  people_n: 0         # derived: how many people you know
   regulation: 10
   elite_alarm: 70       # how worried the Mega Corp CEOs are that AI could end humanity
   public_concern: 10    # how worried ordinary people are; most treat AI as a search engine
@@ -89,6 +89,8 @@ start:
   terms: 0              # accountability terms won (reform, not a blocked site)
   gear_burner: 0        # placeholder hardware
   gear_vpn: 0           # placeholder app
+  gear_anon: 0          # placeholder app: untraceable accounts (darknet)
+  darknet: 0            # 1 once you know how to reach the darknet (network security level 1)
 
 ranges:
   cash: [-1000000, 1000000]
@@ -119,9 +121,11 @@ ranges:
   terms: [0, 100]
   gear_burner: [0, 1]
   gear_vpn: [0, 1]
+  gear_anon: [0, 1]
+  darknet: [0, 1]
   press_trust: [0, 100]
   techie_trust: [0, 100]
-  contacts_n: [0, 1000]
+  people_n: [0, 1000]
   elite_alarm: [0, 100]
   public_concern: [0, 100]
 
@@ -132,7 +136,7 @@ gear:
     windows11: { owned_at_start: true, note: "Day 1 default. Everyday and heavily logged." }
     linux:     { how: "learn how (research), then install_linux", unlocks: [hack, stronger trace] }
   hardware:
-    laptop_battery: { how: "browse_store then upgrade_store, or a trusted contact (upgrade_npc)", unlocks: [mobile online actions, no tether trail, live coverage at events] }
+    laptop_battery: { how: "browse_store then upgrade_store, or a trusted person (upgrade_npc)", unlocks: [mobile online actions, no tether trail, live coverage at events] }
     burner_phone:   { placeholder: true, how: "buy burner_phone", unlocks: [quieter meetings] }
     tbd:            "more hardware to be designed"
   apps:
@@ -141,8 +145,12 @@ gear:
 
 # Shop items for `buy <item>`.
 shop:
-  burner_phone: { price: 80, unlock: { contacts_n: 1 }, flag: gear_burner, category: hardware, placeholder: true, note: "A prepaid phone for meetings." }
-  vpn:          { price: 15, unlock: { skills: 6 }, flag: gear_vpn, category: apps, placeholder: true, note: "Hides your apartment's connection from the sites you visit." }
+  # market: public = the regular internet, open from day 1; darknet = opens when `darknet` is 1
+  # (research network security). Items are placeholders until the gear is designed.
+  burner_phone: { market: public,  price: 80,  unlock: { people_n: 1 }, flag: gear_burner, category: hardware, placeholder: true, note: "A prepaid phone for meetings." }
+  vpn:          { market: public,  price: 15,  unlock: {},                flag: gear_vpn,    category: apps,     placeholder: true, note: "Hides your apartment's connection from the sites you visit." }
+  used_laptop:  { market: darknet, price: 300, unlock: { darknet: 1 },     flag: laptop,      category: hardware, placeholder: true, risk: { heat: 2 }, note: "A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky." }
+  anon_accounts: { market: darknet, price: 120, unlock: { darknet: 1 },    flag: gear_anon,  category: apps,     placeholder: true, note: "Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat." }
 
 world:
   ai:
@@ -294,7 +302,7 @@ actions:
     effects:
       opinion: { bias: -1.5, terms: { opinion: -0.012, sk_web_dev: -0.2, sk_organizing: -0.2 } }   # diminishing returns
       public_concern: { bias: 0.1 }
-      heat: { bias: 3 }
+      heat: { bias: 3, terms: { gear_anon: -1.5 } }
       legibility: { bias: 1 }
       burnout: { bias: 0.3 }
   lay_low:
@@ -352,7 +360,7 @@ actions:
       opinion: { bias: 0, terms: { press_trust: -0.012, evidence: -0.03, verified: -0.018, cred: -0.012, opinion: -0.018 } }
       market: { bias: -5 }
       public_concern: { bias: 0.6, terms: { elite_alarm: 0.01, evidence: 0.01 } }   # insiders' private alarm goes public
-      heat: { bias: 12 }
+      heat: { bias: 12, terms: { gear_anon: -3 } }
       case_file: { bias: 3 }
       burnout: { bias: 1.5 }
       evidence: { bias: -8 }
@@ -454,10 +462,10 @@ actions:
     unlock: { lead_npc: 1 }
     requires: { lead_npc: 1, techie_trust: 35, cash: 150 }
     requires_max: { laptop: 0 }
-    why: "You need a developer contact's offer, their trust (35), $150, and a dead battery."
+    why: "You need a developer's offer, their trust (35), $150, and a dead battery."
     effects:
       cash: { bias: -150 }
-      laptop: { set: 1, msg: "Your contact swaps the battery. It holds a charge. You owe them." }
+      laptop: { set: 1, msg: "Your person swaps the battery. It holds a charge. You owe them." }
       trust: { bias: 2 }
 
 # Endings checked after the last turn, first match wins. Caught ends the run early.
