@@ -33,7 +33,7 @@ ENDINGS = {
 }
 
 BANDS = [(10, "low"), (25, "moderate"), (45, "high"), (101, "severe")]
-WAKE_EVENTS = ("records_arrived", "lawsuit_stage", "lawsuit_result", "election", "contact_met")
+WAKE_EVENTS = ("records_arrived", "lawsuit_stage", "lawsuit_result", "election", "person_met")
 
 # Always available, whatever you have unlocked.
 BASIC = ["help", "commands", "status", "news", "events", "markets", "sleep", "wait", "quit"]
@@ -80,7 +80,7 @@ def wrap(text: str, indent: str = "") -> str:
 
 
 def trust_band(sim: Sim, trust: float) -> str:
-    for edge, label in sim.rules["contacts"]["trust_bands"]:
+    for edge, label in sim.rules["people"]["trust_bands"]:
         if trust < edge:
             return label
     return "inner circle"
@@ -91,8 +91,8 @@ def available_words(sim: Sim, admin: bool) -> list[str]:
     words = list(BASIC)
     actions = list(sim.rules["actions"]) if admin else sim.visible_actions()
     words += actions
-    if sim.contacts or admin:
-        words += ["contacts", "contact", "meet"]
+    if sim.people or admin:
+        words += ["people", "person", "meet"]
     if admin or sim.visible_shop():
         words.append("buy")
     if admin:
@@ -101,15 +101,19 @@ def available_words(sim: Sim, admin: bool) -> list[str]:
 
 
 def show_commands(sim: Sim, admin: bool) -> None:
+    cmds = sim.rules.get("commands", {}).get("commands", {})
     print("\nLOOK AROUND (free)")
-    print("  events [more|days]  What is on today and this week. Then 'attend' to go to one.")
-    print("  status              Your hours, cash, heat, laptop and more.")
-    print("  news                Read today's local and national headlines.")
-    print("  markets             Stock prices for the Mega Corps and neo-clouds.")
-    if sim.contacts or admin:
-        print("  contacts            The people you know. Then 'contact <n>' or 'meet <n>'.")
-    print("  help, commands      This list and the basics.")
-    print("  sleep               End the day.    wait <days>  Skip ahead.    quit  Leave.")
+    for c in cmds.values():
+        if c["group"] != "look_around":
+            continue
+        need = c.get("unlock")
+        if not admin and isinstance(need, dict) and not all(sim.state.get(k, 0) >= v for k, v in need.items()):
+            continue
+        children = [x for x in cmds.values() if x.get("parent") == next(k for k, v in cmds.items() if v is c)]
+        print(f"  {c['usage']:<22} {c['help'][:1].upper() + c['help'][1:]}")
+        for ch in children:
+            tag = f"{ch['hours']}h" if ch["hours"] else "free"
+            print(f"    then: {ch['usage']:<15} ({tag}) {ch['help']}")
     print("\nACTIONS            hours  now   what it does")
     for name, spec in sim.rules["actions"].items():
         locked = name not in sim.unlocked
@@ -133,11 +137,11 @@ def show_commands(sim: Sim, admin: bool) -> None:
             mark = "yes" if reason is None else "no "
             tag = " [locked]" if f"buy {item}" not in sim.unlocked else ""
             print(f"  {'buy ' + item:<16} {1:>4}   {mark}   ${spec['price']}. {spec['note']}{tag}")
-    if sim.contacts or admin:
+    if sim.people or admin:
         print("\nPEOPLE")
-        print("  contacts         list the people you know")
-        print("  contact <n>      what you know about one person and what has happened")
-        print("  meet <n> [act]   spend time with a contact (coffee, favor, ask, ...)")
+        print("  people           list the people you know")
+        print("  person <n>       what you know about one person and what has happened")
+        print("  meet <n> [act]   spend time with someone you know (coffee, favor, ask, ...)")
     if admin:
         print("\nADMIN: admin set|reveal|spawn|unlock|hours|skip")
     print("New commands appear as you unlock them.")
@@ -166,7 +170,7 @@ def show_status(sim: Sim, admin: bool = False) -> None:
     if s["lead_store"] and not s["laptop"]:
         leads.append("a pawn shop sells laptops with new batteries ($420)")
     if s["lead_npc"] and not s["laptop"]:
-        leads.append("a contact can swap a battery (their trust 35, $150)")
+        leads.append("someone you trust can swap a battery (their trust 35, $150)")
     if s["lead_linux"] and not s["os"]:
         leads.append("you know how to install Linux")
     law = {0: "none", 1: "filed", 2: "hearing", 3: "awaiting ruling"}[int(s["filed"])]
@@ -179,14 +183,14 @@ def show_status(sim: Sim, admin: bool = False) -> None:
               "your phone, accounts and routines. Heat and surveillance raise it; a VPN and lying low lower it. "
               "Above roughly 20 the police file on you grows even while you do nothing.")
     stat_line("Know-how", f"{s['skills']:.0f}/100", "Technical ability. It unlocks tools (tracing at 5, a VPN at 6, "
-              "hacking at 15). Research and learning from contacts build it.")
+              "hacking at 15). Research and learning from people build it.")
     mine = sim.my_skills()
     stat_line("Skills", "", ", ".join(f"{sim.skill_label(k)} ({sim.level_name(v)})" for k, v in mine)
-              or "none yet. Research, or ask a contact to teach you ('meet <n> learn').")
+              or "none yet. Research, or ask someone to teach you ('meet <n> learn').")
     stat_line("Laptop", "", laptop)
     if gear:
         stat_line("Gear", "", ", ".join(gear))
-    stat_line("People", "", f"{len(sim.contacts)} known; best two average trust {s['trust']:.0f}")
+    stat_line("People", "", f"{len(sim.people)} known; best two average trust {s['trust']:.0f}")
     if "evidence" in sim.unlocked or s["evidence"] > 0:
         print(f"  Evidence     {s['evidence']:.0f}   verified {s['verified']:.0f}   "
               f"authenticity about {round(s['auth'], -1):.0f}")
@@ -218,13 +222,13 @@ def show_status(sim: Sim, admin: bool = False) -> None:
         print("  [admin] type 'admin reveal' to see everything.")
 
 
-def show_contacts(sim: Sim, admin: bool) -> None:
-    if not sim.contacts:
+def show_people(sim: Sim, admin: bool) -> None:
+    if not sim.people:
         print("  You do not know anyone yet. Go to a meeting ('attend').")
         return
     print(f"\n  {'#':>2}  {'name':<20} {'who':<24} {'standing':<13} last seen")
-    for c in sim.contacts:
-        who = sim.rules["contacts"]["types"][c.type]["label"]
+    for c in sim.people:
+        who = sim.rules["people"]["types"][c.type]["label"]
         flags = []
         if c.ally:
             flags.append("ally")
@@ -240,8 +244,8 @@ def show_contacts(sim: Sim, admin: bool) -> None:
         print(f"  {c.id:>2}  {c.name:<20} {who:<24} {trust_band(sim, c.trust):<13} {seen}{extra}")
 
 
-def show_contact(sim: Sim, c: Any, admin: bool) -> None:
-    spec = sim.rules["contacts"]["types"][c.type]
+def show_person(sim: Sim, c: Any, admin: bool) -> None:
+    spec = sim.rules["people"]["types"][c.type]
     print(f"\n  {c.name}, {a_or_an(spec['label'])}.  Met {c.history[0]['date']}.")
     print(f"  Standing: {trust_band(sim, c.trust)}"
           + ("   Ally." if c.ally else "") + ("   Hostile." if c.hostile else ""))
@@ -372,11 +376,11 @@ def do_research(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
 
 def do_meet(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
     if not args or not args[0].isdigit():
-        return False, ["Usage: meet <contact number> [action]. See 'contacts'."]
-    c = sim.contact(int(args[0]))
+        return False, ["Usage: meet <person number> [action]. See 'people'."]
+    c = sim.person(int(args[0]))
     if c is None:
         return False, ["You do not know anyone with that number."]
-    names = [a for a in sim.rules["contacts"]["contact_actions"] if sim.contact_action_visible(c, a)]
+    names = [a for a in sim.rules["people"]["people_actions"] if sim.person_action_visible(c, a)]
     action = None
     if len(args) > 1:
         hits = [n for n in names if n.startswith(args[1].lower())]
@@ -386,7 +390,7 @@ def do_meet(sim: Sim, args: list[str]) -> tuple[bool, list[str]]:
     else:
         print(f"  What do you do with {c.name}?")
         opts = []
-        for i, (a, spec, reason) in enumerate(sim.contact_menu(c.id), 1):
+        for i, (a, spec, reason) in enumerate(sim.person_menu(c.id), 1):
             cost = f" ${spec['cost']}" if spec.get("cost") else ""
             line = f"    {i}) {a:<8} {spec['hours']}h{cost:<6} {spec['help']}"
             print(line + (f"  ({reason})" if reason else ""))
@@ -407,9 +411,9 @@ def admin_cmd(sim: Sim, args: list[str]) -> None:
         sim.state[args[1]] = float(args[2])
         sim._refresh_unlocks()
         print(f"  {args[1]} = {sim.state[args[1]]}")
-    elif sub == "skill" and len(args) == 3 and args[1] in sim.rules["contacts"]["skills"]["catalog"] \
+    elif sub == "skill" and len(args) == 3 and args[1] in sim.rules["people"]["skills"]["catalog"] \
             and args[2] in ("0", "1", "2", "3"):
-        th = sim.rules["contacts"]["skills"]["xp_thresholds"]
+        th = sim.rules["people"]["skills"]["xp_thresholds"]
         sim.skill_xp[args[1]] = 0.0 if args[2] == "0" else float(th[int(args[2]) - 1])
         sim._refresh_derived()
         print(f"  {sim.skill_label(args[1])}: level {args[2]}")
@@ -417,12 +421,12 @@ def admin_cmd(sim: Sim, args: list[str]) -> None:
         for k, v in sim.state.items():
             print(f"  {k:<16} {v:>9.2f}")
         print("  pending:", [(d, v) for d, v, _ in sim.pending])
-    elif sub == "spawn" and len(args) == 2 and args[1] in sim.rules["contacts"]["types"]:
-        c = sim.new_contact(args[1], where="the admin console")
+    elif sub == "spawn" and len(args) == 2 and args[1] in sim.rules["people"]["types"]:
+        c = sim.new_person(args[1], where="the admin console")
         c.trust = 30
-        print(f"  Created contact #{c.id} {c.name}.")
+        print(f"  Created person #{c.id} {c.name}.")
     elif sub == "spawn":
-        print("  types: " + ", ".join(sim.rules["contacts"]["types"]))
+        print("  types: " + ", ".join(sim.rules["people"]["types"]))
     elif sub == "unlock":
         sim.unlock_all()
         print("  Everything unlocked.")
@@ -530,7 +534,7 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
         if word == "help":
             print(wrap("Each day you have a few free hours after your job. Spend them on actions "
                        "(see 'commands'), then 'sleep' to end the day. Meetings happen on certain "
-                       "days: type 'events' to see them, then 'attend' one and you may meet people. 'contacts' lists them; "
+                       "days: type 'events' to see them, then 'attend' one and you may meet people. 'people' lists them; "
                        "'meet <n>' lets you spend time with one. The news is how you learn what "
                        "the world is doing. 'wait 7' sleeps a week without acting."))
             print("Commands: commands, status, news, sleep, wait <days>, quit, and whatever you unlock.")
@@ -549,14 +553,14 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
             show_events(sim, days)
         elif word == "markets":
             show_markets(sim)
-        elif word == "contacts":
-            show_contacts(sim, admin)
-        elif word == "contact":
-            c = sim.contact(int(args[0])) if args and args[0].isdigit() else None
+        elif word == "people":
+            show_people(sim, admin)
+        elif word == "person":
+            c = sim.person(int(args[0])) if args and args[0].isdigit() else None
             if c is None:
-                print("  Usage: contact <number>. See 'contacts'.")
+                print("  Usage: person <number>. See 'people'.")
             else:
-                show_contact(sim, c, admin)
+                show_person(sim, c, admin)
         elif word in ("sleep", "wait"):
             days = 1
             if word == "wait":

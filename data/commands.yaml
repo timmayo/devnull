@@ -1,0 +1,176 @@
+# /dev/null commands: the one file you edit.
+# The game's `commands` list, the command tree and the reference doc are all generated from this file.
+#
+# Fields
+#   group    where it sits in the tree (see `groups`)
+#   parent   nest under another command (a step that follows it)
+#   usage    what the player types
+#   hours    cost in hours (0 = free)
+#   cost     cash cost, if any
+#   unlock   day1, or the state that makes it appear: { evidence: 5 }   (all must be true)
+#   needs    state needed to actually run it (shown as the reason when it cannot)
+#   online   true if it leaves an online trail (bigger if the laptop battery is dead)
+#   help     the one-line description the player sees
+#   rule     name of the entry in slice_rules.yaml that holds the numbers (effects, odds)
+#   notes    yours: not read by the game
+
+version: 1
+
+groups:
+  look_around: { title: LOOK AROUND,   note: "Free. Costs no hours." }
+  actions:     { title: ACTIONS,       note: "Cost hours. Appear when unlocked." }
+  internet:    { title: INTERNET,      note: "The public web. Open from Day 1." }
+  darknet:     { title: DARKNET,       note: "Opens at network security level 1." }
+  people:      { title: PEOPLE,        note: "After you meet someone. Options open as the relationship deepens." }
+  admin:       { title: ADMIN,         note: "Testing only (--admin)." }
+
+commands:
+  # ---- LOOK AROUND ----
+  events:
+    { group: look_around, usage: "events [more | <days>]", hours: 0, unlock: day1, help: "today's list and the week ahead (30 days with 'more')" }
+  status:
+    { group: look_around, usage: "status", hours: 0, unlock: day1, help: "hours, cash, heat, burnout, legibility, skills, laptop" }
+  news:
+    { group: look_around, usage: "news", hours: 0, unlock: day1, help: "local and national headlines" }
+  markets:
+    { group: look_around, usage: "markets", hours: 0, unlock: day1, help: "Mega Corp and neo-cloud prices" }
+  people:
+    { group: look_around, usage: "people", hours: 0, unlock: { people_n: 1 }, help: "the people you know" }
+  person:
+    { group: look_around, usage: "person <n>", hours: 0, unlock: { people_n: 1 }, help: "one person: standing, skills, history" }
+  commands:
+    { group: look_around, usage: "commands", hours: 0, unlock: day1, help: "what you can do now" }
+  help:
+    { group: look_around, usage: "help", hours: 0, unlock: day1, help: "the basics" }
+  sleep:
+    { group: look_around, usage: "sleep", hours: 0, unlock: day1, help: "end the day" }
+  wait:
+    { group: look_around, usage: "wait [<days>]", hours: 0, unlock: day1, help: "skip ahead (default 7); stops early if something happens" }
+  quit:
+    { group: look_around, usage: "quit", hours: 0, unlock: day1, help: "leave" }
+
+  # ---- ACTIONS (numbers live in slice_rules.yaml under the same name) ----
+  extra_shift:
+    { group: actions, usage: "extra_shift", hours: 3, unlock: day1,
+      help: "Pick up a shift. +$45, more burnout.", rule: extra_shift }
+  rest:
+    { group: actions, usage: "rest", hours: 2, unlock: day1,
+      help: "Sleep, eat, stop. Lowers burnout.", rule: rest }
+  trade:
+    { group: actions, usage: "trade", hours: 1, unlock: day1, online: true,
+      help: "Small trades. Pays when market sentiment is up.", rule: trade }
+  attend:
+    { group: actions, parent: events, usage: "attend <n>", hours: 2, unlock: day1,
+      help: "Go to something on today (see events). Moves opinion; you may meet people.", rule: attend }
+  feed:
+    { group: actions, usage: "feed", hours: 1, unlock: day1, online: true,
+      help: "Post. Moves opinion, makes noise.", rule: feed }
+  lay_low:
+    { group: actions, usage: "lay_low", hours: 3, unlock: day1,
+      help: "Stay quiet. Heat and suspicion fall.", rule: lay_low }
+  records:
+    { group: actions, usage: "records", hours: 1, unlock: day1, online: true,
+      help: "File a public-records request. Answers arrive in days or weeks.", rule: records }
+  trace:
+    { group: actions, usage: "trace", hours: 2, unlock: day1, online: true, needs: { skills: 5 },
+      help: "Follow the money and the shell companies. Better with Linux.", rule: trace }
+  verify:
+    { group: actions, usage: "verify", hours: 2, unlock: { evidence: 1 }, needs: { evidence: 10 },
+      help: "Corroborate what you hold. Makes publishing and court safer.", rule: verify }
+  leak:
+    { group: actions, usage: "leak", hours: 2, unlock: { evidence: 5 }, online: true, needs: { press_trust: 20, evidence: 10 },
+      help: "Give evidence to the press. Big effect, big heat. Unverified leaks cost credibility.", rule: leak }
+  file:
+    { group: actions, usage: "file", hours: 3, unlock: { evidence: 15 }, needs: { evidence: 20, cash: 300 },
+      help: "File a lawsuit. Costs $300; takes months; strength depends on your evidence.", rule: file }
+  negotiate:
+    { group: actions, usage: "negotiate", hours: 3, unlock: { evidence: 10, trust: 25 }, needs: { trust: 40, evidence: 15 },
+      help: "Sit down for accountability terms. A reform, not a blocked site.", rule: negotiate }
+  maintain:
+    { group: actions, usage: "maintain", hours: 2, unlock: { terms: 1 }, needs: { terms: 1 },
+      help: "Watch that agreements are followed. Keeps terms from eroding.", rule: maintain }
+  hack:
+    { group: actions, usage: "hack", hours: 3, unlock: { os: 1 }, online: true, needs: { os: 1, laptop: 1, skills: 15, sk_network_security: 1 },
+      help: "Breach a system. Real evidence, real risk. Needs Linux and skill.", rule: hack }
+  research:
+    { group: actions, usage: "research <topic> [online | library | course]", hours: 2, unlock: day1, online: true,
+      help: "Study a topic (a menu): levels you up and opens new abilities. Online, at the library, or a paid course.", rule: research }
+  install_linux:
+    { group: actions, usage: "install_linux", hours: 3, unlock: { lead_linux: 1 }, online: true, needs: { lead_linux: 1, laptop: 1 },
+      help: "Install Linux next to Windows 11.", rule: install_linux }
+  browse_store:
+    { group: actions, usage: "browse_store", hours: 2, unlock: day1,
+      help: "Walk the electronics and pawn shops.", rule: browse_store }
+  upgrade_store:
+    { group: actions, usage: "upgrade_store", hours: 2, unlock: { lead_store: 1 }, needs: { lead_store: 1, cash: 420 },
+      help: "Buy a used laptop with a working battery ($420).", rule: upgrade_store }
+  upgrade_npc:
+    { group: actions, usage: "upgrade_npc", hours: 2, unlock: { lead_npc: 1 }, needs: { lead_npc: 1, techie_trust: 35, cash: 150 },
+      help: "Have a developer you trust swap in a battery for a favor ($150).", rule: upgrade_npc }
+
+  # ---- INTERNET and DARKNET ----
+  buy_burner_phone:
+    { group: internet, usage: "buy burner_phone", hours: 1, cost: 80, unlock: { people_n: 1 }, type: hardware,
+      help: "A prepaid phone for meetings.", rule: shop.burner_phone }
+  buy_vpn:
+    { group: internet, usage: "buy vpn", hours: 1, cost: 15, unlock: day1, type: apps,
+      help: "Hides your apartment's connection from the sites you visit.", rule: shop.vpn }
+  buy_used_laptop:
+    { group: darknet, usage: "buy used_laptop", hours: 1, cost: 300, unlock: { darknet: 1 }, type: hardware,
+      help: "A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky.", rule: shop.used_laptop }
+  buy_anon_accounts:
+    { group: darknet, usage: "buy anon_accounts", hours: 1, cost: 120, unlock: { darknet: 1 }, type: apps,
+      help: "Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.", rule: shop.anon_accounts }
+
+  # ---- PEOPLE (meet <n> <action>) ----
+  meet:
+    { group: people, usage: "meet <n> [action]", hours: 0, unlock: { people_n: 1 }, help: "spend time with someone you know" }
+  meet_coffee:
+    { group: people, parent: meet, usage: "meet <n> coffee", hours: 2, cost: 8, unlock: day1,
+      help: "Coffee and small talk. Builds trust slowly.", rule: people_actions.coffee }
+  meet_favor:
+    { group: people, parent: meet, usage: "meet <n> favor", hours: 2, unlock: { meetings: 2, trust: 15 },
+      help: "Do something for them. They will remember.", rule: people_actions.favor }
+  meet_ask:
+    { group: people, parent: meet, usage: "meet <n> ask", hours: 1, unlock: { meetings: 2 }, needs: { trust: 20 },
+      help: "Ask for information or help. Needs some trust.", rule: people_actions.ask }
+  meet_confide:
+    { group: people, parent: meet, usage: "meet <n> confide", hours: 2, unlock: { meetings: 3, trust: 20 }, needs: { trust: 15 },
+      help: "Share something real. Builds trust fast, and puts you in their hands.", rule: people_actions.confide }
+  meet_flirt:
+    { group: people, parent: meet, usage: "meet <n> flirt", hours: 2, cost: 15, unlock: { meetings: 3, trust: 25 }, needs: { trust: 10 },
+      help: "Charm them. It can help, or go badly wrong.", rule: people_actions.flirt }
+  meet_bribe:
+    { group: people, parent: meet, usage: "meet <n> bribe", hours: 1, cost: 150, unlock: { meetings: 4, trust: 25 }, needs: { trust: 10 },
+      help: "Pay for help. Works on the corruptible; can be reported by the honest.", rule: people_actions.bribe }
+  meet_extort:
+    { group: people, parent: meet, usage: "meet <n> extort", hours: 2, unlock: { meetings: 3, trust: 20, leverage: 1 }, needs: { leverage: 1 },
+      help: "Use what you know about them. They must have something to hide.", rule: people_actions.extort }
+  meet_recruit:
+    { group: people, parent: meet, usage: "meet <n> recruit", hours: 2, unlock: { meetings: 5, trust: 40 }, needs: { trust: 50 },
+      help: "Ask them to stand with you. A trusted ally helps every day.", rule: people_actions.recruit }
+  meet_learn:
+    { group: people, parent: meet, usage: "meet <n> learn", hours: 2, unlock: { meetings: 2, trust: 12 }, needs: { trust: 20 },
+      help: "Ask them to teach you their best skill. Higher level, bigger gain.", rule: people_actions.learn }
+
+  # ---- ADMIN ----
+  admin_set:
+    { group: admin, usage: "admin set <var> <n>", hours: 0, unlock: admin, help: "set any state value" }
+  admin_skill:
+    { group: admin, usage: "admin skill <topic> <level>", hours: 0, unlock: admin, help: "set a skill level" }
+  admin_reveal:
+    { group: admin, usage: "admin reveal", hours: 0, unlock: admin, help: "show hidden state" }
+  admin_spawn:
+    { group: admin, usage: "admin spawn [type]", hours: 0, unlock: admin, help: "create a person" }
+  admin_unlock:
+    { group: admin, usage: "admin unlock", hours: 0, unlock: admin, help: "unlock every command" }
+  admin_hours:
+    { group: admin, usage: "admin hours <n>", hours: 0, unlock: admin, help: "set free hours today" }
+  admin_skip:
+    { group: admin, usage: "admin skip <n>", hours: 0, unlock: admin, help: "skip days" }
+
+# Unlock note: for people options, the keys are about the relationship with that one person:
+#   meetings = times you have met them, trust, leverage. For everything else the keys are your own state.
+#
+# Research topics, person types and city events stay in research.yaml, people.yaml and the city file.
+# They are content, not commands.

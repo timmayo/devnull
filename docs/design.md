@@ -107,7 +107,7 @@ The player wakes up in a cheap apartment with a cheap laptop whose battery is de
 - **The tethered laptop.** Online actions (posting, leaking, trading) work, but only from the apartment's connection, which leaves a trail: extra legibility and case-file suspicion. A mobile laptop also gives better coverage at live events.
 - **Fixing it is a discovery, not a menu item.** Two routes so far:
   - *Store:* browse electronics and pawn shops to find a seller, then pay for a used laptop with a working battery.
-  - *NPC:* build enough trust with a contact for them to offer a battery swap for a favor.
+  - *NPC:* build enough trust with a person for them to offer a battery swap for a favor.
   Both are found by doing things in the world. Upgrades beyond this (hardened hardware, better tools) are open for later.
 - Cash has no real sink beyond the laptop yet, so a saver ends up rich.
 
@@ -173,17 +173,17 @@ digest says both: the CEOs of the Mega Corps warn that AI could end humanity
 search engine (`public_concern` starts low, 10). Leaks and posts move public
 concern up; it feeds opinion against AI and the election effect on regulation.
 
-**Meetings.** `data/contacts.yaml` defines generic meeting types (city
+**Meetings.** `data/people.yaml` defines generic meeting types (city
 commission, planning commission, web user group, AI builders meetup,
 neighborhood association, labor hall, ratepayers group, library talk). The
 digest lists the ones held today; `attend [n]` goes to one. Only the City
 Commission schedule is a sourced fact; the others are game approximations
 modeled on the kinds of groups found on Meetup. Real group names are never used.
 
-**Contacts.** Each meeting has a chance to introduce a fictional person (names
-come from `pools/`, rejected if on the real-officials blocklist). Per contact:
+**People.** Each meeting has a chance to introduce a fictional person (names
+come from `pools/`, rejected if on the real-officials blocklist). Per person:
 trust, bond, owes, leverage, ally, hostile, plus hidden traits and a possible
-plant. `contacts` lists them, `contact <n>` shows detail and the recorded
+plant. `people` lists them, `person <n>` shows detail and the recorded
 history of everything done with them. `meet <n> [action]` offers coffee, favor,
 ask, confide, flirt, bribe, extort, recruit; each has a success, fail and
 backfire outcome, recorded in the history. Trust drifts down after three weeks
@@ -199,7 +199,7 @@ the CLI announces each new one. `status` is always available. Admin mode
 (attendable now, numbered) and UPCOMING (the next occurrence of each, with
 links); `upcoming [days]` shows further out. Real events live in the city file
 (`events:`) with a source link and retrieval date, and borrow a meeting
-template (`kind`) from `data/contacts.yaml` for who attends. The people you
+template (`kind`) from `data/people.yaml` for who attends. The people you
 meet are always fictional. Eventbrite and Meetup are not scraped (no stable
 public feed); the recurring meeting types stand in for them.
 
@@ -238,20 +238,41 @@ Terminals without support get the URL inline after the text. Force a mode with
 `DEVNULL_LINKS=osc8` or `plain`. News sections show at most 10 stories each, and
 today's events appear only through the `events` command.
 
-## 5f. Contact skills
+## 5f. People's skills
 
-Each contact has 2-3 related skills and 1-2 unrelated side skills, each at one of
-three levels: beginner, advanced, expert (`skills:` in `data/contacts.yaml`). Related
-skills come from the contact's type plus the event where you met them (a web user
+Each person has 2-3 related skills and 1-2 unrelated side skills, each at one of
+three levels: beginner, advanced, expert (`skills:` in `data/people.yaml`). Related
+skills come from the person's type plus the event where you met them (a web user
 group produces web and Python people; a labor hall produces labor-law and organizing
-people). Side skills (cooking, ham radio, car repair, and so on) appear on the contact
-sheet once their trust reaches 30. The `learn` action asks a trusting contact to teach
+people). Side skills (cooking, ham radio, car repair, and so on) appear on the person
+sheet once their trust reaches 30. The `learn` action asks a trusting person to teach
 you their best skill: your skills rise by 0.8 + 0.8 x their level, and an advanced or
-expert Linux contact can reveal how to boot Linux.
+expert Linux person can reveal how to boot Linux.
 
-**Your skills.** `status` lists your own skills with the same three levels as contacts
+**Your skills.** `status` lists your own skills with the same three levels as people
 (none, beginner, advanced, expert). You start with data analysis (beginner, from your
 day job). `research` slowly teaches tech skills (self-study tops out at advanced), and
-`meet <n> learn` teaches a contact's best skill up to their level. The older 0-100
+`meet <n> learn` teaches a person's best skill up to their level. The older 0-100
 "know-how" number still gates tools (trace, VPN, hack). Status also explains burnout
 (hours lost past 60, 85 and 95), heat and legibility in plain words.
+
+## 5g. Research
+
+`research` opens a menu of 16 topics (`data/research.yaml`). Each is studied by one of
+three methods: online (2h, free, leaves a trail on the tethered laptop), library (3h,
+slower, no trail) or a paid course (2h, $60, fastest). Study adds xp; the levels are
+beginner, advanced and expert (3, 9 and 18 xp). Online and library study stop at advanced;
+a course or an expert person gets you to expert. Each level shows a discovery and applies
+one-time effects (for example, hardware repair level 1 shows where to buy a laptop and
+level 2 lets you fix yours for $60; Linux level 1 teaches how to install it).
+
+Your levels are exposed to the rules as variables `sk_<topic>` (0 to 3), so actions improve
+as you learn: records requests (public-records law, Python), tracing (data analysis,
+finance, Linux), hacking (network security is now required; Linux helps), leaks and
+verification (investigative reporting), lawsuits (litigation), attending and posting
+(land use, public speaking, organizing, web development). A few levels also unlock
+readings in `status`: data analysis 2 shows AI progress, network security 2 the police
+file, network security 3 the FBI's interest and NSA coverage.
+
+**Darknet.** The place where gear is bought (`buy <item>`) is called the DARKNET in the
+command list. Items appear as you unlock them. The internal rules key is still `shop`.

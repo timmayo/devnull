@@ -1,4 +1,4 @@
-"""Vertical slice simulation: applies data/slice_rules.yaml and data/contacts.yaml.
+"""Vertical slice simulation: applies data/slice_rules.yaml and data/people.yaml.
 
 Deterministic for a given seed and start date. No UI code here.
 
@@ -23,18 +23,19 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RULES = REPO_ROOT / "data" / "slice_rules.yaml"
-DEFAULT_CONTACTS = REPO_ROOT / "data" / "contacts.yaml"
+DEFAULT_PEOPLE = REPO_ROOT / "data" / "people.yaml"
 DEFAULT_MARKET = REPO_ROOT / "data" / "market.yaml"
 DEFAULT_NEWS = REPO_ROOT / "data" / "news.yaml"
 DEFAULT_RESEARCH = REPO_ROOT / "data" / "research.yaml"
+DEFAULT_COMMANDS = REPO_ROOT / "data" / "commands.yaml"
 
 
-def load_rules(path: Path = DEFAULT_RULES, contacts_path: Path = DEFAULT_CONTACTS) -> dict[str, Any]:
+def load_rules(path: Path = DEFAULT_RULES, people_path: Path = DEFAULT_PEOPLE) -> dict[str, Any]:
     with open(path, encoding="utf-8") as f:
         rules = yaml.safe_load(f)
-    if contacts_path.exists():
-        with open(contacts_path, encoding="utf-8") as f:
-            rules["contacts"] = yaml.safe_load(f)
+    if people_path.exists():
+        with open(people_path, encoding="utf-8") as f:
+            rules["people"] = yaml.safe_load(f)
     if DEFAULT_MARKET.exists():
         with open(DEFAULT_MARKET, encoding="utf-8") as f:
             rules["market_tape"] = yaml.safe_load(f)
@@ -44,7 +45,53 @@ def load_rules(path: Path = DEFAULT_RULES, contacts_path: Path = DEFAULT_CONTACT
     if DEFAULT_NEWS.exists():
         with open(DEFAULT_NEWS, encoding="utf-8") as f:
             rules["news"] = yaml.safe_load(f)
+    if DEFAULT_COMMANDS.exists():
+        with open(DEFAULT_COMMANDS, encoding="utf-8") as f:
+            rules["commands"] = yaml.safe_load(f)
+        apply_commands(rules)
     return rules
+
+
+def unlock_spec(c: dict[str, Any]) -> dict[str, Any]:
+    """commands.yaml `unlock`: day1 / admin mean no state condition; a dict is the condition."""
+    u = c.get("unlock")
+    return dict(u) if isinstance(u, dict) else {}
+
+
+def apply_commands(rules: dict[str, Any]) -> None:
+    """data/commands.yaml is the one place for hours, cost, help text, unlocks and needs.
+    It overrides those fields on the matching actions, shop items and people actions.
+    Effects and odds stay in slice_rules.yaml and people.yaml (the `rule` field names them)."""
+    cmds = rules["commands"]["commands"]
+    for name, a in rules["actions"].items():
+        c = cmds.get(name)
+        if not c:
+            continue
+        a["hours"], a["help"] = c["hours"], c["help"]
+        a["online"] = bool(c.get("online"))
+        a["requires"] = dict(c.get("needs") or {})
+        u = unlock_spec(c)
+        if u:
+            a["unlock"] = u
+        else:
+            a.pop("unlock", None)
+    for name, s in rules["shop"].items():
+        c = cmds.get("buy_" + name)
+        if not c:
+            continue
+        s["price"], s["note"] = c["cost"], c["help"]
+        s["category"] = c.get("type", s.get("category"))
+        s["market"] = "darknet" if c.get("group") == "darknet" else "public"
+        s["unlock"] = unlock_spec(c)
+    pa = (rules.get("people") or {}).get("people_actions", {})
+    for name, a in pa.items():
+        c = cmds.get("meet_" + name)
+        if not c:
+            continue
+        a["hours"], a["help"] = c["hours"], c["help"]
+        a["cost"] = c.get("cost", 0)
+        a["visible"] = unlock_spec(c)
+        a["requires_person"] = dict(c.get("needs") or {})
 
 
 def read_pool(rel: str) -> list[str]:
@@ -108,7 +155,7 @@ def a_or_an(label: str) -> str:
 
 
 @dataclass
-class Contact:
+class Person:
     """A person you know. Fictional. Some fields are hidden from the player."""
     id: int
     name: str
@@ -131,7 +178,7 @@ class Contact:
     history: list[dict[str, Any]] = field(default_factory=list)
 
 
-CONTACT_LIMITS = {"trust": (0, 100), "exposure": (0, 100), "bond": (0, 100),
+PERSON_LIMITS = {"trust": (0, 100), "exposure": (0, 100), "bond": (0, 100),
                   "owes": (0, 9), "leverage": (0, 5)}
 
 
@@ -143,7 +190,7 @@ class Sim:
     max_turns_override: int | None = None
     events: list[dict[str, Any]] = field(default_factory=list)   # real dated events from the city file
     quotes: dict[str, dict[str, Any]] = field(default_factory=dict)  # real delayed quotes at run start
-    show_all: bool = False        # admin: show every contact action
+    show_all: bool = False        # admin: show every action with people
     feed: dict[str, list[dict[str, Any]]] = field(default_factory=dict)  # real headlines at run start (day 1)
     turn: int = 0
     state: dict[str, float] = field(default_factory=dict)
@@ -163,13 +210,13 @@ class Sim:
         self.state = {k: float(v) for k, v in self.rules["start"].items()}
         self.pending: list[tuple[int, str, dict[str, Any]]] = []   # delayed effects
         self.log: list[tuple[int, str, Any]] = []                  # (turn, code, data)
-        self.contacts: list[Contact] = []
+        self.people: list[Person] = []
         self._next_cid = 1
         self.unlocked: set[str] = set()
         self.new_unlocks: list[str] = []
         self._began = False
         self.hours_left = 0
-        cr = self.rules.get("contacts", {})
+        cr = self.rules.get("people", {})
         self._surnames = read_pool(cr.get("names", {}).get("surnames", "")) or ["Smith"]
         self._given = read_pool(cr.get("names", {}).get("given", "")) or ["Alex"]
         self._blocked = {ln.lower() for ln in read_pool(cr.get("names", {}).get("blocklist", ""))}
@@ -212,12 +259,12 @@ class Sim:
             lo, hi = self.rules["ranges"][key]
             self.state[key] = min(hi, max(lo, self.state[key]))
 
-    def contact(self, cid: int) -> Contact | None:
-        return next((c for c in self.contacts if c.id == cid), None)
+    def person(self, cid: int) -> Person | None:
+        return next((c for c in self.people if c.id == cid), None)
 
     # -- derived state and unlocks --------------------------------------
     def _refresh_derived(self) -> None:
-        live = [c for c in self.contacts if not c.hostile]
+        live = [c for c in self.people if not c.hostile]
         trusts = sorted((c.trust for c in live), reverse=True)
         if len(trusts) >= 2:
             self.state["trust"] = (trusts[0] + trusts[1]) / 2
@@ -225,8 +272,8 @@ class Sim:
             self.state["trust"] = trusts[0] / 2 if trusts else 0.0
         self.state["press_trust"] = max([c.trust for c in live if c.type == "local_reporter"] or [0.0])
         self.state["techie_trust"] = max([c.trust for c in live if c.type == "techie"] or [0.0])
-        self.state["contacts_n"] = float(len(self.contacts))
-        for k in self.rules.get("contacts", {}).get("skills", {}).get("catalog", {}):
+        self.state["people_n"] = float(len(self.people))
+        for k in self.rules.get("people", {}).get("skills", {}).get("catalog", {}):
             self.state["sk_" + k] = float(self.skill_level(k))
 
     def _refresh_unlocks(self, silent: bool = False) -> None:
@@ -259,7 +306,7 @@ class Sim:
 
         Events borrow a meeting template (`kind`) for who attends; their `real`
         key holds the source details."""
-        meetings = self.rules.get("contacts", {}).get("meetings", {})
+        meetings = self.rules.get("people", {}).get("meetings", {})
         listed = {(ev["kind"], ev["start"].year) for ev in self.events}
         out = [(k, m) for k, m in meetings.items()
                if "when" in m and scheduled(m["when"], d)
@@ -303,7 +350,7 @@ class Sim:
             return ms[i] if 0 <= i < len(ms) else None
         return next(((k, m) for k, m in ms if k.startswith(arg.lower())), None)
 
-    # -- contacts ----------------------------------------------------------
+    # -- people ----------------------------------------------------------
     def _weighted(self, weights: dict[str, float]) -> str:
         total = sum(weights.values())
         r = self.rng.random() * total
@@ -316,7 +363,7 @@ class Sim:
     def _draw_skills(self, ctype: str, meeting_key: str | None,
                      event_pool: dict[str, float] | None = None) -> tuple[dict[str, int], dict[str, int]]:
         """2-3 related skills (type pool + event pool x1.5) and 1-2 unrelated side skills, levels 1-3."""
-        sk = self.rules["contacts"]["skills"]
+        sk = self.rules["people"]["skills"]
         pool: dict[str, float] = dict(sk["by_type"].get(ctype, {}))
         for name, w in (event_pool or sk["by_meeting"].get(meeting_key or "", {})).items():
             pool[name] = pool.get(name, 0) + 1.5 * w
@@ -343,7 +390,7 @@ class Sim:
 
     def skill_level(self, key: str) -> int:
         """Your level in a skill: 0 (none), 1 beginner, 2 advanced, 3 expert."""
-        th = self.rules["contacts"]["skills"]["xp_thresholds"]
+        th = self.rules["people"]["skills"]["xp_thresholds"]
         xp = self.skill_xp.get(key, 0.0)
         return sum(xp >= edge for edge in th)
 
@@ -353,7 +400,7 @@ class Sim:
 
     def add_skill_xp(self, key: str, amount: float, cap_level: int) -> list[str]:
         """Add xp to one of your skills, never past cap_level. Returns messages (level-ups included)."""
-        th = self.rules["contacts"]["skills"]["xp_thresholds"]
+        th = self.rules["people"]["skills"]["xp_thresholds"]
         before = self.skill_level(key)
         cap = th[cap_level - 1]
         if self.skill_xp.get(key, 0.0) >= cap:
@@ -382,7 +429,7 @@ class Sim:
         return msgs
 
     def learn_skill(self, key: str, teacher_level: int, amount: float) -> list[str]:
-        """Learn from a contact: xp up to their level."""
+        """Learn from a person: xp up to their level."""
         msgs = self.add_skill_xp(key, amount, teacher_level)
         if msgs:
             return msgs
@@ -449,29 +496,29 @@ class Sim:
         return msgs
 
     def skill_label(self, key: str) -> str:
-        sk = self.rules["contacts"]["skills"]
+        sk = self.rules["people"]["skills"]
         return sk["catalog"].get(key) or sk["side"].get(key) or key
 
     def level_name(self, level: int) -> str:
-        return self.rules["contacts"]["skills"]["levels"][max(1, min(3, level)) - 1]
+        return self.rules["people"]["skills"]["levels"][max(1, min(3, level)) - 1]
 
-    def best_skill(self, c: Contact) -> tuple[str, int] | None:
+    def best_skill(self, c: Person) -> tuple[str, int] | None:
         """Their strongest related skill (ties: the first drawn)."""
         return max(c.skills.items(), key=lambda kv: kv[1]) if c.skills else None
 
-    def new_contact(self, ctype: str, where: str | None = None, meeting_key: str | None = None,
-                    skill_pool: dict[str, float] | None = None, agent: bool = False) -> Contact:
-        cr = self.rules["contacts"]
+    def new_person(self, ctype: str, where: str | None = None, meeting_key: str | None = None,
+                    skill_pool: dict[str, float] | None = None, agent: bool = False) -> Person:
+        cr = self.rules["people"]
         spec = cr["types"][ctype]
         name = ""
         for _ in range(30):
             name = f"{self.rng.choice(self._given)} {self.rng.choice(self._surnames)}"
-            used = {c.name for c in self.contacts}
+            used = {c.name for c in self.people}
             if name.lower() not in self._blocked and name not in used:
                 break
         traits = {k: min(1.0, max(0.0, v + self.rng.uniform(-0.1, 0.1)))
                   for k, v in spec["traits"].items()}
-        c = Contact(id=self._next_cid, name=name, type=ctype, met_turn=self.turn,
+        c = Person(id=self._next_cid, name=name, type=ctype, met_turn=self.turn,
                     last_turn=self.turn, traits=traits, trust=self.rng.uniform(8, 14))
         c.skills, c.side = self._draw_skills(ctype, meeting_key, skill_pool)
         c.plant = agent or self.rng.random() < spec["traits"]["plant_p"]
@@ -483,8 +530,8 @@ class Sim:
         c.history.append({"turn": self.turn, "date": self.date.isoformat(), "action": "met",
                           "outcome": "met", "text": f"Met at {where}." if where else "Met."})
         self._next_cid += 1
-        self.contacts.append(c)
-        self.event("contact_met", c.id)
+        self.people.append(c)
+        self.event("person_met", c.id)
         self._refresh_derived()
         return c
 
@@ -493,78 +540,78 @@ class Sim:
         if self.rng.random() >= m["meet_chance"]:
             return ["You listen and take notes, but you do not end up talking to anyone."]
         people = 1 + (self.rng.random() < m.get("people_extra", 0.2))
-        types = self.rules["contacts"]["types"]
-        ci = self.rules["contacts"].get("counter_intel") or {}
+        types = self.rules["people"]["types"]
+        ci = self.rules["people"].get("counter_intel") or {}
         p_agent = m.get("watch", 0.0) * ci.get("scale", 1.0) * (
             ci.get("base", 0.4) + ci.get("heat", 0.01) * self.state["heat"]
             + ci.get("opinion", 0.004) * self.state.get("opinion", 0))
         p_agent = min(ci.get("cap", 0.6), p_agent)
-        agent_here = (not any(c.agent for c in self.contacts if c.met_turn == self.turn)
+        agent_here = (not any(c.agent for c in self.people if c.met_turn == self.turn)
                       and self.rng.random() < p_agent)
         for _ in range(people):
             ctype = self._weighted(m["attendees"])
-            known = [c for c in self.contacts if c.type == ctype and not c.hostile]
+            known = [c for c in self.people if c.type == ctype and not c.hostile]
             if known and self.rng.random() < 0.4:
                 c = self.rng.choice(known)
                 c.last_turn = self.turn
                 c.trust = min(100, c.trust + 1)
                 c.history.append({"turn": self.turn, "date": self.date.isoformat(), "action": "ran into",
                                   "outcome": "met", "text": f"Ran into them at {place(m)}."})
-                msgs.append(f"You run into {c.name} again ({types[ctype]['label']}). [contact #{c.id}]")
+                msgs.append(f"You run into {c.name} again ({types[ctype]['label']}). [person #{c.id}]")
             else:
-                c = self.new_contact(ctype, where=place(m),
+                c = self.new_person(ctype, where=place(m),
                                      meeting_key=(m.get("real") or {}).get("kind", key),
                                      skill_pool=m.get("skills"), agent=agent_here)
                 agent_here = False
-                msgs.append(f"You get talking with {c.name}, {a_or_an(types[ctype]['label'])}. [contact #{c.id}]")
+                msgs.append(f"You get talking with {c.name}, {a_or_an(types[ctype]['label'])}. [person #{c.id}]")
         self._refresh_derived()
         return msgs
 
-    def contact_action_visible(self, c: Contact, action: str) -> bool:
+    def person_action_visible(self, c: Person, action: str) -> bool:
         """Options appear as the relationship deepens; admin sees all."""
         if self.show_all:
             return True
-        need = (self.rules["contacts"]["contact_actions"].get(action) or {}).get("visible") or {}
+        need = (self.rules["people"]["people_actions"].get(action) or {}).get("visible") or {}
         have = {"meetings": len(c.history), "trust": c.trust, "bond": c.bond,
                 "leverage": c.leverage, "owes": c.owes}
         return all(have.get(k, 0) >= v for k, v in need.items())
 
-    def contact_action_reason(self, c: Contact, action: str) -> str | None:
-        ca = self.rules["contacts"]["contact_actions"].get(action)
+    def person_action_reason(self, c: Person, action: str) -> str | None:
+        ca = self.rules["people"]["people_actions"].get(action)
         if ca is None:
-            return "Unknown contact action."
+            return "Unknown action."
         if c.hostile:
             return f"{c.name} will not talk to you."
-        if not self.contact_action_visible(c, action):
+        if not self.person_action_visible(c, action):
             return f"You do not know {c.name} well enough for that."
         if ca["hours"] > self.hours_left:
             return f"Not enough hours left today (needs {ca['hours']})."
         if self.state["cash"] < ca.get("cost", 0):
             return f"You cannot afford it (${ca['cost']})."
-        for k, v in (ca.get("requires_contact") or {}).items():
+        for k, v in (ca.get("requires_person") or {}).items():
             if getattr(c, k) < v:
                 return f"Needs more {k} with {c.name} ({k} {v})." if k != "leverage" else \
                     f"You have nothing on {c.name} to use."
         return None
 
-    def contact_menu(self, cid: int) -> list[tuple[str, dict[str, Any], str | None]]:
-        c = self.contact(cid)
+    def person_menu(self, cid: int) -> list[tuple[str, dict[str, Any], str | None]]:
+        c = self.person(cid)
         if c is None:
             return []
-        return [(a, spec, self.contact_action_reason(c, a))
-                for a, spec in self.rules["contacts"]["contact_actions"].items()
-                if self.contact_action_visible(c, a)]
+        return [(a, spec, self.person_action_reason(c, a))
+                for a, spec in self.rules["people"]["people_actions"].items()
+                if self.person_action_visible(c, a)]
 
-    def _contact_ctx(self, c: Contact) -> dict[str, float]:
+    def _person_ctx(self, c: Person) -> dict[str, float]:
         return {"trust": c.trust / 100, "bond": c.bond / 100, "owes": c.owes,
                 "leverage": c.leverage, "honesty": c.traits["honesty"],
                 "talkative": c.traits["talkative"], "corruptibility": c.traits["corruptibility"],
                 "skills": self.state["skills"] / 100}
 
-    def _do_contact_action(self, c: Contact, action: str) -> list[str]:
-        cr = self.rules["contacts"]
-        ca = cr["contact_actions"][action]
-        ctx = self._contact_ctx(c)
+    def _do_person_action(self, c: Person, action: str) -> list[str]:
+        cr = self.rules["people"]
+        ca = cr["people_actions"][action]
+        ctx = self._person_ctx(c)
         self.hours_left -= ca["hours"]
         self.state["cash"] -= ca.get("cost", 0)
         p = min(0.95, max(0.03, evaluate(ca["p"], ctx, self.rng)))
@@ -578,11 +625,11 @@ class Sim:
         best = self.best_skill(c)
         skill_text = self.skill_label(best[0]) if best else "what they know"
         msgs = [res["text"].format(name=c.name, skill=skill_text)]
-        for field_name, eff in (res.get("contact") or {}).items():
+        for field_name, eff in (res.get("person") or {}).items():
             if "set" in eff:
                 setattr(c, field_name, bool(eff["set"]))
             else:
-                lo, hi = CONTACT_LIMITS[field_name]
+                lo, hi = PERSON_LIMITS[field_name]
                 setattr(c, field_name, min(hi, max(lo, getattr(c, field_name) + evaluate(eff, ctx, self.rng))))
         for var, eff in (res.get("player") or {}).items():
             self._apply_effect(var, eff)
@@ -622,7 +669,7 @@ class Sim:
         c.last_turn = self.turn
         c.history.append({"turn": self.turn, "date": self.date.isoformat(), "action": action,
                           "outcome": outcome, "text": res["text"].format(name=c.name, skill=skill_text)})
-        self.event("contact_action", (c.id, action, outcome))
+        self.event("person_action", (c.id, action, outcome))
         self._refresh_derived()
         return msgs
 
@@ -671,11 +718,11 @@ class Sim:
             return self.research_reason(key, tokens[2] if len(tokens) > 2 else "online")
         if tokens[0] == "meet":
             if len(tokens) < 3 or not tokens[1].isdigit():
-                return "Usage: meet <contact#> <action>."
-            c = self.contact(int(tokens[1]))
+                return "Usage: meet <person#> <action>."
+            c = self.person(int(tokens[1]))
             if c is None:
                 return "You do not know anyone with that number."
-            return self.contact_action_reason(c, tokens[2])
+            return self.person_action_reason(c, tokens[2])
         spec = self.action_spec(text)
         if spec is None:
             return "Unknown action."
@@ -748,7 +795,7 @@ class Sim:
             msgs += self._meet_people(key, m)
             self.event("attended", key)
         elif tokens[0] == "meet":
-            msgs = self._do_contact_action(self.contact(int(tokens[1])), tokens[2])
+            msgs = self._do_person_action(self.person(int(tokens[1])), tokens[2])
         elif tokens[0] == "research":
             msgs = self._do_research(self.research_topic(tokens[1]), tokens[2] if len(tokens) > 2 else "online")
         else:
@@ -798,7 +845,7 @@ class Sim:
         self._clamp("cash")
 
         self._move_prices(snap["market"])
-        self._contacts_daily()
+        self._people_daily()
         self._ladder()
         self._lawsuit()
 
@@ -843,9 +890,9 @@ class Sim:
                 self.price_change[sym] = (2.718281828 ** r - 1) * 100
         self.prices_real = False
 
-    def _contacts_daily(self) -> None:
-        types = self.rules.get("contacts", {}).get("types", {})
-        for c in self.contacts:
+    def _people_daily(self) -> None:
+        types = self.rules.get("people", {}).get("types", {})
+        for c in self.people:
             if c.hostile:
                 continue
             if self.turn - c.last_turn > 21:
