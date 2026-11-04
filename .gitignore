@@ -7,3 +7,4 @@ saves/
 
 *.egg-info/
 __pycache__/
+.venv/
