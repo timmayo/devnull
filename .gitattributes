@@ -1,6 +1,9 @@
 # Keep line endings consistent across Windows and Linux.
 * text=auto eol=lf
 
+# Windows batch files must keep CRLF so cmd.exe parses labels and goto correctly.
+*.cmd text eol=crlf
+
 # Binary files: never convert.
 *.png binary
 *.jpg binary
