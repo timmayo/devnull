@@ -85,57 +85,71 @@ def trust_band(sim: Sim, trust: float) -> str:
 
 
 def visible_keys(sim: Sim, admin: bool) -> list[str]:
-    """Commands the player may type right now (data/commands.yaml: always_available, hidden_until, unlocks)."""
+    """Commands the player may type right now (data/commands/: always_available, hidden_until, unlocks)."""
     return sim.rules["cmdset"].visible_keys(sim.state, sim.unlocked, admin)
 
 
+def _cap(text: str) -> str:
+    return text[:1].upper() + text[1:]
+
+
 def show_commands(sim: Sim, admin: bool) -> None:
-    cmds = sim.rules.get("commands", {}).get("commands", {})
+    """The `commands` screen. Every row comes from the command table (data/commands/): which commands
+    exist, their words, hours, cost and text, and when they appear. The game only adds "can I do it now"."""
+    cs: cmdtable.CommandSet = sim.rules["cmdset"]
+    cmds = cs.commands
+    def shown(k: str) -> bool:
+        return cs.visible(k, sim.state, sim.unlocked, admin)
+
     print("\nLOOK AROUND (free)")
-    for c in cmds.values():
-        if c.get("screen") != "look_around":
+    for k in cs.by_screen("look_around"):
+        if not shown(k):
             continue
-        need = c.get("unlock")
-        if not admin and isinstance(need, dict) and not all(sim.state.get(k, 0) >= v for k, v in need.items()):
-            continue
-        children = [x for x in cmds.values() if x.get("parent") == next(k for k, v in cmds.items() if v is c)]
-        print(f"  {c['usage']:<22} {c['help'][:1].upper() + c['help'][1:]}")
-        for ch in children:
-            tag = f"{ch['hours']}h" if ch["hours"] else "free"
-            print(f"    then: {ch['usage']:<15} ({tag}) {ch['help']}")
+        c = cmds[k]
+        print(f"  {c.get('syntax') or k:<22} {_cap(cmdtable.description_of(c))}")
+        for ch in cs.children(k):
+            cc = cmds[ch]
+            hrs = cmdtable.cmd_hours(cc)
+            tag = f"{hrs:g}h" if hrs else "free"
+            print(f"    then: {cc.get('syntax') or ch:<15} ({tag}) {cmdtable.description_of(cc)}")
+
     print("\nACTIONS            hours  now   what it does")
-    for name, spec in sim.rules["actions"].items():
-        locked = name not in sim.unlocked
-        if locked and not admin:
+    for k, c in cmds.items():                                   # table order = group order
+        rule = str(c.get("rule") or "")
+        if cmdtable.is_planned(c) or rule not in sim.rules["actions"] or not shown(k):
             continue
-        reason = sim.why_not(name)
-        mark = "yes" if reason is None else "no "
-        tag = " [locked]" if locked else ""
-        print(f"  {name:<16} {spec['hours']:>4}   {mark}   {spec['help']}{tag}")
-        if reason and not locked and sim.hours_left >= spec["hours"]:
+        locked = rule not in sim.unlocked
+        hours = cmdtable.cmd_hours(c)
+        reason = sim.why_not(rule)
+        print(f"  {k:<16} {hours:>4g}   {'yes' if reason is None else 'no '}   "
+              f"{cmdtable.description_of(c)}{' [locked]' if locked else ''}")
+        if reason and not locked and sim.hours_left >= hours:
             print(f"  {'':<16} {'':>4}         ({reason})")
-    for market, title in (("public", "INTERNET (public web)"), ("darknet", "DARKNET")):
-        items = [i for i, sp in sim.rules["shop"].items()
-                 if sp["market"] == market and (admin or f"buy {i}" in sim.unlocked)]
-        if not items:
+
+    for screen, title in (("internet", "INTERNET (public web)"), ("darknet", "DARKNET")):
+        rows = [k for k in cs.by_screen(screen, top_level=False)
+                if str(cmds[k].get("rule") or "").startswith("shop.") and shown(k)]
+        if not rows:
             continue
         print(f"\n{title:<18} hours  now   what it does")
-        for item in items:
-            spec = sim.rules["shop"][item]
-            reason = sim.why_not(f"buy {item}")
-            mark = "yes" if reason is None else "no "
-            tag = " [locked]" if f"buy {item}" not in sim.unlocked else ""
-            print(f"  {'buy ' + item:<16} {1:>4}   {mark}   ${spec['price']}. {spec['note']}{tag}")
+        for k in rows:
+            c = cmds[k]
+            word = str(c.get("syntax") or k)
+            reason = sim.why_not(word)
+            tag = " [locked]" if word not in sim.unlocked else ""
+            print(f"  {word:<16} {cmdtable.cmd_hours(c):>4g}   {'yes' if reason is None else 'no '}   "
+                  f"${cmdtable.cmd_money(c):g}. {cmdtable.description_of(c)}{tag}")
+
     if sim.people or admin:
         print("\nPEOPLE")
-        for k, c in cmds.items():
-            if c.get("screen") == "people" and not c.get("parent"):
-                print(f"  {c['usage']:<20} {c['help'][:1].upper() + c['help'][1:]}")
-                opts = [x["usage"].split()[-1] for x in cmds.values() if x.get("parent") == k]
-                if opts:
-                    print(f"  {'':<20} options (open as you know them better): {', '.join(opts)}")
+        for k in cs.by_screen("people"):
+            c = cmds[k]
+            print(f"  {c.get('syntax') or k:<20} {_cap(cmdtable.description_of(c))}")
+            opts = [str(cmds[ch].get("syntax") or ch).split()[-1] for ch in cs.children(k)]
+            if opts:
+                print(f"  {'':<20} options (open as you know them better): {', '.join(opts)}")
     if admin:
-        print(f"\nADMIN: {cmds['admin']['usage']}")
+        print(f"\nADMIN: {cmds['admin'].get('syntax') or 'admin'}")
     print("New commands appear as you unlock them.")
 
 
@@ -607,7 +621,7 @@ def cmd_admin(s: Session, key: str, args: list[str]) -> bool:
     return False
 
 
-# Every `handler:` in data/commands.yaml must be a key here (checked at startup).
+# Every `handler:` in data/commands/ must be a key here (checked at startup).
 HANDLERS: dict[str, Callable[[Session, str, list[str]], bool]] = {
     "cmd_help": cmd_help, "cmd_commands": cmd_commands, "cmd_status": cmd_status, "cmd_seed": cmd_seed, "cmd_news": cmd_news,
     "cmd_events": cmd_events, "cmd_markets": cmd_markets, "cmd_people": cmd_people, "cmd_person": cmd_person,
@@ -712,7 +726,7 @@ def main(argv: list[str] | None = None) -> int:
                     + city.get("display", {}).get("disclaimer", "")))
     problems = check_commands(sim)
     if problems:
-        print(f"data/commands.yaml has {len(problems)} problem(s):")
+        print(f"data/commands/ has {len(problems)} problem(s):")
         for p in problems:
             print("  - " + p)
         return 1

@@ -2,16 +2,16 @@
 setlocal
 set "ROOT=%~dp0.."
 set "PY=%ROOT%\.venv\Scripts\python.exe"
-rem Reads data\commands.yaml. Try:  .\tools\cmdtree.cmd --check --deep      .\tools\cmdtree.cmd --view gate -d
-set "CMDS=%ROOT%\data\commands.yaml"
+rem Reads the data\commands folder. Try:  .\tools\cmdtree.cmd --check --deep      .\tools\cmdtree.cmd --view needs -d      .\tools\cmdtree.cmd -g hack
+set "CMDS=%ROOT%\data\commands"
 
 if not exist "%PY%" (
   echo .venv not found. Run .\play.cmd once first to create it.
   exit /b 1
 )
 
-if not exist "%CMDS%" (
-  echo Not found: %CMDS%
+if not exist "%CMDS%\groups.yaml" (
+  echo Not found: %CMDS%\groups.yaml
   exit /b 1
 )
 

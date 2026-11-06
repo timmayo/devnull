@@ -1,0 +1,80 @@
+# ADMIN - Settings and housekeeping.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: set_difficulty
+  description: Change the difficulty.
+- name: export_log
+  description: Export your log, save, or transcript.
+- name: edit_profile
+  description: Edit your player profile or rename your handle.
+- name: view_activitylog
+  description: View the activity and audit log.
+- name: set_theme
+  description: Change the color theme.
+- name: set_textspeed
+  description: Set how fast text prints.
+- name: manage_aliases
+  description: Manage your in-game accounts and aliases.
+- name: toggle_permadeath
+  description: Turn permadeath on or off.
+- name: rebind_commands
+  description: Rebind command shortcuts and aliases.
+- name: reset_game
+  description: Reset the game or campaign. Cannot be undone.
+- name: admin_set
+  description: set any state value
+  status: implemented
+  syntax: admin set <var> <n>
+  screen: admin
+  hidden_until: [admin_mode]
+  handler: cmd_admin
+- name: admin_skill
+  description: set a skill level
+  status: implemented
+  syntax: admin skill <topic> <level>
+  screen: admin
+  hidden_until: [admin_mode]
+  handler: cmd_admin
+- name: admin_reveal
+  description: show hidden state
+  status: implemented
+  syntax: admin reveal
+  screen: admin
+  hidden_until: [admin_mode]
+  handler: cmd_admin
+- name: admin_spawn
+  description: create a person
+  status: implemented
+  syntax: admin spawn [type]
+  screen: admin
+  hidden_until: [admin_mode]
+  handler: cmd_admin
+- name: admin_unlock
+  description: unlock every command
+  status: implemented
+  syntax: admin unlock
+  screen: admin
+  hidden_until: [admin_mode]
+  handler: cmd_admin
+- name: admin_hours
+  description: set free hours today
+  status: implemented
+  syntax: admin hours <n>
+  screen: admin
+  hidden_until: [admin_mode]
+  handler: cmd_admin
+- name: admin_skip
+  description: skip days
+  status: implemented
+  syntax: admin skip <n>
+  screen: admin
+  hidden_until: [admin_mode]
+  handler: cmd_admin
+- name: admin
+  description: 'Admin mode: type ''admin'' to turn it on, then ''admin'' again for options'
+  status: implemented
+  syntax: admin [set | skill | reveal | spawn | unlock | hours | skip]
+  screen: admin
+  contexts: [world, shell]
+  hidden_until: [admin_mode]
+  handler: cmd_admin

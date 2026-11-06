@@ -1,0 +1,51 @@
+# MONEY - Earning and moving and hiding cash.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: short_stock
+  description: Short a data center stock. Pays if your work lands.
+  requires: [laptop_powered, {cash: 500}]
+  cost: {hours: 1, money: 500}
+- name: launder_funds
+  description: Launder through a shell company, laundromat, or crypto mixer. Cleans cash and leaves a trail.
+  requires: {money_dirty: 1}
+  hidden_until: {money_dirty: 1}
+  cost: {hours: 2}
+- name: crowdfund_cause
+  description: Raise money from donors, by crowdfunding or direct ask.
+  requires: [laptop_powered, {rep_public: 10}]
+  cost: {hours: 2}
+- name: take_freelance
+  description: Take freelance work. Reliable cash that eats your time.
+  requires: [laptop_powered]
+  cost: {hours: 4}
+- name: sell_gear
+  description: Sell or pawn old gear for quick cash.
+  cost: {hours: 1}
+- name: sell_data
+  description: Sell stolen data. Pays well, and buyers talk.
+  requires: {item_data_stolen: 1, contacts_broker: 1}
+  hidden_until: {item_data_stolen: 1}
+  cost: {hours: 2}
+- name: trade_crypto
+  description: Trade or mine crypto. Volatile.
+  requires: [laptop_powered, {cash: 100}]
+  cost: {hours: 1}
+- name: cut_subscriptions
+  description: Cancel subscriptions and trim expenses.
+  cost: {hours: 1}
+- name: pay_debt
+  description: Pay down debt. Lowers monthly pressure.
+  requires: {cash: 200}
+  cost: {hours: 1}
+- name: open_shell
+  description: Open a shell LLC. A front for money, accounts, and gear.
+  requires: {cash: 300}
+  hidden_until: {skill_finance: 10}
+  cost: {hours: 3, money: 300}
+- name: trade
+  description: Small trades. Pays when market sentiment is up.
+  status: implemented
+  cost: {hours: 1}
+  handler: cmd_action
+  rule: trade
+  online: true

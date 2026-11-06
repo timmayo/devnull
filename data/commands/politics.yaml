@@ -1,0 +1,81 @@
+# POLITICS - Local first and then bigger. Councils and campaigns and hearings.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: attend_council
+  description: Attend the city council meeting. Where local fights are won and lost.
+  cost: {hours: 3}
+- name: speak_comment
+  description: Speak during public comment. Three minutes, on the record.
+  requires: {council_attended: 1}
+  cost: {hours: 1}
+- name: back_candidate
+  description: Back a council or school board candidate with time and money.
+  requires: {cash: 200}
+  hidden_until: {council_attended: 2}
+  cost: {hours: 4, money: 200}
+- name: file_records
+  description: File an open-records request. Slow, but legal and hard to refuse.
+  requires: [laptop_powered]
+  cost: {hours: 1, money: 15}
+- name: lobby_legislator
+  description: Lobby a state legislator or county commissioner.
+  requires: {rep_local: 30}
+  hidden_until: {council_attended: 3}
+  cost: {hours: 3}
+- name: testify_hearing
+  description: Testify at a utility or state hearing.
+  requires: {council_attended: 2, research_dossier: 1}
+  hidden_until: {hearing_scheduled: 1}
+  cost: {hours: 4}
+- name: organize_coalition
+  description: Organize a neighborhood coalition or petition.
+  requires: {person.trust: 15, contacts_total: 5}
+  hidden_until: {council_attended: 2}
+  cost: {hours: 4}
+- name: challenge_zoning
+  description: Challenge a zoning variance or tax abatement.
+  requires: {filing_zoning: 1}
+  cost: {hours: 3, money: 100}
+- name: run_office
+  description: Run for office. Big upside, and everything you've done becomes public.
+  requires: {rep_local: 40, cash: 500}
+  hidden_until: {election_cycle_open: 1}
+  cost: {hours: 6, money: 500}
+- name: campaign_measure
+  description: Draft or campaign for a ballot measure.
+  requires: {coalition: 1}
+  hidden_until: {measure_filing_open: 1}
+  cost: {hours: 6, money: 300}
+- name: attend
+  description: Go to something on today (see events). Moves opinion; you may meet people.
+  status: implemented
+  syntax: attend <n>
+  parent: events
+  cost: {hours: 2}
+  handler: cmd_attend
+  rule: attend
+- name: records
+  description: File a public-records request. Answers arrive in days or weeks.
+  status: implemented
+  cost: {hours: 1}
+  handler: cmd_action
+  rule: records
+  online: true
+- name: negotiate
+  description: Sit down for accountability terms. A reform, not a blocked site.
+  status: implemented
+  requires: {trust: 40, evidence: 15}
+  hidden_until: {evidence: 10, trust: 25}
+  cost: {hours: 3}
+  handler: cmd_action
+  rule: negotiate
+  locked_message: You need trust and leverage before anyone will sit down.
+- name: maintain
+  description: Watch that agreements are followed. Keeps terms from eroding.
+  status: implemented
+  requires: {terms: 1}
+  hidden_until: {terms: 1}
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: maintain
+  locked_message: There are no agreements to watch.

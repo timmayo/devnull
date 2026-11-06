@@ -1,0 +1,10 @@
+# Named conditions. Most commands state what they need inline (requires: { cash: 300 }).
+# A name is worth it for a bundle several commands share, a not-yet-built idea, or admin mode.
+# `when` maps a game variable to the minimum value; `scope: person` looks at one person you know.
+# `planned: true` = the idea is not in the game yet: it never holds, and only planned commands may use it.
+
+has_linux_laptop: {description: A laptop with Linux installed, when: {os: 1, laptop: 1}, hint: Needs a working laptop running Linux.}
+admin_mode: {description: Admin mode is on (--admin), special: admin}
+laptop_powered: {description: Laptop is plugged in or has working battery, planned: true}
+has_network: {description: Connected to a network, planned: true}
+learned_nmap: {description: Player has acquired nmap, planned: true}

@@ -1,0 +1,63 @@
+# INFLUENCE - The information war. Leaks and rumors and public pressure.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: leak_document
+  description: Hand a document to a journalist. Can't be taken back.
+  requires: {item_document: 1, contacts_press: 1}
+  cost: {hours: 2}
+- name: seed_rumor
+  description: Plant a rumor on a local forum. Cheap, deniable, hard to control.
+  requires: [laptop_powered]
+  cost: {hours: 1}
+- name: run_sockpuppets
+  description: Run a network of fake accounts to amplify your message.
+  requires: [laptop_powered, {skill_social: 10}]
+  cost: {hours: 2}
+- name: write_oped
+  description: Write an anonymous op-ed or blog post.
+  requires: [laptop_powered]
+  cost: {hours: 3}
+- name: start_hashtag
+  description: Start or hijack a hashtag. Needs accounts to push it.
+  requires: {network_sockpuppets: 1}
+  cost: {hours: 1}
+- name: release_deepfake
+  description: Release a deepfake, or expose one. Powerful, and fragile if exposed.
+  requires: [laptop_powered, {skill_media: 20}]
+  hidden_until: {skill_media: 10}
+  cost: {hours: 4, money: 20}
+- name: counter_narrative
+  description: Rebut a press release or counter a smear.
+  requires: [laptop_powered]
+  hidden_until: {press_release_seen: 1}
+  cost: {hours: 2}
+- name: host_podcast
+  description: Record a podcast under an alias. Builds an audience slowly.
+  requires: [laptop_powered, {skill_social: 10}]
+  cost: {hours: 3}
+- name: flood_comments
+  description: Flood a public comment docket with fake and real voices.
+  requires: {network_sockpuppets: 1}
+  hidden_until: {comment_docket_open: 1}
+  cost: {hours: 2}
+- name: launch_petition
+  description: Start an online petition drive.
+  requires: [laptop_powered]
+  cost: {hours: 2}
+- name: feed
+  description: Post. Moves opinion, makes noise.
+  status: implemented
+  cost: {hours: 1}
+  handler: cmd_action
+  rule: feed
+  online: true
+- name: leak
+  description: Give evidence to the press. Big effect, big heat. Unverified leaks cost credibility.
+  status: implemented
+  requires: {press_trust: 20, evidence: 10}
+  hidden_until: {evidence: 5}
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: leak
+  online: true
+  locked_message: You need a reporter who trusts you and something worth leaking.

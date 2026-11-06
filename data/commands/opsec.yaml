@@ -1,0 +1,45 @@
+# OPSEC - Evasion and cover. Stay off the radar.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: rotate_identity
+  description: Rotate burner phones and aliases.
+  requires: {item_burner_phone: 1}
+  cost: {hours: 1}
+- name: check_tails
+  description: Check for tails and surveillance.
+  cost: {hours: 1}
+- name: vary_routine
+  description: Change your daily routine. Makes you harder to predict.
+  cost: {hours: 1}
+- name: sweep_apartment
+  description: Sweep your apartment for bugs.
+  requires: {item_sdr_radio: 1}
+  cost: {hours: 2}
+- name: encrypt_drives
+  description: Encrypt your drives. Protects you if the laptop is seized.
+  requires: [laptop_powered]
+  cost: {hours: 1}
+- name: route_tor
+  description: Route traffic through Tor or a VPN. Slower, safer.
+  requires: [laptop_powered]
+  cost: {hours: 1}
+- name: leave_phone
+  description: Leave your phone at home. Safe, but nobody can reach you.
+- name: use_publicwifi
+  description: Use public Wi-Fi. Anonymous online, but cameras exist.
+  requires: [laptop_powered]
+  cost: {hours: 1}
+- name: burn_account
+  description: Burn a compromised account. Cuts the link and loses the account.
+  requires: [laptop_powered]
+  cost: {hours: 1}
+- name: wipe_laptop
+  description: Wipe and reinstall the laptop. Clean slate, lost data.
+  requires: [laptop_powered]
+  cost: {hours: 3}
+- name: lay_low
+  description: Stay quiet. Heat and suspicion fall.
+  status: implemented
+  cost: {hours: 3}
+  handler: cmd_action
+  rule: lay_low

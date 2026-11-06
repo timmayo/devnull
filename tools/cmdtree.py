@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
-"""cmdtree.py - visualize commands.yaml as a tree.
+"""cmdtree.py - draw the command table (data/commands/) as a tree, and check it.
 
 Usage examples:
     python tools\\cmdtree.py                      # tree by group
     python tools\\cmdtree.py -d                   # with details
     python tools\\cmdtree.py --view context       # context > group > command
-    python tools\\cmdtree.py --view gate          # gate > commands that need it
+    python tools\\cmdtree.py --view needs         # requirement > commands that use it (cash>=300, person.trust>=25 ...)
     python tools\\cmdtree.py -g hack              # only one group
     python tools\\cmdtree.py --status planned     # only planned (or implemented) commands
     python tools\\cmdtree.py -c shell             # only one context
     python tools\\cmdtree.py --check              # validate the file
-    python tools\\cmdtree.py --check --deep       # also check rule references against slice_rules.yaml / people.yaml
+    python tools\\cmdtree.py --check --deep       # also check rule references and that live commands only use real game values
 """
 import argparse
 import os
 import sys
 from pathlib import Path
 
-import yaml
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from devnull.core.commands import (check as check_data, load_file, is_planned, cmd_hours, cmd_money,  # noqa: E402
-                                   contexts_of, description_of)  # (the game runs the same checks at startup)
+                                   contexts_of, description_of, conditions, read_yaml)  # (the game runs the same checks)
 
 USE_COLOR = True
 
@@ -59,18 +57,15 @@ def red(t):
 def find_file(arg):
     if arg:
         return Path(arg)
-    here = Path.cwd() / "commands.yaml"
-    if here.exists():
-        return here
     script_dir = Path(__file__).resolve().parent
-    for p in (script_dir.parent / "data" / "commands.yaml", script_dir / "commands.yaml", script_dir.parent / "commands.yaml"):
-        if p.exists():
+    for p in (Path.cwd() / "data" / "commands", script_dir.parent / "data" / "commands"):
+        if p.is_dir():
             return p
-    sys.exit("commands.yaml not found. Use -f to give the path.")
+    sys.exit("data/commands/ not found. Use -f to give the folder.")
 
 
 def load(path):
-    return load_file(path)  # commands come back as a dict keyed by name
+    return load_file(path)  # a folder (or one file); commands come back as a dict keyed by name
 
 
 # ---------------------------------------------------------------- helpers
@@ -92,15 +87,19 @@ def fmt_arg(a):
     return f"<{s}>" if a.get("required") else f"[{s}]"
 
 
-def command_node(name, c, details):
+def cond_labels(data, spec):
+    return [x.label for x in conditions(spec, data["gates"], data.get("variables") or {})]
+
+
+def command_node(name, c, details, data=None):
     label = cyan(str(name))
     aliases = [str(a) for a in as_list(c.get("aliases"))]
     if aliases:
         label += dim(f" ({', '.join(aliases)})")
-    req = [str(r) for r in as_list(c.get("requires"))]
+    req = cond_labels(data, c.get("requires")) if data else [str(r) for r in as_list(c.get("requires"))]
     if req:
         label += " " + yellow(f"[requires: {', '.join(req)}]")
-    hid = [str(r) for r in as_list(c.get("hidden_until"))]
+    hid = cond_labels(data, c.get("hidden_until")) if data else [str(r) for r in as_list(c.get("hidden_until"))]
     if hid:
         label += " " + magenta(f"[hidden until: {', '.join(hid)}]")
     if is_planned(c):
@@ -117,6 +116,8 @@ def command_node(name, c, details):
         if c.get("syntax"):
             kids.append((f"syntax:   {c['syntax']}", []))
         kids.append((f"contexts: {', '.join(contexts_of(c))}", []))
+        if data and data.get("_files", {}).get(name):
+            kids.append((f"file:     {data['_files'][name]}", []))
         if c.get("status"):
             kids.append((f"status:   {c['status']}", []))
         if c.get("args"):
@@ -162,7 +163,7 @@ def view_group(data, cmds, details):
             kids_of.setdefault(c["parent"], []).append(n)
 
     def node(n, c):
-        label, kids = command_node(n, c, details)
+        label, kids = command_node(n, c, details, data)
         return (label, kids + [node(k, cmds[k]) for k in kids_of.get(n, [])])
 
     def is_root(c):
@@ -198,24 +199,34 @@ def view_context(data, cmds, details):
     return "contexts", nodes
 
 
-def view_gate(data, cmds, details):
+def view_needs(data, cmds, details):
+    """Requirement > the commands that use it. Inline conditions (cash>=300) and named gates both appear."""
+    gates, variables = data["gates"], data.get("variables") or {}
+    uses = {}                                   # label -> [(command name, command, 'requires' | 'hidden_until')]
+    for n, c in cmds.items():
+        for f in ("requires", "hidden_until"):
+            for x in conditions(c.get(f), gates, variables):
+                uses.setdefault(x.label, []).append((n, c, f))
+    def sort_key(label):
+        g = gates.get(label)
+        return (0 if g is not None else 1, label)
     nodes = []
-    for gate, info in data["gates"].items():
-        members = [(n, c) for n, c in cmds.items()
-                   if str(gate) in [str(x) for x in as_list(c.get("requires")) + as_list(c.get("hidden_until"))]]
-        if not members:
-            continue
-        desc = (info or {}).get("description")
-        when = (info or {}).get("when")
-        label = (yellow(str(gate)) + (red(" [planned]") if (info or {}).get("planned") else "")
-                 + (dim(f" - {desc}") if desc else "")
-                 + (dim(f"  when {when}") if when else "") + dim(f" ({len(members)})"))
-        nodes.append((label, [command_node(n, c, details) for n, c in members]))
+    for label in sorted(uses, key=sort_key):
+        members = uses[label]
+        g = gates.get(label)
+        shown = yellow(label)
+        if g is not None:
+            shown += (red(" [planned]") if g.get("planned") else "") + (dim(f" - {g['description']}") if g.get("description") else "")
+        nodes.append((shown + dim(f" ({len({n for n, _, _ in members})})"),
+                      [command_node(n, c, details, data) for n, c, _ in members]))
     free = [(n, c) for n, c in cmds.items() if not as_list(c.get("requires"))]
     if free:
-        nodes.append((bold("(no gate - always usable)") + dim(f" ({len(free)})"),
-                      [command_node(n, c, details) for n, c in free]))
-    return "gates", nodes
+        nodes.append((bold("(no requirement - always usable)") + dim(f" ({len(free)})"),
+                      [command_node(n, c, details, data) for n, c in free]))
+    return "needs", nodes
+
+
+view_gate = view_needs                          # the old name
 
 
 # ---------------------------------------------------------------- drawing
@@ -230,23 +241,29 @@ def draw(nodes, prefix=""):
 # ---------------------------------------------------------------- checks
 
 def check(data, deep=False):
-    """Structural checks, shared with the game (devnull.core.commands.check). `deep` also loads
-    slice_rules.yaml and people.yaml to check `rule:` references and that every rule has a command."""
-    rules = None
+    """Structural checks, shared with the game (devnull.core.commands.check). `deep` also loads the rules to
+    check `rule:` references, that every rule has a command, and that live commands only test real game values."""
+    rules = state_keys = None
     if deep:
+        from devnull.core.sim import Sim
         data_dir = Path(__file__).resolve().parents[1] / "data"
-        rules = yaml.safe_load((data_dir / "slice_rules.yaml").read_text(encoding="utf-8"))
-        rules["people"] = yaml.safe_load((data_dir / "people.yaml").read_text(encoding="utf-8"))
-    return check_data(data, rules=rules)
+        rules = read_yaml(data_dir / "slice_rules.yaml")
+        rules["people"] = read_yaml(data_dir / "people.yaml")
+        for key, name in (("market_tape", "market"), ("research", "research"), ("news", "news")):
+            if (data_dir / f"{name}.yaml").exists():
+                rules[key] = read_yaml(data_dir / f"{name}.yaml")
+        state_keys = set(Sim(seed=1, rules=rules).state)
+    return check_data(data, rules=rules, state_keys=state_keys)
 
 
 # ---------------------------------------------------------------- main
 
 def main():
     global USE_COLOR
-    ap = argparse.ArgumentParser(description="Visualize commands.yaml as a tree.")
-    ap.add_argument("-f", "--file", help="path to commands.yaml (default: auto-detect)")
-    ap.add_argument("--view", choices=["group", "context", "gate"], default="group")
+    ap = argparse.ArgumentParser(description="Draw the command table (data/commands/) as a tree, and check it.")
+    ap.add_argument("-f", "--file", help="the commands folder (default: data/commands)")
+    ap.add_argument("--view", choices=["group", "context", "needs", "gate"], default="group",
+                    help="gate is the old name for needs")
     ap.add_argument("-d", "--details", action="store_true", help="show syntax, args, handler, etc.")
     ap.add_argument("-g", "--group", help="only this group")
     ap.add_argument("-c", "--context", help="only this context")
@@ -271,14 +288,15 @@ def main():
 
     if not args.check:
         cmds = filter_commands(data, args.group, args.context, args.status)
-        view = {"group": view_group, "context": view_context, "gate": view_gate}[args.view]
+        view = {"group": view_group, "context": view_context, "needs": view_needs, "gate": view_needs}[args.view]
         root, nodes = view(data, cmds, args.details)
         print(bold(f"{root}") + dim(f"  ({path})"))
         draw(nodes)
         print()
         planned = sum(1 for c in data["commands"].values() if is_planned(c))
         print(dim(f"{len(data['commands'])} commands ({len(data['commands']) - planned} implemented, {planned} planned), "
-                  f"{len(data['groups'])} groups, {len(data['gates'])} gates, {len(data['contexts'])} contexts"))
+                  f"{len(data['groups'])} groups, {len(data['gates'])} named gates, {len(data.get('variables') or {})} variables, "
+                  f"{len(data['contexts'])} contexts"))
 
     if problems:
         print()

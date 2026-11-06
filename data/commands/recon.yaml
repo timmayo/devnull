@@ -1,0 +1,95 @@
+# RECON - Know the enemy. Filings and profiles and quiet research.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: trace_donors
+  description: Follow Super PAC money through filings and shell LLCs.
+  requires: [laptop_powered]
+  cost: {hours: 2}
+- name: profile_executive
+  description: Build a profile of a target executive or official.
+  requires: [laptop_powered]
+  cost: {hours: 2}
+- name: map_datacenters
+  description: Map data center sites and read their permits.
+  requires: [laptop_powered]
+  cost: {hours: 2}
+- name: scrape_agendas
+  description: Pull council agendas and minutes. Shows what is coming up for a vote.
+  requires: [laptop_powered]
+  cost: {hours: 1}
+- name: read_jobposts
+  description: Read job postings for clues about hiring, projects, and security.
+  requires: [laptop_powered]
+  hidden_until: {recon_actions: 3}
+  cost: {hours: 1}
+- name: monitor_scanner
+  description: Listen to police traffic. Shows patrols and responses.
+  requires: {item_sdr_radio: 1}
+  cost: {hours: 2}
+- name: read_earnings
+  description: Read earnings call transcripts for plans the company won't say in public.
+  requires: [laptop_powered]
+  hidden_until: {recon_actions: 3}
+  cost: {hours: 1}
+- name: read_zoning
+  description: Read zoning filings. Spots rezonings before the public does.
+  requires: [laptop_powered]
+  cost: {hours: 1}
+- name: follow_lobbyist
+  description: Track a lobbyist's travel and calendar.
+  requires: {skill_research: 10}
+  hidden_until: {targets_profiled: 1}
+  cost: {hours: 3}
+- name: track_dockets
+  description: Follow utility and power dockets. Data centers need power, and the filings show how much.
+  requires: [laptop_powered]
+  hidden_until: {datacenter_mapped: 1}
+  cost: {hours: 2}
+- name: events
+  description: today's list and the week ahead (30 days with 'more')
+  status: implemented
+  syntax: events [more | <days>]
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_events
+  always_available: true
+- name: news
+  description: local and national headlines
+  status: implemented
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_news
+  always_available: true
+- name: markets
+  description: Mega Corp and neo-cloud prices
+  status: implemented
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_markets
+  always_available: true
+- name: trace
+  description: Follow the money and the shell companies. Better with Linux.
+  status: implemented
+  requires: {skills: 5}
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: trace
+  online: true
+  locked_message: You are not skilled enough yet.
+- name: research
+  description: 'Study a topic (a menu): levels you up and opens new abilities. Online, at the library, or a paid course.'
+  status: implemented
+  syntax: research <topic> [online | library | course]
+  cost: {hours: 2}
+  handler: cmd_research
+  rule: research
+  online: true
+- name: look
+  description: Describe your surroundings or something in them
+  syntax: look [target]
+  aliases: [l]
+  handler: cmd_look
+  args:
+  - name: target
+    type: entity
+    required: false

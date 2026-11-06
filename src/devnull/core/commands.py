@@ -1,10 +1,21 @@
-"""The command table: load data/commands.yaml, check it, resolve what the player types.
+"""The command table: load data/commands/, check it, resolve what the player types.
 
-No game state lives here and no UI code. The file format is documented at the top of
-data/commands.yaml. `tools/cmdtree.py --check` and the game's startup both call `check()`.
+No game state lives here and no UI code. The file format is documented in data/commands/README.txt.
+`tools/cmdtree.py --check` and the game's startup both call `check()`.
 
-`commands:` in the file is a list of `- name: ...` entries. `load_file` turns it into a dict keyed by name,
-so everything below works with `data["commands"][name]`.
+Layout of data/commands/ (one folder, so two people rarely edit the same file):
+    contexts.yaml    where the player can be
+    groups.yaml      how commands are grouped and ordered
+    gates.yaml       the few named conditions worth a name (bundles, planned ideas, admin)
+    variables.yaml   the vocabulary of game values a condition may test, and the hint shown when it fails
+    <group>.yaml     one file per group: a list of `- name: ...` commands
+
+A command says what it needs inline:   requires: { cash: 300, evidence: 20 }
+A person condition has a prefix:       requires: { person.trust: 25 }
+A named gate is just a string:         requires: [has_linux_laptop, { skills: 15 }]
+The hint shown when a condition fails is generated from variables.yaml.
+
+Everything below works with `data["commands"][name]`, a dict keyed by command name.
 """
 
 from __future__ import annotations
@@ -15,13 +26,20 @@ from typing import Any, Collection, Iterable, Mapping
 
 import yaml
 
-# What a `scope: person` gate can look at (see Sim.person_action_visible).
+try:                                            # the C parser is ~50x faster; plain PyYAML is the fallback
+    _Loader: Any = yaml.CSafeLoader
+except AttributeError:                          # pragma: no cover
+    _Loader = yaml.SafeLoader
+
+# What a `person.<key>` condition can look at (see Sim.person_action_visible).
 PERSON_KEYS = {"meetings", "trust", "bond", "leverage", "owes"}
+PERSON_PREFIX = "person."
 GATE_SPECIALS = {"admin"}
+RESERVED_FILES = {"contexts", "groups", "gates", "variables"}
 
 
 class CommandFileError(ValueError):
-    """commands.yaml has problems. The message lists them."""
+    """The command table has problems. The message lists them."""
 
 
 # ---------------------------------------------------------------- loading
@@ -30,6 +48,11 @@ def as_list(v: Any) -> list[Any]:
     if v is None:
         return []
     return list(v) if isinstance(v, (list, tuple)) else [v]
+
+
+def read_yaml(path: Path) -> Any:
+    with open(path, encoding="utf-8") as f:
+        return yaml.load(f, Loader=_Loader)
 
 
 def commands_by_name(raw: Any) -> tuple[dict[str, Any], list[str]]:
@@ -52,13 +75,57 @@ def commands_by_name(raw: Any) -> tuple[dict[str, Any], list[str]]:
 
 
 def load_file(path: Path | str) -> dict[str, Any]:
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    for section in ("contexts", "gates", "groups", "commands"):
-        data.setdefault(section, {})
-        if data[section] is None:
+    """Load the command table from a folder (the normal layout) or from one single YAML file."""
+    path = Path(path)
+    if path.is_dir():
+        return _load_dir(path)
+    data = read_yaml(path) or {}
+    for section in ("contexts", "gates", "groups", "variables", "commands"):
+        if data.get(section) is None:
             data[section] = {}
     data["commands"], data["_load_problems"] = commands_by_name(data["commands"])
+    data["_files"] = {k: path.name for k in data["commands"]}
+    return data
+
+
+def _load_dir(root: Path) -> dict[str, Any]:
+    problems: list[str] = []
+    data: dict[str, Any] = {"version": 1, "contexts": {}, "groups": {}, "gates": {}, "variables": {},
+                            "commands": {}, "_files": {}}
+    for name in sorted(RESERVED_FILES):
+        p = root / f"{name}.yaml"
+        if not p.exists():
+            if name in ("contexts", "groups"):
+                problems.append(f"{root.name}/{name}.yaml is missing")
+            continue
+        got = read_yaml(p) or {}
+        if not isinstance(got, dict):
+            problems.append(f"{p.name}: must be a mapping of name -> entry")
+            continue
+        data[name] = got
+    order = {g: i for i, (g, _) in enumerate(sorted(
+        data["groups"].items(), key=lambda kv: ((kv[1] or {}).get("order", 999), str(kv[0]))))}
+    files = [p for p in root.glob("*.yaml") if p.stem not in RESERVED_FILES]
+    for p in sorted(files, key=lambda p: (order.get(p.stem, 999), p.stem)):   # group order, so the table reads in order
+        group = p.stem
+        if group not in data["groups"]:
+            problems.append(f"{p.name}: there is no group '{group}' in groups.yaml (a file is one group)")
+        raw = read_yaml(p)
+        if isinstance(raw, dict) and "commands" in raw:
+            raw = raw["commands"]
+        cmds, probs = commands_by_name(raw)
+        problems += [f"{p.name}: {x}" for x in probs]
+        for name, c in cmds.items():
+            if name in data["commands"]:
+                problems.append(f"{p.name}: command '{name}' is already defined in {data['_files'][name]}")
+                continue
+            c = dict(c or {})
+            if c.get("group") not in (None, group):
+                problems.append(f"{p.name}: {name} says group {c['group']!r} but lives in the {group} file")
+            c["group"] = group
+            data["commands"][name] = c
+            data["_files"][name] = p.name
+    data["_load_problems"] = problems
     return data
 
 
@@ -67,7 +134,7 @@ STATUSES = ("planned", "implemented")
 
 
 def is_planned(c: Mapping[str, Any] | None) -> bool:
-    """Planned unless `status: implemented` (the default), so a command is never live by accident."""
+    """Planned unless `status: implemented`, so a command is never live by accident."""
     c = c or {}
     if "planned" in c:                       # older files
         return bool(c["planned"])
@@ -98,6 +165,87 @@ def typed_word(key: str, c: Mapping[str, Any]) -> str:
     return syntax[0].lower() if syntax else str(key).lower()
 
 
+# ---------------------------------------------------------------- conditions
+
+def _num(n: Any) -> str:
+    return f"{n:g}" if isinstance(n, (int, float)) and not isinstance(n, bool) else str(n)
+
+
+@dataclass(frozen=True)
+class Cond:
+    """One thing that must hold. Either a named gate (`gate` is its name) or one inline `var: n` test."""
+    label: str                                  # how it is drawn: "cash>=300", "person.trust>=25", or the gate name
+    when: Mapping[str, float] = field(default_factory=dict)     # {var: minimum}, without the person. prefix
+    scope: str = "state"                        # state | person
+    special: str | None = None                  # admin: holds only in admin mode
+    planned: bool = False                       # its variable is not in the game yet: never holds
+    hint: str = ""
+    gate: str | None = None
+
+
+def default_hint(var: str, n: Any, person: bool) -> str:
+    name = var.replace("_", " ")
+    if person:
+        return f"They do not have {name} {_num(n)}+ with you yet." if var != "leverage" \
+            else "You have nothing on them to use."
+    return f"Needs {name} {_num(n)}+."
+
+
+def hint_for(variables: Mapping[str, Any], key: str, n: Any) -> str:
+    """The text shown when `key >= n` fails. `key` is as written in the file (person.trust ...)."""
+    v = variables.get(key) or {}
+    template = v.get("hint") if isinstance(v, dict) else None
+    if template:
+        return str(template).replace("{n}", _num(n))
+    person = key.startswith(PERSON_PREFIX)
+    return default_hint(key[len(PERSON_PREFIX):] if person else key, n, person)
+
+
+def conditions(spec: Any, gates: Mapping[str, Any], variables: Mapping[str, Any]) -> list[Cond]:
+    """Turn a `requires` / `hidden_until` value into Cond objects. All of them must hold.
+    A string is a named gate, a mapping is `{var: minimum}` (one Cond each), a list mixes both."""
+    out: list[Cond] = []
+    for item in as_list(spec):
+        if isinstance(item, dict):
+            for k, n in item.items():
+                person = str(k).startswith(PERSON_PREFIX)
+                var = str(k)[len(PERSON_PREFIX):] if person else str(k)
+                out.append(Cond(label=f"{k}>={_num(n)}", when={var: n}, scope="person" if person else "state",
+                                hint=hint_for(variables, str(k), n)))
+        elif isinstance(item, str):
+            g = gates.get(item)
+            if g is None:                       # unknown gate: check() reports it; it never holds
+                out.append(Cond(label=item, planned=True, gate=item, hint=item))
+                continue
+            when = dict(g.get("when") or {})
+            out.append(Cond(label=item, when=when, scope=g.get("scope") or "state", special=g.get("special"),
+                            planned=bool(g.get("planned")) or (not when and not g.get("special")),
+                            hint=str(g.get("hint") or g.get("description") or item), gate=item))
+        else:
+            out.append(Cond(label=str(item), planned=True, hint=str(item)))
+    return out
+
+
+def cond_holds(c: Cond, state: Mapping[str, float], admin: bool = False,
+               person: Mapping[str, float] | None = None) -> bool:
+    if c.special == "admin":
+        return admin
+    if c.planned or not c.when:
+        return False                            # a planned condition never holds
+    if c.scope == "person":
+        if person is None:
+            return True                         # the handler checks these against the person
+        return all(person.get(k, 0) >= v for k, v in c.when.items())
+    return all(state.get(k, 0) >= v for k, v in c.when.items())
+
+
+def merged_when(conds: Iterable[Cond]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for c in conds:
+        out.update(c.when)
+    return out
+
+
 # ---------------------------------------------------------------- checks
 
 def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
@@ -106,10 +254,11 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
 
     handlers    names of the Python functions that exist; each non-planned command must use one.
     rules       the loaded slice rules; `rule:` references must exist and every rule needs an entry.
-    state_keys  the game's state variables; gate `when` keys must be among them.
+    state_keys  the game's state variables; a live command's conditions may only test these.
     """
     problems: list[str] = list(data.get("_load_problems") or [])
     groups, contexts, gates, cmds = data["groups"], data["contexts"], data["gates"], data["commands"]
+    variables = data.get("variables") or {}
 
     for gname, g in gates.items():
         g = g or {}
@@ -120,23 +269,51 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
             if g["special"] not in GATE_SPECIALS:
                 problems.append(f"gate {gname}: unknown special {g['special']!r}")
             continue
-        if g.get("planned"):                    # its variable may not exist in the game yet
-            when = g.get("when")
-            if when is not None and not isinstance(when, dict):
-                problems.append(f"gate {gname}: `when` must be a set of variable: number pairs")
-            continue
         when = g.get("when")
-        if not isinstance(when, dict) or not when:
+        if when is None:
             if not g.get("planned"):
                 problems.append(f"gate {gname}: no `when` (add one, or mark the gate planned: true)")
+            continue
+        if not isinstance(when, dict) or not when:
+            problems.append(f"gate {gname}: `when` must be a set of variable: number pairs")
             continue
         for k, v in when.items():
             if not isinstance(v, (int, float)) or isinstance(v, bool):
                 problems.append(f"gate {gname}: `{k}` must be a number, got {v!r}")
             if scope == "person" and k not in PERSON_KEYS:
                 problems.append(f"gate {gname}: {k!r} is not something a person has ({', '.join(sorted(PERSON_KEYS))})")
-            if scope != "person" and state_keys is not None and k not in state_keys:
+            if scope != "person" and state_keys is not None and not g.get("planned") and k not in state_keys:
                 problems.append(f"gate {gname}: unknown state variable {k!r}")
+
+    for vname, v in variables.items():
+        if not isinstance(v, dict) and v is not None:
+            problems.append(f"variable {vname}: must be a mapping (e.g. {{ hint: \"Needs {{n}}.\" }})")
+        elif isinstance(v, dict) and v.get("hint") is not None and not isinstance(v["hint"], str):
+            problems.append(f"variable {vname}: hint must be text")
+        if str(vname).startswith(PERSON_PREFIX) and str(vname)[len(PERSON_PREFIX):] not in PERSON_KEYS:
+            problems.append(f"variable {vname}: a person has only {', '.join(sorted(PERSON_KEYS))}")
+
+    def check_spec(name: str, field_: str, spec: Any, planned: bool) -> None:
+        for item in as_list(spec):
+            if isinstance(item, str):
+                if item not in gates:
+                    problems.append(f"{name}: unknown gate {item!r} in {field_}")
+                elif not planned and (gates[item] or {}).get("planned"):
+                    problems.append(f"{name}: gate {item!r} is planned but this command is live")
+            elif isinstance(item, dict):
+                for k, n in item.items():
+                    if not isinstance(n, (int, float)) or isinstance(n, bool):
+                        problems.append(f"{name}: {field_} {k} must be a number, got {n!r}")
+                    person = str(k).startswith(PERSON_PREFIX)
+                    var = str(k)[len(PERSON_PREFIX):] if person else str(k)
+                    if person and var not in PERSON_KEYS:
+                        problems.append(f"{name}: {field_} {k!r} - a person has only {', '.join(sorted(PERSON_KEYS))}")
+                    elif variables and str(k) not in variables:
+                        problems.append(f"{name}: {field_} uses {k!r}, which is not in variables.yaml (typo? or add it)")
+                    elif not planned and not person and state_keys is not None and var not in state_keys:
+                        problems.append(f"{name}: live command tests {k!r}, which is not a game variable yet")
+            else:
+                problems.append(f"{name}: {field_} entries must be a gate name or {{ variable: number }}, got {item!r}")
 
     owners: dict[str, str] = {}
     words = {str(k) for k, c in cmds.items() if typed_word(str(k), c or {}) == str(k)}
@@ -158,11 +335,7 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
             if ctx not in contexts:
                 problems.append(f"{name}: unknown context {ctx!r}")
         for field_ in ("requires", "hidden_until"):
-            for g in as_list(c.get(field_)):
-                if g not in gates:
-                    problems.append(f"{name}: unknown gate {g!r} in {field_}")
-                elif not planned and (gates[g] or {}).get("planned"):
-                    problems.append(f"{name}: gate {g!r} is planned but this command is live")
+            check_spec(name, field_, c.get(field_), planned)
         if c.get("parent") and c["parent"] not in cmds:
             problems.append(f"{name}: parent {c['parent']!r} is not a command")
         elif c.get("parent") and not planned and is_planned(cmds[c["parent"]]):
@@ -226,31 +399,25 @@ def rule_exists(rules: Mapping[str, Any], ref: str) -> bool:
 # ---------------------------------------------------------------- legacy shape
 
 def to_legacy(data: Mapping[str, Any]) -> dict[str, Any]:
-    """The old commands.yaml shape (usage, hours, help, unlock, needs ...) that apply_commands,
-    the `commands` screen and the doc generator read. Planned commands are left out."""
-    gates = data["gates"]
-
-    def merged(names: Iterable[str]) -> dict[str, Any]:
-        out: dict[str, Any] = {}
-        for n in names:
-            out.update((gates[n] or {}).get("when") or {})
-        return out
+    """The flat shape (usage, hours, help, unlock, needs ...) that apply_commands and the `commands`
+    screen read. Planned commands are left out."""
+    gates, variables = data["gates"], data.get("variables") or {}
 
     legacy: dict[str, Any] = {}
     for key, c in data["commands"].items():
         if is_planned(c):
             continue
-        hidden = as_list(c.get("hidden_until"))
-        if any((gates[n] or {}).get("special") == "admin" for n in hidden):
+        hidden = conditions(c.get("hidden_until"), gates, variables)
+        if any(x.special == "admin" for x in hidden):
             unlock: Any = "admin"
         elif hidden:
-            unlock = merged(hidden)
+            unlock = merged_when(hidden)
         else:
             unlock = "admin" if c["group"] == "admin" else "day1"
         e: dict[str, Any] = {"group": c["group"], "usage": c.get("syntax") or key, "hours": cmd_hours(c),
                              "unlock": unlock, "help": description_of(c), "screen": c.get("screen")}
         if c.get("requires"):
-            e["needs"] = merged(as_list(c["requires"]))
+            e["needs"] = merged_when(conditions(c["requires"], gates, variables))
         if cmd_money(c):
             e["cost"] = cmd_money(c)
         for f in ("online", "type", "parent", "rule"):
@@ -274,50 +441,61 @@ class Resolution:
 
 
 class CommandSet:
-    """The loaded command table: resolves words, checks contexts and gates."""
+    """The loaded command table: resolves words, checks contexts and conditions."""
 
     def __init__(self, data: Mapping[str, Any]):
         self.data = data
         self.gates: Mapping[str, Any] = data["gates"]
+        self.variables: Mapping[str, Any] = data.get("variables") or {}
         self.commands: dict[str, Any] = {k: v or {} for k, v in data["commands"].items()}
         # Only live commands the player can type: the key is the first word of its syntax.
         self.words: dict[str, dict[str, Any]] = {
             k: c for k, c in self.commands.items() if not is_planned(c) and typed_word(k, c) == k}
         self.aliases: dict[str, str] = {a: k for k, c in self.words.items() for a in as_list(c.get("aliases"))}
+        self._requires = {k: conditions(c.get("requires"), self.gates, self.variables) for k, c in self.commands.items()}
+        self._hidden = {k: conditions(c.get("hidden_until"), self.gates, self.variables) for k, c in self.commands.items()}
+        self.group_order: list[str] = [k for k, _ in sorted(
+            data["groups"].items(), key=lambda kv: (kv[1].get("order", 999), kv[0]))]
 
-    # -- gates ---------------------------------------------------------
-    def gate_ok(self, name: str, state: Mapping[str, float], admin: bool = False,
-                person: Mapping[str, float] | None = None) -> bool:
-        g = self.gates.get(name) or {}
-        if g.get("special") == "admin":
-            return admin
-        when = g.get("when")
-        if not when:
-            return False                        # a planned gate with no rule never holds
-        if g.get("scope") == "person":
-            if person is None:
-                return True                     # the handler checks these against the person
-            return all(person.get(k, 0) >= v for k, v in when.items())
-        return all(state.get(k, 0) >= v for k, v in when.items())
+    # -- conditions ----------------------------------------------------
+    def requires(self, key: str) -> list[Cond]:
+        return self._requires[key]
 
-    def failing(self, names: Iterable[str], state: Mapping[str, float], admin: bool = False) -> list[str]:
-        return [n for n in names if not self.gate_ok(n, state, admin)]
+    def hidden_until(self, key: str) -> list[Cond]:
+        return self._hidden[key]
+
+    @staticmethod
+    def failing(conds: Iterable[Cond], state: Mapping[str, float], admin: bool = False) -> list[Cond]:
+        return [c for c in conds if not cond_holds(c, state, admin)]
 
     # -- visibility ----------------------------------------------------
     def visible(self, key: str, state: Mapping[str, float], unlocked: Collection[str] = (),
                 admin: bool = False) -> bool:
-        c = self.words[key]
+        """Works for any live command, including sub-entries such as buy_vpn that have no word of their own."""
+        c = self.commands[key]
         if c.get("always_available"):
             return True
         if admin:
             return True
         if key in unlocked:                     # unlocks are sticky
             return True
-        return not self.failing(as_list(c.get("hidden_until")), state, admin)
+        return not self.failing(self._hidden[key], state, admin)
 
     def visible_keys(self, state: Mapping[str, float], unlocked: Collection[str] = (),
                      admin: bool = False) -> list[str]:
         return [k for k in self.words if self.visible(k, state, unlocked, admin)]
+
+    def children(self, key: str) -> list[str]:
+        """Live sub-entries drawn under `key` (meet_coffee under meet), in table order."""
+        return [k for k, c in self.commands.items() if c.get("parent") == key and not is_planned(c)]
+
+    def by_screen(self, screen: str, top_level: bool = True) -> list[str]:
+        """Live commands listed on one section of the in-game `commands` screen, in group order then
+        table order. Sub-entries are left out unless top_level is False."""
+        rank = {g: i for i, g in enumerate(self.group_order)}
+        keys = [k for k, c in self.commands.items()
+                if not is_planned(c) and c.get("screen") == screen and not (top_level and c.get("parent"))]
+        return sorted(keys, key=lambda k: rank.get(self.commands[k].get("group"), 999))
 
     # -- resolving -----------------------------------------------------
     def resolve(self, word: str, visible: Collection[str]) -> Resolution:
@@ -337,17 +515,16 @@ class CommandSet:
 
     # -- may it run here and now? -------------------------------------
     def why_not(self, key: str, state: Mapping[str, float], context: str, admin: bool = False) -> str | None:
-        """None if the command may run, else the hint to show. Contexts first, then `requires` gates."""
+        """None if the command may run, else the hint to show. Contexts first, then `requires`."""
         c = self.words[key]
         ctxs = contexts_of(c)
         if context not in ctxs:
             return f"You can't do that from here (it works in: {', '.join(ctxs) or 'nowhere yet'})."
-        bad = self.failing(as_list(c.get("requires")), state, admin)
+        bad = self.failing(self._requires[key], state, admin)
         if bad:
             if c.get("locked_message"):
                 return str(c["locked_message"])
-            return " ".join(str((self.gates[n] or {}).get("hint") or (self.gates[n] or {}).get("description") or n)
-                            for n in bad)
+            return " ".join(x.hint for x in bad)
         return None
 
     def handler(self, key: str) -> str:

@@ -1,0 +1,51 @@
+# SURVIVE - The cover life. Keep the job and the lights on.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: work_job
+  description: Go to your day job. Pays the rent; skipping it gets noticed.
+  requires: {job_employed: 1}
+  cost: {hours: 8}
+- name: fake_sickday
+  description: Skip work without a real reason. Works a few times before the boss notices.
+  requires: {job_employed: 1}
+  cost: {hours: 1}
+- name: pay_bills
+  description: Pay rent and utilities. Miss it and the landlord notices.
+  cost: {hours: 1, money: 650}
+- name: sleep_night
+  description: Sleep a full night. Restores energy and focus.
+  cost: {hours: 8}
+- name: cook_meal
+  description: Cook something cheap. Keeps you fed without wrecking the budget.
+  cost: {hours: 1, money: 5}
+- name: buy_groceries
+  description: Stock the kitchen. Cheaper than eating out.
+  cost: {hours: 1, money: 40}
+- name: take_shift
+  description: Pick up overtime, a side gig, or a quick fix. Cash now, energy later.
+  requires: {job_employed: 1}
+  hidden_until: {day: 7}
+  cost: {hours: 4}
+- name: ask_raise
+  description: Ask your boss for a raise. Fails if they think you're slacking.
+  requires: {job_employed: 1, rep_boss: 20}
+  hidden_until: {job_days: 60}
+  cost: {hours: 1}
+- name: visit_clinic
+  description: See a doctor or therapist. Fixes what sleep can't.
+  cost: {hours: 2, money: 60}
+- name: do_exercise
+  description: Work out or take a walk. Restores energy and clears your head.
+  cost: {hours: 1}
+- name: extra_shift
+  description: Pick up a shift. +$45, more burnout.
+  status: implemented
+  cost: {hours: 3}
+  handler: cmd_action
+  rule: extra_shift
+- name: rest
+  description: Sleep, eat, stop. Lowers burnout.
+  status: implemented
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: rest

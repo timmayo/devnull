@@ -1,0 +1,76 @@
+# The values a condition may test, and the hint shown when the test fails ({n} is the number).
+# A variable not listed here is a typo: the checker rejects it. Add it when you invent one.
+# Skip `hint` and a sensible default is generated ("Needs <name> N+.").
+# A live command may only test values the game really has (the first section); planned commands may
+# use the planned ones. When you build a planned value into the game, move it up and make it real.
+
+# ---- the game has these today
+cash: {hint: 'Needs ${n}.'}
+darknet: {hint: Needs darknet access.}
+evidence: {hint: 'Needs evidence {n}+.'}
+heat: {hint: 'Needs heat {n}+.'}
+laptop: {hint: Needs a working laptop.}
+lead_linux: {hint: Needs the Linux lead.}
+lead_npc: {hint: Needs the developer lead.}
+lead_store: {hint: Needs the store lead.}
+os: {hint: Needs Linux installed.}
+people_n: {hint: You need to know someone first.}
+press_trust: {hint: 'Needs press trust {n}+.'}
+sk_network_security: {hint: 'Needs network security skill {n}+.'}
+skills: {hint: 'Needs know-how {n}+.'}
+techie_trust: {hint: 'Needs developer trust {n}+.'}
+terms: {hint: You need a signed agreement first.}
+trust: {hint: 'Needs trust {n}+.'}
+
+# ---- planned: not in the game yet
+access_foothold: {hint: You need a foothold first.}
+apartment_days: {hint: Give it a few days first.}
+charge_pending: {hint: No charge is pending.}
+coalition: {hint: You need a coalition first.}
+comment_docket_open: {hint: No comment docket is open.}
+contacts_broker: {hint: You need a broker contact first.}
+contacts_insiders: {hint: You need an inside source first.}
+contacts_press: {hint: You need a press contact first.}
+contacts_total: {hint: 'Needs {n}+ contacts.'}
+council_attended: {hint: 'Attend {n}+ council meetings.'}
+datacenter_mapped: {hint: Map a data center first.}
+day: {hint: 'Available from day {n}.'}
+election_cycle_open: {hint: No election is open for filing.}
+filing_zoning: {hint: You need a zoning filing first.}
+hearing_scheduled: {hint: No hearing is scheduled.}
+item_broken: {hint: Nothing needs repair.}
+item_burner_phone: {hint: Needs a burner phone.}
+item_data_stolen: {hint: You need stolen data first.}
+item_document: {hint: You need a document first.}
+item_evidence: {hint: You need evidence first.}
+item_implant: {hint: Needs a built implant.}
+item_raspberry_pi: {hint: Needs a Raspberry Pi.}
+item_sdr_radio: {hint: Needs a software-defined radio.}
+item_usb: {hint: Needs a USB drive.}
+job_days: {hint: 'Needs {n}+ days on the job.'}
+job_employed: {hint: You need a job first.}
+lawyer_hired: {hint: You need a lawyer first.}
+measure_filing_open: {hint: No measure filing is open.}
+money_dirty: {hint: You need dirty cash first.}
+network_sockpuppets: {hint: You need sockpuppet accounts first.}
+person_suspicion: {hint: 'Needs suspicion {n}+.'}
+police_contact: {hint: No police contact yet.}
+press_release_seen: {hint: No press release to counter yet.}
+recon_actions: {hint: Do more recon first.}
+rep_boss: {hint: 'Needs boss reputation {n}+.'}
+rep_local: {hint: 'Needs local reputation {n}+.'}
+rep_public: {hint: 'Needs public reputation {n}+.'}
+research_dossier: {hint: You need a dossier first.}
+skill_finance: {hint: 'Needs finance skill {n}+.'}
+skill_hacking: {hint: 'Needs hacking skill {n}+.'}
+skill_media: {hint: 'Needs media skill {n}+.'}
+skill_research: {hint: 'Needs research skill {n}+.'}
+skill_social: {hint: 'Needs social skill {n}+.'}
+subpoena_pending: {hint: No subpoena is pending.}
+targets_profiled: {hint: Profile a target first.}
+warrant_served: {hint: No warrant has been served.}
+
+# ---- per person (written person.<name> in a condition)
+person.leverage: {hint: You have nothing on them to use.}
+person.meetings: {hint: 'You need to meet them more first ({n}+ times).'}
+person.trust: {hint: 'They do not trust you enough yet ({n}+).'}

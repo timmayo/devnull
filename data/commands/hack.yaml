@@ -1,0 +1,79 @@
+# HACK - Attacks and tools against networks. Needs a laptop and skill.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: scan_network
+  description: Scan a target network for open doors.
+  requires: [laptop_powered, {skill_hacking: 5}]
+  cost: {hours: 2}
+- name: phish_employee
+  description: Trick an employee into giving up access.
+  requires: [laptop_powered, {skill_hacking: 10}]
+  hidden_until: {targets_profiled: 1}
+  cost: {hours: 3}
+- name: crack_password
+  description: Crack a weak password or Wi-Fi key.
+  requires: [laptop_powered, {skill_hacking: 5}]
+  cost: {hours: 2}
+- name: exfiltrate_files
+  description: Pull files or a database out of a compromised system.
+  requires: [laptop_powered, {access_foothold: 1}]
+  cost: {hours: 2}
+- name: wipe_traces
+  description: Erase logs and traces of your access. Lowers heat.
+  requires: [laptop_powered, {access_foothold: 1}]
+  cost: {hours: 1}
+- name: plant_backdoor
+  description: Leave a hidden way back in. A logic bomb is the same idea with a timer.
+  requires: [laptop_powered, {access_foothold: 1, skill_hacking: 20}]
+  cost: {hours: 2}
+- name: poison_dataset
+  description: Corrupt an AI training dataset or sabotage a training run.
+  requires: [laptop_powered, {access_foothold: 1, skill_hacking: 30}]
+  hidden_until: {skill_hacking: 20}
+  cost: {hours: 3}
+- name: deface_page
+  description: Replace a corporate page with your message. Loud, and it brings heat.
+  requires: [laptop_powered, {skill_hacking: 10}]
+  cost: {hours: 2}
+- name: spoof_identity
+  description: Spoof a badge, login, caller ID, or sensor feed.
+  requires: [laptop_powered, {skill_hacking: 15}]
+  cost: {hours: 2}
+- name: disrupt_cooling
+  description: Interfere with data center cooling or power. Hits operations, and the heat is severe.
+  requires: [laptop_powered, {access_foothold: 1, skill_hacking: 40}]
+  hidden_until: {datacenter_mapped: 1}
+  cost: {hours: 3}
+- name: hack
+  description: Breach a system. Real evidence, real risk. Needs Linux and skill.
+  status: implemented
+  requires: [has_linux_laptop, {skills: 15, sk_network_security: 1}]
+  hidden_until: {os: 1}
+  cost: {hours: 3}
+  handler: cmd_action
+  rule: hack
+  online: true
+  locked_message: You need a working laptop running Linux, more skill, and some network security knowledge (research it).
+- name: scan
+  description: Scan a host for open services
+  syntax: scan <target>
+  contexts: [shell]
+  requires: [laptop_powered, has_network, learned_nmap]
+  cost: {hours: 1}
+  handler: cmd_scan
+  risk: 0.05
+  args:
+  - name: target
+    type: host
+    required: true
+- name: connect
+  description: Open a session on a host you have access to
+  syntax: connect <host>
+  aliases: [ssh]
+  contexts: [shell]
+  requires: [laptop_powered, has_network]
+  handler: cmd_connect
+  args:
+  - name: host
+    type: host
+    required: true

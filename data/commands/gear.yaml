@@ -1,0 +1,125 @@
+# GEAR - Buying and building and upgrading equipment.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: buy_burner
+  description: Buy a burner phone. Cash only.
+  requires: {cash: 60}
+  cost: {hours: 1, money: 60}
+- name: buy_faraday
+  description: Buy a Faraday pouch. Blocks signals when you need silence.
+  requires: {cash: 20}
+  cost: {hours: 1, money: 20}
+- name: rent_cloud
+  description: Rent a cloud server with cash-bought credits.
+  requires: [laptop_powered, {cash: 15}]
+  cost: {hours: 1, money: 15}
+- name: buy_laptop
+  description: Buy a used laptop. Old, but the battery holds.
+  requires: {cash: 300}
+  cost: {hours: 2, money: 300}
+- name: build_implant
+  description: Build a Raspberry Pi implant for physical access jobs.
+  requires: {skill_hacking: 15, item_raspberry_pi: 1}
+  hidden_until: {skill_hacking: 10}
+  cost: {hours: 4, money: 80}
+- name: buy_radio
+  description: Buy a software-defined radio. Listens to what shouldn't be heard.
+  requires: {cash: 80}
+  cost: {hours: 1, money: 80}
+- name: upgrade_router
+  description: Upgrade the home router or internet. Faster, harder to snoop on.
+  requires: {cash: 60}
+  cost: {hours: 2, money: 60}
+- name: upgrade_laptop
+  description: Upgrade laptop RAM and SSD. Faster cracking and less waiting.
+  requires: {laptop: 1, cash: 120}
+  cost: {hours: 2, money: 120}
+- name: buy_keylogger
+  description: Buy a hardware keylogger.
+  requires: {cash: 40}
+  hidden_until: {skill_hacking: 10}
+  cost: {hours: 1, money: 40}
+- name: repair_equipment
+  description: Repair broken gear. Cheaper than replacing it.
+  requires: {item_broken: 1}
+  cost: {hours: 2, money: 30}
+- name: install_linux
+  description: Install Linux next to Windows 11.
+  status: implemented
+  requires: {lead_linux: 1, laptop: 1}
+  hidden_until: {lead_linux: 1}
+  cost: {hours: 3}
+  handler: cmd_action
+  rule: install_linux
+  online: true
+  locked_message: You need to know how, and a laptop that runs on battery.
+- name: browse_store
+  description: Walk the electronics and pawn shops.
+  status: implemented
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: browse_store
+- name: upgrade_store
+  description: Buy a used laptop with a working battery ($420).
+  status: implemented
+  requires: {lead_store: 1, cash: 420}
+  hidden_until: {lead_store: 1}
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: upgrade_store
+  locked_message: You need to have found a seller, $420, and a dead battery.
+- name: upgrade_npc
+  description: Have a developer you trust swap in a battery for a favor ($150).
+  status: implemented
+  requires: {lead_npc: 1, techie_trust: 35, cash: 150}
+  hidden_until: {lead_npc: 1}
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: upgrade_npc
+  locked_message: You need a developer's offer, their trust (35), $150, and a dead battery.
+- name: buy_burner_phone
+  description: A prepaid phone for meetings.
+  status: implemented
+  syntax: buy burner_phone
+  screen: internet
+  hidden_until: {people_n: 1}
+  cost: {hours: 1, money: 80}
+  handler: cmd_buy
+  rule: shop.burner_phone
+  type: hardware
+- name: buy_vpn
+  description: Hides your apartment's connection from the sites you visit.
+  status: implemented
+  syntax: buy vpn
+  screen: internet
+  cost: {hours: 1, money: 15}
+  handler: cmd_buy
+  rule: shop.vpn
+  type: apps
+- name: buy_used_laptop
+  description: A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky.
+  status: implemented
+  syntax: buy used_laptop
+  screen: darknet
+  hidden_until: {darknet: 1}
+  cost: {hours: 1, money: 300}
+  handler: cmd_buy
+  rule: shop.used_laptop
+  type: hardware
+- name: buy_anon_accounts
+  description: Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.
+  status: implemented
+  syntax: buy anon_accounts
+  screen: darknet
+  hidden_until: {darknet: 1}
+  cost: {hours: 1, money: 120}
+  handler: cmd_buy
+  rule: shop.anon_accounts
+  type: apps
+- name: buy
+  description: Buy something from the web or the darknet (see 'commands')
+  status: implemented
+  syntax: buy <item>
+  screen: internet
+  cost: {hours: 1}
+  handler: cmd_buy

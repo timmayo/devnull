@@ -1,0 +1,3 @@
+# Where the player can be. A command only works in the contexts it lists (default: world).
+world: {description: 'Out in the city, on foot'}
+shell: {description: Logged into a terminal on your laptop (not in the game yet)}

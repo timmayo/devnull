@@ -1,0 +1,14 @@
+# How `commands` and the docs are laid out, in `order`. Each group has a file here: <group>.yaml
+survive: {title: SURVIVE, description: The cover life. Keep the job and the lights on., order: 1}
+recon: {title: RECON, description: Know the enemy. Filings and profiles and quiet research., order: 2}
+hack: {title: HACK, description: Attacks and tools against networks. Needs a laptop and skill., order: 3}
+influence: {title: INFLUENCE, description: The information war. Leaks and rumors and public pressure., order: 4}
+politics: {title: POLITICS, description: Local first and then bigger. Councils and campaigns and hearings., order: 5}
+money: {title: MONEY, description: Earning and moving and hiding cash., order: 6}
+people: {title: PEOPLE, description: NPC relationships. Options open as trust deepens., order: 7}
+gear: {title: GEAR, description: Buying and building and upgrading equipment., order: 8}
+opsec: {title: OPSEC, description: Evasion and cover. Stay off the radar., order: 9}
+field: {title: FIELD, description: Physical-world operations. Leave the apartment., order: 10}
+law: {title: LAW, description: Lawyers and subpoenas and consequences., order: 11}
+system: {title: SYSTEM, description: Game and session control., order: 12}
+admin: {title: ADMIN, description: Settings and housekeeping., order: 13}

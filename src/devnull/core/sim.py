@@ -29,7 +29,7 @@ DEFAULT_PEOPLE = REPO_ROOT / "data" / "people.yaml"
 DEFAULT_MARKET = REPO_ROOT / "data" / "market.yaml"
 DEFAULT_NEWS = REPO_ROOT / "data" / "news.yaml"
 DEFAULT_RESEARCH = REPO_ROOT / "data" / "research.yaml"
-DEFAULT_COMMANDS = REPO_ROOT / "data" / "commands.yaml"
+DEFAULT_COMMANDS = REPO_ROOT / "data" / "commands"      # a folder: one file per group, see README.txt
 
 
 def load_rules(path: Path = DEFAULT_RULES, people_path: Path = DEFAULT_PEOPLE) -> dict[str, Any]:
@@ -52,7 +52,7 @@ def load_rules(path: Path = DEFAULT_RULES, people_path: Path = DEFAULT_PEOPLE) -
         problems = cmdtable.check(data, rules=rules)
         if problems:
             raise cmdtable.CommandFileError(
-                f"{DEFAULT_COMMANDS.name} has {len(problems)} problem(s):\n  - " + "\n  - ".join(problems))
+                f"data/{DEFAULT_COMMANDS.name}/ has {len(problems)} problem(s):\n  - " + "\n  - ".join(problems))
         rules["cmdset"] = cmdtable.CommandSet(data)           # resolves what the player types
         rules["commands"] = cmdtable.to_legacy(data)           # the shape apply_commands and the docs read
         apply_commands(rules)
@@ -60,13 +60,13 @@ def load_rules(path: Path = DEFAULT_RULES, people_path: Path = DEFAULT_PEOPLE) -
 
 
 def unlock_spec(c: dict[str, Any]) -> dict[str, Any]:
-    """commands.yaml `unlock`: day1 / admin mean no state condition; a dict is the condition."""
+    """command table `unlock`: day1 / admin mean no state condition; a dict is the condition."""
     u = c.get("unlock")
     return dict(u) if isinstance(u, dict) else {}
 
 
 def apply_commands(rules: dict[str, Any]) -> None:
-    """data/commands.yaml is the one place for hours, cost, help text, unlocks and needs.
+    """data/commands/ is the one place for hours, cost, help text, unlocks and needs.
     It overrides those fields on the matching actions, shop items and people actions.
     Effects and odds stay in slice_rules.yaml and people.yaml (the `rule` field names them)."""
     cmds = rules["commands"]["commands"]

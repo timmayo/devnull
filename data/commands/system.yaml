@@ -1,0 +1,92 @@
+# SYSTEM - Game and session control.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: show_status
+  description: 'Show your status: energy, money, heat, and the day.'
+- name: advance_day
+  description: End the day and start the next. 1 turn = 1 day.
+- name: save_game
+  description: Save your game.
+- name: load_game
+  description: Load a saved game.
+- name: view_inventory
+  description: List the gear and items you carry.
+- name: read_log
+  description: Read your mission log and journal.
+- name: show_map
+  description: Show the map of your city.
+- name: show_help
+  description: Show help for a command, with examples.
+- name: quit_game
+  description: Quit to the desktop.
+- name: show_heat
+  description: Show how much heat police, FBI, and NSA have on you.
+- name: status
+  description: hours, cash, heat, burnout, legibility, skills, laptop
+  status: implemented
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_status
+  always_available: true
+- name: seed
+  description: show this run's seed, so you can replay it
+  status: implemented
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_seed
+  always_available: true
+  examples:
+  - cmd: seed
+    shows: 'Seed: 729164256 (replay this run with: devnull --seed 729164256)'
+- name: commands
+  description: what you can do now
+  status: implemented
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_commands
+  always_available: true
+- name: help
+  description: the basics
+  status: implemented
+  aliases: [h, '?']
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_help
+  always_available: true
+- name: sleep
+  description: end the day
+  status: implemented
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_sleep
+  always_available: true
+- name: wait
+  description: skip ahead (default 7); stops early if something happens
+  status: implemented
+  syntax: wait [<days>]
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_wait
+  always_available: true
+- name: quit
+  description: leave
+  status: implemented
+  aliases: [exit]
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_quit
+  always_available: true
+- name: inventory
+  description: List what you're carrying
+  aliases: [inv, i]
+  contexts: [world, shell]
+  handler: cmd_inventory
+- name: save
+  description: Save your progress
+  contexts: [world, shell]
+  handler: cmd_save
+- name: terminal
+  description: Open your laptop terminal
+  aliases: [laptop, sh]
+  requires: [laptop_powered]
+  handler: cmd_open_terminal

@@ -1,0 +1,48 @@
+# FIELD - Physical-world operations. Leave the apartment.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: photograph_site
+  description: Photograph a substation, perimeter, or license plates.
+  cost: {hours: 2}
+- name: plant_device
+  description: Plant a rogue device or access point.
+  requires: {item_implant: 1}
+  cost: {hours: 2}
+- name: tailgate_building
+  description: Follow someone through a badge door.
+  requires: {skill_social: 10}
+  cost: {hours: 2}
+- name: tail_target
+  description: Tail a lobbyist or executive.
+  requires: {targets_profiled: 1}
+  cost: {hours: 3}
+- name: dumpster_dive
+  description: Dig through office trash. Smelly, and sometimes gold.
+  cost: {hours: 3}
+- name: attend_conference
+  description: Attend a tech conference or job fair. Good for meeting people.
+  cost: {hours: 6, money: 100}
+- name: stake_out_datacenter
+  description: Case or stake out a data center.
+  requires: {datacenter_mapped: 1}
+  cost: {hours: 4}
+- name: drop_usb
+  description: Drop a USB or use a dead drop.
+  requires: {item_usb: 1}
+  cost: {hours: 1}
+- name: join_protest
+  description: Join or stage a protest.
+  cost: {hours: 3}
+- name: wardrive_district
+  description: Wardrive the business district for wireless targets.
+  requires: [laptop_powered, {item_sdr_radio: 1}]
+  cost: {hours: 3}
+- name: go
+  description: Travel to a location (costs time)
+  syntax: go <place>
+  aliases: [walk, travel]
+  handler: cmd_go
+  args:
+  - name: place
+    type: location
+    required: true

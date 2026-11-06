@@ -1,0 +1,64 @@
+# LAW - Lawyers and subpoenas and consequences.
+# One command per entry. Format: see README.txt in this folder.
+
+- name: hire_lawyer
+  description: Hire or consult a lawyer.
+  requires: {cash: 300}
+  cost: {hours: 2, money: 300}
+- name: answer_subpoena
+  description: Respond to a subpoena. Ignoring it is worse.
+  requires: {subpoena_pending: 1}
+  hidden_until: {subpoena_pending: 1}
+  cost: {hours: 2}
+- name: refuse_interview
+  description: Refuse a police or FBI interview. Take the Fifth.
+  requires: {police_contact: 1}
+  hidden_until: {police_contact: 1}
+  cost: {hours: 1}
+- name: file_complaint
+  description: File a whistleblower complaint.
+  requires: {item_evidence: 1}
+  cost: {hours: 3}
+- name: destroy_evidence
+  description: Destroy evidence. Buys safety and costs options.
+  requires: {item_evidence: 1}
+  cost: {hours: 1}
+- name: check_exposure
+  description: Check how much legal exposure you have.
+  cost: {hours: 1}
+- name: file_foia
+  description: File a federal FOIA request or appeal.
+  requires: [laptop_powered]
+  cost: {hours: 1, money: 20}
+- name: contact_aclu
+  description: Contact the ACLU or a civil liberties group.
+  hidden_until: {heat: 20}
+  cost: {hours: 1}
+- name: challenge_warrant
+  description: Challenge a warrant.
+  requires: {warrant_served: 1, lawyer_hired: 1}
+  hidden_until: {warrant_served: 1}
+  cost: {hours: 3}
+- name: take_plea
+  description: Take a plea deal. Ends the case, and probably the campaign.
+  requires: {charge_pending: 1}
+  hidden_until: {charge_pending: 1}
+  cost: {hours: 2}
+- name: verify
+  description: Corroborate what you hold. Makes publishing and court safer.
+  status: implemented
+  requires: {evidence: 10}
+  hidden_until: {evidence: 1}
+  cost: {hours: 2}
+  handler: cmd_action
+  rule: verify
+  locked_message: You have little to verify.
+- name: file
+  description: File a lawsuit. Costs $300; takes months; strength depends on your evidence.
+  status: implemented
+  requires: {evidence: 20, cash: 300}
+  hidden_until: {evidence: 15}
+  cost: {hours: 3}
+  handler: cmd_action
+  rule: file
+  locked_message: You need evidence worth filing, $300, and no case already open.
