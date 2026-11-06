@@ -1,0 +1,6 @@
+/dev/null TODO (small reminders; the big plan lives in design.md)
+
+[ ] Unify skill variable names. The game uses `skills` and `sk_<topic>` (sk_network_security);
+    planned commands use `skill_<topic>` (skill_hacking, skill_finance ...). Pick one scheme,
+    rename in data/commands/variables.yaml and the planned commands, and run
+    .\tools\cmdtree.cmd --check --deep.

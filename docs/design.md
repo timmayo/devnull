@@ -202,6 +202,8 @@ The in-game `commands` screen is built from the same table. `tools/cmdtree.py --
 game's startup run the same checks. `status` is always available. Admin mode (`--admin`, or type `admin`) unlocks
 everything and adds `admin set|skill|reveal|spawn|unlock|hours|skip`.
 
+**Saving.** `save [name]` writes one JSON file; `load` lists saves, `load <n or name>` loads one. The game autosaves each morning and when you quit, and `play.cmd --continue` (or `--load NAME`, `--saves`) resumes a run. A save holds everything that changes in play (state, people with their hidden traits, pending results, log, market path, the random generator), so a loaded run plays out exactly like the unsaved one. Rules and city data are read fresh on load. Saves live in `%APPDATA%\devnull\saves` (set `DEVNULL_SAVES` to move them) and are per PC. Code: `core/save.py`.
+
 ## 5d. Events, meetings and the tape
 
 **Gatherings.** Meetings and real events are one list. The digest shows TODAY

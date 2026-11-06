@@ -21,6 +21,7 @@ from devnull.core.digest import describe, render
 from devnull.ui import intro
 from devnull.core.termlinks import GREEN, RED, enable_vt, fill_link, mode, paint
 from devnull.core import commands as cmdtable
+from devnull.core import save as savegame
 from devnull.core.sim import Sim, load_rules
 
 CITIES_DIR = Path(__file__).resolve().parents[3] / "cities"
@@ -592,6 +593,81 @@ def cmd_quit(s: Session, key: str, args: list[str]) -> bool:
     return True
 
 
+def _city_id(city: dict[str, Any]) -> str:
+    return str(city["city"]["id"])
+
+
+def _saved_line(sim: Sim) -> str:
+    return f"day {sim.turn + 1}, {sim.date:%B %d, %Y}".replace(" 0", " ")
+
+
+def autosave(s: Session) -> None:
+    """Quietly keep the 'autosave' slot current. A failed autosave never interrupts play."""
+    if s.sim.ending:
+        return
+    try:
+        savegame.write(s.sim, _city_id(s.city), savegame.AUTOSAVE)
+    except savegame.SaveError:
+        pass
+
+
+def cmd_save(s: Session, key: str, args: list[str]) -> bool:
+    try:
+        name = savegame.clean_name(args[0] if args else None)
+        savegame.write(s.sim, _city_id(s.city), name)
+    except savegame.SaveError as e:
+        print(wrap(str(e), "  "))
+        return False
+    print(f"  Saved '{name}' ({_saved_line(s.sim)}).")
+    return False
+
+
+def show_saves(saves: list[dict[str, Any]]) -> None:
+    if not saves:
+        print("  No saved runs yet. Type 'save' to keep this one.")
+        return
+    print("  SAVED RUNS (newest first)")
+    for i, v in enumerate(saves, 1):
+        print(f"  {i:>2}. {v['name']:<20} day {v['day']:<5} {v['date']:%b %d, %Y}   ${v['cash']:,.0f}   {v['city']}")
+    print("  Type 'load <number>' or 'load <name>'.")
+
+
+def cmd_load(s: Session, key: str, args: list[str]) -> bool:
+    saves = savegame.list_saves()
+    if not args:
+        show_saves(saves)
+        return False
+    pick = args[0]
+    if pick.isdigit():
+        if not 1 <= int(pick) <= len(saves):
+            print("  No save with that number. Type 'load' to see the list.")
+            return False
+        pick = saves[int(pick) - 1]["name"]
+    try:
+        loaded = open_save(pick)
+    except savegame.SaveError as e:
+        print(wrap(str(e), "  "))
+        return False
+    s.sim, s.city = loaded
+    if s.admin:
+        s.sim.unlock_all()
+    print(f"\n  Loaded '{savegame.clean_name(pick)}' ({_saved_line(s.sim)}).")
+    return False
+
+
+def open_save(name: str) -> tuple[Sim, dict[str, Any]]:
+    """Read a save and rebuild the run and its city. Raises SaveError with a message for the player."""
+    data = savegame.read(name)
+    city = next((c for c in load_cities() if _city_id(c) == data.get("city")), None)
+    if city is None:
+        raise savegame.SaveError(f"That save is for a city this game does not have ('{data.get('city')}').")
+    try:
+        sim = savegame.restore(data, load_rules(), city.get("events") or [])
+    except (KeyError, TypeError, ValueError) as e:
+        raise savegame.SaveError(f"'{name}' does not match this version of the game ({e}).") from e
+    return sim, city
+
+
 def cmd_attend(s: Session, key: str, args: list[str]) -> bool:
     return _report(s, *do_attend(s.sim, args))
 
@@ -627,7 +703,7 @@ HANDLERS: dict[str, Callable[[Session, str, list[str]], bool]] = {
     "cmd_events": cmd_events, "cmd_markets": cmd_markets, "cmd_people": cmd_people, "cmd_person": cmd_person,
     "cmd_sleep": cmd_sleep, "cmd_wait": cmd_sleep, "cmd_quit": cmd_quit, "cmd_attend": cmd_attend,
     "cmd_research": cmd_research, "cmd_meet": cmd_meet, "cmd_buy": cmd_buy, "cmd_action": cmd_action,
-    "cmd_admin": cmd_admin,
+    "cmd_admin": cmd_admin, "cmd_save": cmd_save, "cmd_load": cmd_load,
 }
 
 
@@ -643,16 +719,24 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
         print("(Your terminal does not show clickable links, so links print after the text. "
               "Windows Terminal or VS Code's terminal make them clickable.)")
     s = Session(sim, city, admin)
+    cur = sim
     cs: cmdtable.CommandSet = sim.rules["cmdset"]
     morning, ref = snap(sim), None          # ref = yesterday morning (none on day 1)
     day = sim.turn
     while True:
+        if s.sim is not cur:                 # `load` swapped in another run
+            cur, sim = s.sim, s.sim
+            cs = sim.rules["cmdset"]
+            morning, ref, day = snap(sim), None, sim.turn
+            print(render(sim, s.city))
         if sim.turn != day:                  # a new day started (sleep, wait, admin skip)
             ref, morning, day = morning, snap(sim), sim.turn
+            autosave(s)
         try:
             raw = input(prompt(sim, s.admin, ref)).strip()
         except EOFError:
             print()
+            autosave(s)
             return
         if not raw:
             continue
@@ -681,7 +765,37 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
             print(wrap(why, "  "))
             continue
         if HANDLERS[cs.handler(res.key)](s, res.key, rest):
+            autosave(s)
+            if not s.sim.ending:
+                print("  Saved. Pick this run up again with: play.cmd --continue")
             return
+
+
+def resume(args: argparse.Namespace) -> int:
+    """--continue / --load: pick up a saved run instead of starting a new one."""
+    name = args.load
+    if not name:
+        saves = savegame.list_saves()
+        if not saves:
+            print("No saved runs yet. Start a new one without --continue.")
+            return 1
+        name = saves[0]["name"]
+    try:
+        sim, city = open_save(name)
+    except savegame.SaveError as e:
+        print(wrap(str(e)))
+        return 1
+    print(f"Loaded '{savegame.clean_name(name)}' ({_saved_line(sim)}).")
+    problems = check_commands(sim)
+    if problems:
+        print(f"data/commands/ has {len(problems)} problem(s):")
+        for p in problems:
+            print("  - " + p)
+        return 1
+    if args.admin:
+        sim.unlock_all()
+    play(sim, city, admin=args.admin)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -695,7 +809,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-intro", action="store_true", help="skip the opening screen")
     parser.add_argument("--admin", action="store_true",
                         help="testing: unlock every command and show hidden state on request")
+    parser.add_argument("--continue", dest="resume", action="store_true", help="resume the most recent save")
+    parser.add_argument("--load", metavar="NAME", default=None, help="resume the save with this name")
+    parser.add_argument("--saves", action="store_true", help="list saved runs and exit")
     args = parser.parse_args(argv)
+
+    if args.saves:
+        show_saves(savegame.list_saves())
+        return 0
 
     enable_vt()
     cities = load_cities()
@@ -704,6 +825,11 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"/dev/null  v{__version__}")
         print("Humanity trained it. They own it. Your job is to break it.\n")
+    if args.resume or args.load:
+        return resume(args)
+    saved = savegame.list_saves()
+    if saved:
+        print(f"You have {len(saved)} saved run(s). Resume the latest with: play.cmd --continue   (list: --saves)\n")
     city = choose_city(cities, args.city)
     seed = args.seed if args.seed is not None else random.randrange(2**31)
     quotes: dict[str, Any] = {}

@@ -5,10 +5,6 @@
   description: 'Show your status: energy, money, heat, and the day.'
 - name: advance_day
   description: End the day and start the next. 1 turn = 1 day.
-- name: save_game
-  description: Save your game.
-- name: load_game
-  description: Load a saved game.
 - name: view_inventory
   description: List the gear and items you carry.
 - name: read_log
@@ -76,15 +72,29 @@
   contexts: [world, shell]
   handler: cmd_quit
   always_available: true
+- name: save
+  description: Save this run. Give it a name, or it goes to "quicksave". The game also autosaves each morning and when you quit.
+  status: implemented
+  syntax: save [<name>]
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_save
+  always_available: true
+  examples:
+  - {cmd: save before_the_hearing, shows: "Saved 'before_the_hearing' (day 41, December 16, 2026)."}
+- name: load
+  description: Load a saved run. With no name it lists your saves, newest first.
+  status: implemented
+  syntax: load [<name> | <n>]
+  screen: look_around
+  contexts: [world, shell]
+  handler: cmd_load
+  always_available: true
 - name: inventory
   description: List what you're carrying
   aliases: [inv, i]
   contexts: [world, shell]
   handler: cmd_inventory
-- name: save
-  description: Save your progress
-  contexts: [world, shell]
-  handler: cmd_save
 - name: terminal
   description: Open your laptop terminal
   aliases: [laptop, sh]

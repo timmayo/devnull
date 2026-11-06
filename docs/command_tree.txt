@@ -166,11 +166,9 @@ commands
 │   ├── take_plea [requires: charge_pending>=1] [hidden until: charge_pending>=1] [planned] (2h) - Take a plea deal. Ends the case, and probably the campaign.
 │   ├── verify [requires: evidence>=10] [hidden until: evidence>=1] (2h) - Corroborate what you hold. Makes publishing and court safer.
 │   └── file [requires: evidence>=20, cash>=300] [hidden until: evidence>=15] (3h) - File a lawsuit. Costs $300; takes months; strength depends on your evidence.
-├── SYSTEM [system] (20) - Game and session control.
+├── SYSTEM [system] (19) - Game and session control.
 │   ├── show_status [planned] - Show your status: energy, money, heat, and the day.
 │   ├── advance_day [planned] - End the day and start the next. 1 turn = 1 day.
-│   ├── save_game [planned] - Save your game.
-│   ├── load_game [planned] - Load a saved game.
 │   ├── view_inventory [planned] - List the gear and items you carry.
 │   ├── read_log [planned] - Read your mission log and journal.
 │   ├── show_map [planned] - Show the map of your city.
@@ -184,8 +182,9 @@ commands
 │   ├── sleep - end the day
 │   ├── wait - skip ahead (default 7); stops early if something happens
 │   ├── quit (exit) - leave
+│   ├── save - Save this run. Give it a name, or it goes to "quicksave". The game also autosaves each morning and when you quit.
+│   ├── load - Load a saved run. With no name it lists your saves, newest first.
 │   ├── inventory (inv, i) [planned] - List what you're carrying
-│   ├── save [planned] - Save your progress
 │   └── terminal (laptop, sh) [requires: laptop_powered] [planned] - Open your laptop terminal
 └── ADMIN [admin] (18) - Settings and housekeeping.
     ├── set_difficulty [planned] - Change the difficulty.
@@ -545,7 +544,7 @@ needs
 ├── warrant_served>=1 (1)
 │   ├── challenge_warrant [requires: warrant_served>=1, lawyer_hired>=1] [hidden until: warrant_served>=1] [planned] (3h) - Challenge a warrant.
 │   └── challenge_warrant [requires: warrant_served>=1, lawyer_hired>=1] [hidden until: warrant_served>=1] [planned] (3h) - Challenge a warrant.
-└── (no requirement - always usable) (83)
+└── (no requirement - always usable) (82)
     ├── pay_bills [planned] (1h, $650) - Pay rent and utilities. Miss it and the landlord notices.
     ├── sleep_night [planned] (8h) - Sleep a full night. Restores energy and focus.
     ├── cook_meal [planned] (1h, $5) - Cook something cheap. Keeps you fed without wrecking the budget.
@@ -594,8 +593,6 @@ needs
     ├── contact_aclu [hidden until: heat>=20] [planned] (1h) - Contact the ACLU or a civil liberties group.
     ├── show_status [planned] - Show your status: energy, money, heat, and the day.
     ├── advance_day [planned] - End the day and start the next. 1 turn = 1 day.
-    ├── save_game [planned] - Save your game.
-    ├── load_game [planned] - Load a saved game.
     ├── view_inventory [planned] - List the gear and items you carry.
     ├── read_log [planned] - Read your mission log and journal.
     ├── show_map [planned] - Show the map of your city.
@@ -609,8 +606,9 @@ needs
     ├── sleep - end the day
     ├── wait - skip ahead (default 7); stops early if something happens
     ├── quit (exit) - leave
+    ├── save - Save this run. Give it a name, or it goes to "quicksave". The game also autosaves each morning and when you quit.
+    ├── load - Load a saved run. With no name it lists your saves, newest first.
     ├── inventory (inv, i) [planned] - List what you're carrying
-    ├── save [planned] - Save your progress
     ├── set_difficulty [planned] - Change the difficulty.
     ├── export_log [planned] - Export your log, save, or transcript.
     ├── edit_profile [planned] - Edit your player profile or rename your handle.

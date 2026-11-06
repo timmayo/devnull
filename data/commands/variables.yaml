@@ -23,6 +23,7 @@ terms: {hint: You need a signed agreement first.}
 trust: {hint: 'Needs trust {n}+.'}
 
 # ---- planned: not in the game yet
+# TODO: skill names are inconsistent (live: skills, sk_<topic>; planned: skill_<topic>). See docs/TODO.txt.
 access_foothold: {hint: You need a foothold first.}
 apartment_days: {hint: Give it a few days first.}
 charge_pending: {hint: No charge is pending.}
