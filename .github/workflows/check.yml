@@ -38,6 +38,9 @@ jobs:
       - name: A short run plays through
         run: python tools/run_slice.py --seeds 2 --policy idle
 
+      - name: City status (a report; blockers must be zero to ship a city)
+        run: python tools/citycheck.py --quiet
+
       - name: Command map builds
         run: python tools/cmdview.py --out "$RUNNER_TEMP/command_viewer.html"
 
