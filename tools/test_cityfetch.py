@@ -91,6 +91,9 @@ def main() -> int:
         STATE["text"] = "Nine members."                  # what a reader sees changes
         expect("a text change is CHANGED", states(lock)["council"], "CHANGED")
         expect("a missing lock file reads as empty", cf.read_lock(Path(tmp) / "none.yaml"), {})
+    live = {"city": data["city"], "resources": [{"id": "feed", "kind": "feed", "url": base + "/council"}]}
+    STATE["text"] = "A"; lk = {"feed": {"hash": "old"}}
+    expect("a feed whose content changed is still ok", cf.check_resources(live, lk, timeout=3)[0]["state"], "ok")
     srv.shutdown()
     print("\nall passed" if not bad else f"\n{bad} FAILED")
     return 1 if bad else 0

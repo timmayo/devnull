@@ -8,6 +8,7 @@
 
 Each resource in a city file (resources: with a url) is fetched. The result is one of:
     ok        works, same content as the last saved check
+    (feeds are only checked for reachability: their content changes daily)
     NEW       works, nothing saved yet to compare with (run with --update to save it)
     CHANGED   works, but the page text differs from the last saved check: re-read it, a fact may be out of date
     MOVED     works, but the address redirects somewhere else: update the url in the city file
@@ -107,6 +108,8 @@ def check_resources(data: dict[str, Any], lock: dict[str, Any], getter: Fetcher 
         prev = lock.get(row["id"]) or {}
         if not same_address(url, got["final_url"]):
             row["state"], row["detail"] = "MOVED", f"now {got['final_url']}"
+        elif r.get("kind") == "feed":                    # headlines change every day; only reachability matters
+            row["state"] = "ok"
         elif not prev.get("hash"):
             row["state"], row["detail"] = "NEW", "no saved check to compare with"
         elif prev["hash"] != row["hash"]:
