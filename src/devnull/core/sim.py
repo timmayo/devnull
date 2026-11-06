@@ -22,6 +22,7 @@ from typing import Any, Callable
 import yaml
 
 from devnull.core import commands as cmdtable
+from devnull.core import responses
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RULES = REPO_ROOT / "data" / "slice_rules.yaml"
@@ -29,6 +30,7 @@ DEFAULT_PEOPLE = REPO_ROOT / "data" / "people.yaml"
 DEFAULT_MARKET = REPO_ROOT / "data" / "market.yaml"
 DEFAULT_NEWS = REPO_ROOT / "data" / "news.yaml"
 DEFAULT_RESEARCH = REPO_ROOT / "data" / "research.yaml"
+DEFAULT_RESPONSES = REPO_ROOT / "data" / "responses.yaml"
 DEFAULT_COMMANDS = REPO_ROOT / "data" / "commands"      # a folder: one file per group, see README.txt
 
 
@@ -47,6 +49,9 @@ def load_rules(path: Path = DEFAULT_RULES, people_path: Path = DEFAULT_PEOPLE) -
     if DEFAULT_NEWS.exists():
         with open(DEFAULT_NEWS, encoding="utf-8") as f:
             rules["news"] = yaml.safe_load(f)
+    if DEFAULT_RESPONSES.exists():
+        with open(DEFAULT_RESPONSES, encoding="utf-8") as f:
+            rules["responses"] = yaml.safe_load(f)               # the establishment's answers, see responses.py
     if DEFAULT_COMMANDS.exists():
         data = cmdtable.load_file(DEFAULT_COMMANDS, catalogs={
             "shop": rules.get("shop") or {}, "people_actions": (rules.get("people") or {}).get("people_actions") or {}})
@@ -793,10 +798,12 @@ class Sim:
             return False, [reason]
         tokens = text.replace(":", " ").split()
         msgs: list[str] = []
+        keys: list[str] = [tokens[0]]          # what the establishment sees (see responses.py)
         if tokens[0] == "attend":
             key, m = self._meeting_choice(tokens[1] if len(tokens) > 1 else None)
             self.hours_left -= m["hours"]
             base = self.rules["actions"]["attend"]
+            keys = [f"attend.{key}", "attend"]
             msgs.append(f"You go to {place(m)}.")
             for var, eff in base["effects"].items():
                 self._apply_effect(var, eff, scale=m["mult"].get(var, 1.0))
@@ -804,10 +811,14 @@ class Sim:
             self.event("attended", key)
         elif tokens[0] == "meet":
             msgs = self._do_person_action(self.person(int(tokens[1])), tokens[2])
+            keys = [f"meet.{tokens[2]}", "meet"]
         elif tokens[0] == "research":
-            msgs = self._do_research(self.research_topic(tokens[1]), tokens[2] if len(tokens) > 2 else "online")
+            topic = self.research_topic(tokens[1])
+            msgs = self._do_research(topic, tokens[2] if len(tokens) > 2 else "online")
+            keys = [f"research.{topic}", "research"]
         else:
             spec = self.action_spec(text)
+            keys = [f"buy.{tokens[1]}", "buy"] if tokens[0] == "buy" and len(tokens) > 1 else [tokens[0]]
             self.hours_left -= spec["hours"]
             if spec.get("done"):
                 msgs.append(spec["done"])
@@ -820,9 +831,21 @@ class Sim:
                 for var, ex in self.rules["tethered_extra"].items():
                     self.state[var] += evaluate(ex, self.state, self.rng)
                     self._clamp(var)
+        msgs += self._establishment_answers(keys)
         self._refresh_derived()
         self._refresh_unlocks()
         return True, msgs
+
+    def _establishment_answers(self, keys: list[str]) -> list[str]:
+        """Whoever is watching may answer what the player just did (data/responses.yaml). Active from day 1."""
+        out: list[str] = []
+        for a in responses.answers(self.rules.get("responses"), self.state, self.rng, keys):
+            for var, value in a.effects.items():
+                self.state[var] += value
+                self._clamp(var)
+            out.append(f"[{a.title}] {a.msg}")
+            self.event("response", {"by": a.watcher, "id": a.id, "action": a.action})
+        return out
 
     def end_day(self) -> None:
         """The world moves and the date advances."""

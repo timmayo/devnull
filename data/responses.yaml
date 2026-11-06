@@ -1,0 +1,128 @@
+# THE ESTABLISHMENT ANSWERS BACK
+#
+# Every action the player takes can draw a response from someone who is watching. They are active from
+# day 1: nothing has to unlock first. Three pieces:
+#
+#   footprints   how likely each watcher is to notice and answer an action (0 to 1, before attention).
+#                An action not listed here draws no response. Keys are the action name (hack, leak, feed ...)
+#                or, for the verbs with items, <verb>.<item> (buy.vpn, meet.bribe, research.network_security,
+#                attend.<kind>). The specific key wins; otherwise the plain verb (buy, meet, research) is used.
+#   watchers     who they are. `attention` scales their chance with the state of the world:
+#                chance = footprint x max(0.25, min(3, attention)), where attention = bias + sum(coef x value).
+#   responses    what a watcher does when it answers: one is picked by `weight` among those whose `if` holds
+#                (`if` = each value at least that number). `effects` change game values; a number is exact,
+#                [low, high] is a random value in that range. Static numbers are fine for now.
+#
+# Values: heat, legibility, case_file: higher is worse for the player. cover, cred: higher is better.
+# opinion: negative is pressure on the AI industry, so a PR push is a positive number.
+# Checked by: python tools/cmdtree.py --check --deep (names, ranges, real game values). Shown in the command map.
+
+watchers:
+  megacorp:
+    title: Mega Corp
+    attention: { bias: 1.0, terms: { opinion: -0.012, public_concern: 0.01, case_file: 0.004 } }
+    responses:
+      - { id: pr_push,    weight: 4, effects: { opinion: [1, 3], public_concern: -1 },
+          msg: "Its PR team floods the feeds with a friendly counter-story." }
+      - { id: smear,      weight: 2, effects: { cred: -3 },
+          msg: "A paid blogger starts questioning your credibility." }
+      - { id: legal_letter, weight: 2, if: { case_file: 10 }, effects: { cash: [-200, -100], burnout: 3 },
+          msg: "Their lawyers send a cease-and-desist. The reply costs you." }
+      - { id: lobby,      weight: 2, effects: { regulation: -2 },
+          msg: "Lobbyists lean on the regulators." }
+      - { id: hire_pi,    weight: 1.5, effects: { case_file: 4, legibility: 2 },
+          msg: "They quietly put someone on you: your name is in a file now." }
+
+  ai:
+    title: The AI
+    attention: { bias: 0.6, terms: { ai: 0.012 } }
+    responses:
+      - { id: anomaly_flag, weight: 4, effects: { legibility: 3, heat: 2 },
+          msg: "An anomaly detector flags your activity and passes it up." }
+      - { id: steer,        weight: 2, effects: { opinion: 1.5 },
+          msg: "The feeds subtly tilt against you. Your point lands a little softer." }
+      - { id: more_compute, weight: 1.5, effects: { ai: 0.5 },
+          msg: "Someone grants the system more compute to handle 'threats'." }
+
+  government:
+    title: Government
+    attention: { bias: 0.8, terms: { public_concern: 0.012, regulation: -0.006 } }
+    responses:
+      - { id: inquiry,   weight: 3, effects: { heat: 2, legibility: 2 },
+          msg: "An agency sends a routine-sounding inquiry about you." }
+      - { id: stall,     weight: 3, effects: { public_concern: -1 },
+          msg: "The agency stalls, and the story loses a little steam." }
+      - { id: dismiss,   weight: 2, effects: { opinion: 1.5, cred: -2 },
+          msg: "An official publicly dismisses your claims." }
+      - { id: subpoena,  weight: 1.5, if: { case_file: 15 }, effects: { cash: -120, case_file: 3, burnout: 4 },
+          msg: "A subpoena arrives. Lawyers are not cheap." }
+
+  fbi:
+    title: FBI
+    attention: { bias: 0.5, terms: { case_file: 0.03, heat: 0.01 } }
+    responses:
+      - { id: open_file, weight: 3, effects: { case_file: 5, heat: 3 },
+          msg: "An agent opens a preliminary file with your name on it." }
+      - { id: surveil,   weight: 2, effects: { legibility: 3, cover: -2, burnout: 2 },
+          msg: "A car you do not recognize is parked outside for two days." }
+      - { id: interview, weight: 2, if: { case_file: 20 }, effects: { heat: 6, cover: -4, burnout: 4 },
+          msg: "Two agents knock and ask a few friendly questions." }
+      - { id: warrant,   weight: 0.4, if: { case_file: 60 }, effects: { heat: 15, cash: -200, case_file: 10 },
+          msg: "Agents arrive with a search warrant. They take their time." }
+
+  nsa:
+    title: NSA
+    attention: { bias: 0.8, terms: { legibility: 0.02, nsa: 0.006 } }
+    responses:
+      - { id: collect,   weight: 5, effects: { legibility: 2, case_file: 1 },
+          msg: "Your traffic is collected and added to a profile." }
+      - { id: throttle,  weight: 1.5, effects: { burnout: 2, legibility: 1 },
+          msg: "Your connection stutters and your accounts ask you to re-verify." }
+      - { id: tip,       weight: 1, if: { case_file: 25 }, effects: { case_file: 4 },
+          msg: "A tip reaches the FBI from nowhere in particular." }
+
+  pi:
+    title: Private investigator
+    attention: { bias: 0.6, terms: { case_file: 0.02, opinion: -0.008 } }
+    responses:
+      - { id: tail,     weight: 4, effects: { legibility: 3, cover: -3 },
+          msg: "A man with a long lens photographs you leaving home." }
+      - { id: trash,    weight: 2, effects: { case_file: 3, heat: 1 },
+          msg: "Someone has gone through your trash." }
+      - { id: pretext,  weight: 2, effects: { cover: -4, legibility: 2 },
+          msg: "A 'survey caller' asks your neighbors about you." }
+      - { id: bait,     weight: 1, if: { case_file: 10 }, effects: { cred: -2 },
+          msg: "An old acquaintance suddenly wants to meet. It feels off." }
+
+footprints:
+  # ---- online and technical
+  hack:           { megacorp: 0.30, nsa: 0.30, fbi: 0.20, ai: 0.20, pi: 0.05 }
+  trace:          { megacorp: 0.12, pi: 0.12, nsa: 0.10, ai: 0.08, fbi: 0.03 }
+  records:        { government: 0.30, megacorp: 0.08, pi: 0.05, nsa: 0.05 }
+  feed:           { ai: 0.20, megacorp: 0.15, nsa: 0.10, government: 0.05, pi: 0.05 }
+  trade:          { ai: 0.05, nsa: 0.04, government: 0.02 }
+  install_linux:  { nsa: 0.06, ai: 0.05 }
+  # ---- going public
+  leak:           { megacorp: 0.35, pi: 0.20, government: 0.12, fbi: 0.12, nsa: 0.12, ai: 0.08 }
+  file:           { megacorp: 0.60, pi: 0.25, government: 0.20, fbi: 0.10 }
+  negotiate:      { megacorp: 0.30, government: 0.30, pi: 0.10 }
+  maintain:       { megacorp: 0.10, government: 0.08 }
+  verify:         { pi: 0.05, megacorp: 0.05 }
+  attend:         { pi: 0.12, megacorp: 0.10, government: 0.08, fbi: 0.05, nsa: 0.05 }
+  lay_low:        { pi: 0.03 }
+  # ---- things you study or buy (specific items override the plain verb)
+  research:       { ai: 0.03, nsa: 0.02 }
+  research.network_security: { nsa: 0.10, ai: 0.05 }
+  research.social_engineering: { pi: 0.05, nsa: 0.04 }
+  buy:            { nsa: 0.03 }
+  buy.vpn:          { nsa: 0.05 }
+  buy.used_laptop:  { fbi: 0.10, nsa: 0.10 }
+  buy.anon_accounts: { nsa: 0.12, ai: 0.08, fbi: 0.06 }
+  buy.burner_phone: { nsa: 0.04, pi: 0.03 }
+  # ---- people
+  meet.bribe:     { fbi: 0.20, pi: 0.10, government: 0.10 }
+  meet.extort:    { fbi: 0.25, pi: 0.15 }
+  meet.recruit:   { pi: 0.10, megacorp: 0.05 }
+  meet.confide:   { pi: 0.05 }
+  meet.flirt:     { pi: 0.04 }
+  # not listed = no response: extra_shift, rest, browse_store, upgrade_store, upgrade_npc, meet.coffee ...

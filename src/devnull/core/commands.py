@@ -26,6 +26,8 @@ from typing import Any, Collection, Iterable, Mapping
 
 import yaml
 
+from devnull.core import responses
+
 try:                                            # the C parser is ~50x faster; plain PyYAML is the fallback
     _Loader: Any = yaml.CSafeLoader
 except AttributeError:                          # pragma: no cover
@@ -476,6 +478,8 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
         for a in ((rules.get("people") or {}).get("people_actions") or {}):
             if f"people_actions.{a}" not in have:
                 problems.append(f"people action '{a}' has no command (add one with rule: people_actions.{a})")
+    if rules is not None and rules.get("responses"):
+        problems += responses.check(rules["responses"], state_keys, rules)
     return problems
 
 

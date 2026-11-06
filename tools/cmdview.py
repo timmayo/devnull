@@ -7,7 +7,7 @@
 
 The page is a single self-contained file (no internet, no server). Rebuild it after you change data/.
 It shows: every command by group with what it needs and costs, every game variable with what needs it and what
-changes it, the path a player must take to unlock any command, and a health list (check problems, dead ends).
+changes it, the path a player must take to unlock any command, who answers each action (data/responses.yaml), and a health list (check problems, dead ends).
 Read-only: you still edit the YAML files and rebuild.
 """
 from __future__ import annotations
@@ -148,6 +148,30 @@ def effects_index(src: dict[str, Any], cmds: dict[str, Any]) -> list[dict[str, A
 
 # ---------------------------------------------------------------- the data blob
 
+def responses_blob() -> dict[str, Any]:
+    """data/responses.yaml for the page: who watches, what each can do, and how likely each action is to draw them."""
+    from devnull.core import responses as rsp
+    f = DATA / "responses.yaml"
+    if not f.exists():
+        return {"watchers": [], "footprints": []}
+    resp = read_yaml(f)
+    watchers = []
+    for wid, w in resp["watchers"].items():
+        share = dict(rsp.odds(resp, wid))
+        watchers.append({"id": wid, "title": w.get("title", wid), "attention": w.get("attention") or {},
+                         "responses": [{"id": str(r["id"]), "msg": r.get("msg", ""), "effects": r.get("effects") or {},
+                                        "if": r.get("if") or {}, "weight": r.get("weight", 1),
+                                        "share": share[str(r["id"])]} for r in w.get("responses") or []]})
+    return {"watchers": watchers, "footprints": [{"key": k, "odds": dict(v or {})} for k, v in resp["footprints"].items()]}
+
+
+def footprint_keys(c: dict[str, Any], gen: dict[str, str] | None) -> list[str]:
+    """The keys the game looks up for this command, most specific first (see core/responses.py)."""
+    if gen:
+        return [f"{gen['verb']}.{gen['item']}", gen["verb"]]
+    return [c["name"]]
+
+
 def build(deep: bool = True) -> dict[str, Any]:
     data = ct.load_file(DATA / "commands")
     src = load_sources()
@@ -179,6 +203,13 @@ def build(deep: bool = True) -> dict[str, Any]:
             "locked_message": c.get("locked_message"), "online": bool(c.get("online")),
             "examples": c.get("examples") or [],
         })
+    resp = responses_blob()
+    fp = {f["key"]: f["odds"] for f in resp["footprints"]}
+    for oc in out_cmds:
+        for key in footprint_keys(oc, oc["gen"]):
+            if key in fp:
+                oc["footprint"] = {"key": key, "odds": fp[key]}
+                break
     fx = effects_index(src, cmds)
     start = src["rules"].get("start") or {}
     all_vars: dict[str, dict[str, Any]] = {}
@@ -208,7 +239,7 @@ def build(deep: bool = True) -> dict[str, Any]:
         "gates": {g: {"description": (d or {}).get("description", ""), "planned": bool((d or {}).get("planned")),
                       "special": (d or {}).get("special"), "when": (d or {}).get("when") or {}} for g, d in gates.items()},
         "commands": out_cmds, "variables": sorted(all_vars.values(), key=lambda v: v["name"]),
-        "effects": fx, "problems": problems, "deep": deep,
+        "effects": fx, "problems": problems, "deep": deep, "responses": resp,
     }
 
 

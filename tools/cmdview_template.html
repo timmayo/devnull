@@ -38,6 +38,15 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;padding:18p
 .card{background:var(--panel);border:1px solid var(--line);border-radius:8px}
 .pad{padding:14px 16px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
+table.matrix{border-collapse:collapse;width:100%;font-size:13px}
+table.matrix th,table.matrix td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:center}
+table.matrix th{font-weight:600;cursor:pointer;color:var(--muted);position:sticky;top:0;background:var(--panel)}
+table.matrix th.sel{color:var(--accent);box-shadow:inset 0 -2px var(--accent)}
+table.matrix td.key{text-align:left;font-family:var(--mono);cursor:pointer}
+table.matrix td.key:hover{color:var(--accent)}
+table.matrix td.p{font-family:var(--mono)}
+.fx-bad{color:var(--bad)} .fx-good{color:var(--good)}
+.bar{display:inline-block;height:8px;border-radius:4px;background:var(--accent);vertical-align:middle;margin-right:6px}
 .chip{display:inline-block;border-radius:999px;padding:1px 8px;font:12px/1.5 var(--mono);white-space:nowrap}
 .chip.state{background:var(--state-bg);color:var(--state)}
 .chip.person{background:var(--person-bg);color:var(--person)}
@@ -97,6 +106,7 @@ td.mono{font-family:var(--mono);font-size:12px}
       <button role="tab" data-tab="commands">Commands</button>
       <button role="tab" data-tab="variables">Variables</button>
       <button role="tab" data-tab="path">Unlock path</button>
+      <button role="tab" data-tab="responses">Responses</button>
       <button role="tab" data-tab="health">Health</button>
     </nav>
   </div>
@@ -140,7 +150,7 @@ const kids = {};
 for (const c of D.commands) if (c.parent && byName[c.parent]) (kids[c.parent] ||= []).push(c.name);
 
 // ---- state
-const S = {tab:"commands", sel:null, selVar:null, q:"", group:"", status:"", ctx:"", sort:"name", path:null,
+const S = {tab:"commands", sel:null, selVar:null, selWatcher:null, q:"", group:"", status:"", ctx:"", sort:"name", path:null,
   openGroups:new Set(), openPath:new Set()};   // everything starts collapsed; what you open stays open
 
 // ---- small renderers
@@ -347,6 +357,10 @@ function detailCmd(c){
     c.locked_message ? h("p",{class:"note"}, `When blocked the player sees: "${c.locked_message}"`) : null));
   out.push(...section("Appears when", c.always ? h("p",{class:"note"}, "Always visible.") : c.hidden.length ? h("div",{class:"chips"}, c.hidden.map(chipFor)) : h("p",{class:"note"}, "From the start.")));
   if (e.length) out.push(...section("What it changes", h("ul",{class:"plain"}, e.map(x => h("li",{}, goVar(x.var), " ", h("span",{class:`dir-${x.dir}`}, x.how), x.via ? h("span",{class:"note"}, ` · ${x.via}`) : null)))));
+  if (c.footprint) out.push(...section("Who answers it", h("div",{class:"chips"},
+    Object.entries(c.footprint.odds).sort((a,b)=>b[1]-a[1]).map(([w,p]) => h("span",{class:"chip bad", title:"base chance, before how closely they are watching"}, `${watcherTitle(w)} ${Math.round(p*100)}%`))),
+    h("p",{class:"note"}, `Base chance each time you do this (from ${c.footprint.key}). It rises as they watch you more.`)));
+  else if (c.live && c.handler && !kids[c.name]) out.push(...section("Who answers it", h("p",{class:"note"}, "Nobody. This action draws no response.")));
   if (kids[c.name]) out.push(...section("Options", h("ul",{class:"plain"}, kids[c.name].map(k=>h("li",{}, goCmd(k, byName[k].syntax), h("span",{class:"note"}, "  " + byName[k].desc))))));
   if (c.parent) out.push(...section("Part of", h("p",{}, goCmd(c.parent))));
   out.push(...section("Where it lives", h("dl",{class:"kv"},
@@ -374,7 +388,8 @@ function detailVar(v){
 }
 function renderDetail(){
   const box = $("#detail"); box.replaceChildren();
-  if (S.tab === "path" && S.path && byName[S.path]) box.append(...detailCmd(byName[S.path]).filter(Boolean));
+  if (S.tab === "responses" && S.selWatcher && watcherById[S.selWatcher]) box.append(...detailWatcher(watcherById[S.selWatcher]).filter(Boolean));
+  else if (S.tab === "path" && S.path && byName[S.path]) box.append(...detailCmd(byName[S.path]).filter(Boolean));
   else if (S.tab === "variables" && S.selVar && varMap[S.selVar]) box.append(...detailVar(varMap[S.selVar]).filter(Boolean));
   else if (S.sel && byName[S.sel]) box.append(...detailCmd(byName[S.sel]).filter(Boolean));
   else if (S.selVar && varMap[S.selVar]) box.append(...detailVar(varMap[S.selVar]).filter(Boolean));
@@ -384,9 +399,50 @@ function renderDetail(){
 // ---- wiring
 function pickCmd(name){ S.sel = name; S.selVar = null; if (S.tab === "variables" || S.tab === "health") { S.tab = "commands"; } render(); }
 function pickVar(name){ S.selVar = name; S.sel = null; S.tab = "variables"; render(); }
+const R = D.responses || {watchers:[], footprints:[]};
+const watcherById = Object.fromEntries(R.watchers.map(w => [w.id, w]));
+function watcherTitle(id){ return (watcherById[id] || {}).title || id; }
+function commandForKey(key){
+  const [verb, item] = key.split(".");
+  return byName[item ? `${verb}_${item}` : verb] || null;
+}
+function fxChip(v, x){
+  const txt = Array.isArray(x) ? `${x[0]} to ${x[1]}` : (x > 0 ? `+${x}` : `${x}`);
+  return h("span",{class:"chip state"}, `${v} ${txt}`);
+}
+function viewResponses(){
+  if (!R.watchers.length) return h("div",{class:"card empty"}, "No data/responses.yaml found.");
+  const rows = R.footprints.slice().sort((a,b) => Object.values(b.odds).reduce((x,y)=>x+y,0) - Object.values(a.odds).reduce((x,y)=>x+y,0));
+  const q = S.q.toLowerCase();
+  const shown = rows.filter(r => !q || r.key.toLowerCase().includes(q));
+  const head = h("tr",{}, h("th",{style:"text-align:left"}, "Action"),
+    ...R.watchers.map(w => h("th",{class: S.selWatcher===w.id ? "sel":"", onclick:()=>{ S.selWatcher = w.id; S.sel = null; render(); }}, w.title)));
+  const body = shown.map(r => h("tr",{},
+    h("td",{class:"key", onclick:()=>{ const c = commandForKey(r.key); if (c){ S.sel = c.name; S.selWatcher = null; render(); } }}, r.key),
+    ...R.watchers.map(w => { const p = r.odds[w.id];
+      return h("td",{class:"p", style: p ? `background:color-mix(in srgb, var(--bad) ${Math.min(70, p*170)}%, transparent)` : ""}, p ? `${Math.round(p*100)}%` : ""); })));
+  const quiet = D.commands.filter(c => c.live && c.handler && !kids[c.name] && !c.footprint && !c.group.match(/^(system|admin)$/)).map(c => c.name);
+  return h("div",{},
+    h("div",{class:"card pad"},
+      h("p",{class:"note", style:"margin:0 0 10px"}, "How likely each watcher is to answer each action, before attention (how closely they are looking). Active from day 1. Click a column for what that watcher does; click an action for its command."),
+      h("div",{style:"overflow:auto"}, h("table",{class:"matrix"}, h("thead",{}, head), h("tbody",{}, body)))),
+    h("div",{class:"card pad", style:"margin-top:14px"}, h("h3",{style:"margin-top:0"}, "No response"),
+      h("p",{class:"note"}, "Live actions that draw nothing: ", quiet.length ? quiet.join(", ") : "none")));
+}
+function detailWatcher(w){
+  const a = w.attention || {};
+  const out = [h("h2",{}, w.title), h("p",{class:"note"}, "Attention multiplies every chance in its column (kept between 0.25 and 3):"),
+    h("p",{}, h("code",{}, `${a.bias ?? 1}` + Object.entries(a.terms||{}).map(([v,c]) => ` ${c<0?"-":"+"} ${Math.abs(c)}×${v}`).join("")))];
+  out.push(...section("What it does", h("div",{}, w.responses.map(r => h("div",{style:"margin:0 0 12px"},
+    h("div",{}, h("span",{class:"bar", style:`width:${Math.round(r.share*80)}px`}), h("b",{class:"mono"}, r.id), h("span",{class:"note"}, `  ${Math.round(r.share*100)}% of its answers (weight ${r.weight})`)),
+    h("div",{class:"note"}, `"${r.msg}"`),
+    h("div",{class:"chips", style:"margin-top:4px"}, Object.entries(r.effects).map(([v,x]) => fxChip(v,x)),
+      Object.keys(r.if).length ? h("span",{class:"note"}, "only if " + Object.entries(r.if).map(([v,n]) => `${v} ≥ ${n}`).join(", ")) : null))))));
+  return out;
+}
 function render(){
   for (const b of document.querySelectorAll("#tabs button")) b.setAttribute("aria-selected", b.dataset.tab === S.tab);
-  const v = {commands:viewCommands, variables:viewVariables, path:viewPath, health:viewHealth}[S.tab]();
+  const v = {commands:viewCommands, variables:viewVariables, path:viewPath, responses:viewResponses, health:viewHealth}[S.tab]();
   $("#view").replaceChildren(v);
   renderDetail();
   history.replaceState(null, "", "#" + S.tab + (S.sel ? "/" + S.sel : S.selVar ? "/" + S.selVar : ""));
@@ -395,7 +451,7 @@ $("#sub").textContent = `Built ${D.generated} from data/commands/ and the rules 
 $("#q").addEventListener("input", e => { S.q = e.target.value; render(); });
 $("#tabs").addEventListener("click", e => { const t = e.target.dataset.tab; if (t){ S.tab = t; render(); } });
 const hash = location.hash.slice(1).split("/");
-if (["commands","variables","path","health"].includes(hash[0])) S.tab = hash[0];
+if (["commands","variables","path","responses","health"].includes(hash[0])) S.tab = hash[0];
 if (hash[1]){ if (byName[hash[1]]) S.sel = hash[1]; else if (varMap[hash[1]]) S.selVar = hash[1]; if (S.tab === "path" && S.sel) S.path = S.sel; }
 render();
 </script>
