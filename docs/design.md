@@ -1,6 +1,6 @@
 # /dev/null: design doc
 
-*Take the Power Back!*
+*Humanity trained it. They own it. Your job is to break it.*
 
 Status: early design. This is a working document; expect it to change.
 
