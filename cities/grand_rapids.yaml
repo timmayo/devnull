@@ -5,6 +5,8 @@ city:
   id: grand_rapids
   display_name: "Grand Rapids"
   state: "Michigan"
+  content_version: "0.1"        # this city's content, shown as <city> <content_version>. 1.0 = ready to ship (tools/citycheck.py --release)
+  min_game_version: "0.0.1"     # the oldest game that can play this file
 
 # ---------------------------------------------------------------
 # REAL LAYER: facts only. Every entry needs a source and a date.

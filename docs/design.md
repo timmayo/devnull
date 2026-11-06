@@ -165,6 +165,27 @@ The player selects a real city, and it keeps its real name. Real structure and c
 2. Vertical slice (~30 minutes of play): AI Capability, Market Sentiment, Public Opinion, Legibility, Cash, Heat, NPC Trust, Police Case File, FBI Open Case Status, NSA Collection Coverage; 5 NPCs; one clock; one ending.
 3. Content as data: events, NPCs, companies, and dialogue in YAML, simulation in code, seeded RNG, plain-text saves.
 
+## 10. Releases and cities
+
+The game ships as `MAJOR.MINOR`. **A major version adds a city; a minor version adds features for one city.** The number the player sees is a content version, not semver: engine work that helps every city (more actions, commands, watchers) ships in whichever release is next and is listed apart from the city headline in the changelog. Save compatibility is tracked separately (`save_version` in every save). Each city file carries its own `city.content_version` and `city.min_game_version`, so a save can say "Grand Rapids 1.2".
+
+| Version | What it is |
+|---|---|
+| 0.x | Building Grand Rapids toward 1.0 (the current state). |
+| 1.0 | Grand Rapids, complete enough to ship. |
+| 1.1, 1.2 ... | Grand Rapids features, for example the local cast, then the zoning storyline. |
+| 2.0 | The second city. Grand Rapids stays playable; each new city is a data pack, not engine work. |
+
+**1.0 release criteria** (all must hold):
+- `python tools/citycheck.py --release` passes: every real fact researched, sourced and confirmed (no `VERIFY` left), the real-officials blocklist filled from published rosters, name pools and dated events in place.
+- The city's real rules drive its mechanics (the planned `mechanics:` block: records timing, lawsuit window, election calendar, zoning stages) and the player chooses a home neighborhood and day job at setup.
+- `data/`, `cities/` and `pools/` are packaged so an installed copy finds them.
+- A LICENSE, and the attorney review of the media/IP risk and the title (see section 7 and section 8, question 9).
+- A licensed market-data feed in place of the free quotes.
+- CI is green.
+
+**A new city (the next major version)** needs: its `cities/<id>.yaml` passing `citycheck.py --release`, a bot balance run on it, and its own blocklist, name pool and researched events. The per-city research and legal work, not the code, is the cost of each major version. `.\tools\check.cmd` prints each city's status.
+
 ## 5c. People, meetings, and what you can see
 
 **Opening sentiment.** Every run starts with two opposed views, and the first

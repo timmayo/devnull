@@ -23,6 +23,9 @@ echo == save and load
 echo == a short run plays through
 "%PY%" "%ROOT%\tools\run_slice.py" --seeds 2 --policy idle > nul && echo OK || set FAIL=1
 
+echo == city status (a report: blockers must be zero to ship a city)
+"%PY%" "%ROOT%\tools\citycheck.py" --quiet
+
 echo == docs\command_tree.txt rebuilt (commit it if git shows a change)
 "%PY%" "%ROOT%\tools\gen_docs.py" || set FAIL=1
 
