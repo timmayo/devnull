@@ -23,7 +23,7 @@ commands
 │   ├── monitor_scanner [requires: item_sdr_radio>=1] [planned] (2h) - Listen to police traffic. Shows patrols and responses.
 │   ├── read_earnings [requires: laptop_powered] [hidden until: recon_actions>=3] [planned] (1h) - Read earnings call transcripts for plans the company won't say in public.
 │   ├── read_zoning [requires: laptop_powered] [planned] (1h) - Read zoning filings. Spots rezonings before the public does.
-│   ├── follow_lobbyist [requires: skill_research>=10] [hidden until: targets_profiled>=1] [planned] (3h) - Track a lobbyist's travel and calendar.
+│   ├── follow_lobbyist [requires: sk_research_archives>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Track a lobbyist's travel and calendar.
 │   ├── track_dockets [requires: laptop_powered] [hidden until: datacenter_mapped>=1] [planned] (2h) - Follow utility and power dockets. Data centers need power, and the filings show how much.
 │   ├── events - today's list and the week ahead (30 days with 'more')
 │   │   └── attend (2h) - Go to something on today (see events). Moves opinion; you may meet people.
@@ -33,28 +33,28 @@ commands
 │   ├── research (2h) - Study a topic (a menu): levels you up and opens new abilities. Online, at the library, or a paid course.
 │   └── look (l) [planned] - Describe your surroundings or something in them
 ├── HACK [hack] (13) - Attacks and tools against networks. Needs a laptop and skill.
-│   ├── scan_network [requires: laptop_powered, skill_hacking>=5] [planned] (2h) - Scan a target network for open doors.
-│   ├── phish_employee [requires: laptop_powered, skill_hacking>=10] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
-│   ├── crack_password [requires: laptop_powered, skill_hacking>=5] [planned] (2h) - Crack a weak password or Wi-Fi key.
+│   ├── scan_network [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Scan a target network for open doors.
+│   ├── phish_employee [requires: laptop_powered, sk_network_security>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
+│   ├── crack_password [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Crack a weak password or Wi-Fi key.
 │   ├── exfiltrate_files [requires: laptop_powered, access_foothold>=1] [planned] (2h) - Pull files or a database out of a compromised system.
 │   ├── wipe_traces [requires: laptop_powered, access_foothold>=1] [planned] (1h) - Erase logs and traces of your access. Lowers heat.
-│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, skill_hacking>=20] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
-│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, skill_hacking>=30] [hidden until: skill_hacking>=20] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
-│   ├── deface_page [requires: laptop_powered, skill_hacking>=10] [planned] (2h) - Replace a corporate page with your message. Loud, and it brings heat.
-│   ├── spoof_identity [requires: laptop_powered, skill_hacking>=15] [planned] (2h) - Spoof a badge, login, caller ID, or sensor feed.
-│   ├── disrupt_cooling [requires: laptop_powered, access_foothold>=1, skill_hacking>=40] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
+│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, sk_network_security>=2] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
+│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: sk_network_security>=2] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
+│   ├── deface_page [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Replace a corporate page with your message. Loud, and it brings heat.
+│   ├── spoof_identity [requires: laptop_powered, sk_network_security>=2] [planned] (2h) - Spoof a badge, login, caller ID, or sensor feed.
+│   ├── disrupt_cooling [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
 │   ├── hack [requires: has_linux_laptop, skills>=15, sk_network_security>=1] [hidden until: os>=1] (3h) - Breach a system. Real evidence, real risk. Needs Linux and skill.
 │   ├── scan [requires: laptop_powered, has_network, learned_nmap] [planned] (1h) - Scan a host for open services
 │   └── connect (ssh) [requires: laptop_powered, has_network] [planned] - Open a session on a host you have access to
 ├── INFLUENCE [influence] (12) - The information war. Leaks and rumors and public pressure.
 │   ├── leak_document [requires: item_document>=1, contacts_press>=1] [planned] (2h) - Hand a document to a journalist. Can't be taken back.
 │   ├── seed_rumor [requires: laptop_powered] [planned] (1h) - Plant a rumor on a local forum. Cheap, deniable, hard to control.
-│   ├── run_sockpuppets [requires: laptop_powered, skill_social>=10] [planned] (2h) - Run a network of fake accounts to amplify your message.
+│   ├── run_sockpuppets [requires: laptop_powered, sk_organizing>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
 │   ├── write_oped [requires: laptop_powered] [planned] (3h) - Write an anonymous op-ed or blog post.
 │   ├── start_hashtag [requires: network_sockpuppets>=1] [planned] (1h) - Start or hijack a hashtag. Needs accounts to push it.
-│   ├── release_deepfake [requires: laptop_powered, skill_media>=20] [hidden until: skill_media>=10] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
+│   ├── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
 │   ├── counter_narrative [requires: laptop_powered] [hidden until: press_release_seen>=1] [planned] (2h) - Rebut a press release or counter a smear.
-│   ├── host_podcast [requires: laptop_powered, skill_social>=10] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
+│   ├── host_podcast [requires: laptop_powered, sk_organizing>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
 │   ├── flood_comments [requires: network_sockpuppets>=1] [hidden until: comment_docket_open>=1] [planned] (2h) - Flood a public comment docket with fake and real voices.
 │   ├── launch_petition [requires: laptop_powered] [planned] (2h) - Start an online petition drive.
 │   ├── feed (1h) - Post. Moves opinion, makes noise.
@@ -83,7 +83,7 @@ commands
 │   ├── trade_crypto [requires: laptop_powered, cash>=100] [planned] (1h) - Trade or mine crypto. Volatile.
 │   ├── cut_subscriptions [planned] (1h) - Cancel subscriptions and trim expenses.
 │   ├── pay_debt [requires: cash>=200] [planned] (1h) - Pay down debt. Lowers monthly pressure.
-│   ├── open_shell [requires: cash>=300] [hidden until: skill_finance>=10] [planned] (3h, $300) - Open a shell LLC. A front for money, accounts, and gear.
+│   ├── open_shell [requires: cash>=300] [hidden until: sk_finance>=1] [planned] (3h, $300) - Open a shell LLC. A front for money, accounts, and gear.
 │   └── trade (1h) - Small trades. Pays when market sentiment is up.
 ├── PEOPLE [people] (23) - NPC relationships. Options open as trust deepens.
 │   ├── call_sister [planned] (1h) - Check in with family. Skip it too long and it wears on you.
@@ -92,7 +92,7 @@ commands
 │   ├── confide_friend [requires: person.trust>=15] [hidden until: person.meetings>=3] [planned] (2h) - Share something real. Builds trust fast.
 │   ├── date_coworker [requires: person.trust>=10] [hidden until: person.meetings>=3] [planned] (2h, $40) - Time off the clock. Comfort, and a risk to your cover.
 │   ├── cultivate_journalist [requires: person.trust>=20] [hidden until: contacts_press>=1] [planned] (2h, $20) - Feed a reporter small truths. They remember who was useful.
-│   ├── recruit_hacker [requires: person.trust>=30, skill_hacking>=10] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
+│   ├── recruit_hacker [requires: person.trust>=30, sk_network_security>=1] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
 │   ├── bribe_clerk [requires: person.trust>=10] [hidden until: person.meetings>=4, person.trust>=25] [planned] (1h, $150) - Pay for records. Works on the corruptible; can be reported.
 │   ├── recruit_whistleblower [requires: person.trust>=40] [hidden until: contacts_insiders>=1] [planned] (2h) - Ask an insider to go on the record. Risky for them and for you.
 │   ├── cut_liability [hidden until: person_suspicion>=30] [planned] (1h) - Drop a contact who has become a risk. They may not go quietly.
@@ -114,11 +114,11 @@ commands
 │   ├── buy_faraday [requires: cash>=20] [planned] (1h, $20) - Buy a Faraday pouch. Blocks signals when you need silence.
 │   ├── rent_cloud [requires: laptop_powered, cash>=15] [planned] (1h, $15) - Rent a cloud server with cash-bought credits.
 │   ├── buy_laptop [requires: cash>=300] [planned] (2h, $300) - Buy a used laptop. Old, but the battery holds.
-│   ├── build_implant [requires: skill_hacking>=15, item_raspberry_pi>=1] [hidden until: skill_hacking>=10] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
+│   ├── build_implant [requires: sk_network_security>=2, item_raspberry_pi>=1] [hidden until: sk_network_security>=1] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
 │   ├── buy_radio [requires: cash>=80] [planned] (1h, $80) - Buy a software-defined radio. Listens to what shouldn't be heard.
 │   ├── upgrade_router [requires: cash>=60] [planned] (2h, $60) - Upgrade the home router or internet. Faster, harder to snoop on.
 │   ├── upgrade_laptop [requires: laptop>=1, cash>=120] [planned] (2h, $120) - Upgrade laptop RAM and SSD. Faster cracking and less waiting.
-│   ├── buy_keylogger [requires: cash>=40] [hidden until: skill_hacking>=10] [planned] (1h, $40) - Buy a hardware keylogger.
+│   ├── buy_keylogger [requires: cash>=40] [hidden until: sk_network_security>=1] [planned] (1h, $40) - Buy a hardware keylogger.
 │   ├── repair_equipment [requires: item_broken>=1] [planned] (2h, $30) - Repair broken gear. Cheaper than replacing it.
 │   ├── install_linux [requires: lead_linux>=1, laptop>=1] [hidden until: lead_linux>=1] (3h) - Install Linux next to Windows 11.
 │   ├── browse_store (2h) - Walk the electronics and pawn shops.
@@ -144,7 +144,7 @@ commands
 ├── FIELD [field] (11) - Physical-world operations. Leave the apartment.
 │   ├── photograph_site [planned] (2h) - Photograph a substation, perimeter, or license plates.
 │   ├── plant_device [requires: item_implant>=1] [planned] (2h) - Plant a rogue device or access point.
-│   ├── tailgate_building [requires: skill_social>=10] [planned] (2h) - Follow someone through a badge door.
+│   ├── tailgate_building [requires: sk_organizing>=1] [planned] (2h) - Follow someone through a badge door.
 │   ├── tail_target [requires: targets_profiled>=1] [planned] (3h) - Tail a lobbyist or executive.
 │   ├── dumpster_dive [planned] (3h) - Dig through office trash. Smelly, and sometimes gold.
 │   ├── attend_conference [planned] (6h, $100) - Attend a tech conference or job fair. Good for meeting people.
@@ -230,24 +230,24 @@ needs
 │   ├── read_earnings [requires: laptop_powered] [hidden until: recon_actions>=3] [planned] (1h) - Read earnings call transcripts for plans the company won't say in public.
 │   ├── read_zoning [requires: laptop_powered] [planned] (1h) - Read zoning filings. Spots rezonings before the public does.
 │   ├── track_dockets [requires: laptop_powered] [hidden until: datacenter_mapped>=1] [planned] (2h) - Follow utility and power dockets. Data centers need power, and the filings show how much.
-│   ├── scan_network [requires: laptop_powered, skill_hacking>=5] [planned] (2h) - Scan a target network for open doors.
-│   ├── phish_employee [requires: laptop_powered, skill_hacking>=10] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
-│   ├── crack_password [requires: laptop_powered, skill_hacking>=5] [planned] (2h) - Crack a weak password or Wi-Fi key.
+│   ├── scan_network [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Scan a target network for open doors.
+│   ├── phish_employee [requires: laptop_powered, sk_network_security>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
+│   ├── crack_password [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Crack a weak password or Wi-Fi key.
 │   ├── exfiltrate_files [requires: laptop_powered, access_foothold>=1] [planned] (2h) - Pull files or a database out of a compromised system.
 │   ├── wipe_traces [requires: laptop_powered, access_foothold>=1] [planned] (1h) - Erase logs and traces of your access. Lowers heat.
-│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, skill_hacking>=20] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
-│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, skill_hacking>=30] [hidden until: skill_hacking>=20] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
-│   ├── deface_page [requires: laptop_powered, skill_hacking>=10] [planned] (2h) - Replace a corporate page with your message. Loud, and it brings heat.
-│   ├── spoof_identity [requires: laptop_powered, skill_hacking>=15] [planned] (2h) - Spoof a badge, login, caller ID, or sensor feed.
-│   ├── disrupt_cooling [requires: laptop_powered, access_foothold>=1, skill_hacking>=40] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
+│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, sk_network_security>=2] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
+│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: sk_network_security>=2] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
+│   ├── deface_page [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Replace a corporate page with your message. Loud, and it brings heat.
+│   ├── spoof_identity [requires: laptop_powered, sk_network_security>=2] [planned] (2h) - Spoof a badge, login, caller ID, or sensor feed.
+│   ├── disrupt_cooling [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
 │   ├── scan [requires: laptop_powered, has_network, learned_nmap] [planned] (1h) - Scan a host for open services
 │   ├── connect (ssh) [requires: laptop_powered, has_network] [planned] - Open a session on a host you have access to
 │   ├── seed_rumor [requires: laptop_powered] [planned] (1h) - Plant a rumor on a local forum. Cheap, deniable, hard to control.
-│   ├── run_sockpuppets [requires: laptop_powered, skill_social>=10] [planned] (2h) - Run a network of fake accounts to amplify your message.
+│   ├── run_sockpuppets [requires: laptop_powered, sk_organizing>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
 │   ├── write_oped [requires: laptop_powered] [planned] (3h) - Write an anonymous op-ed or blog post.
-│   ├── release_deepfake [requires: laptop_powered, skill_media>=20] [hidden until: skill_media>=10] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
+│   ├── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
 │   ├── counter_narrative [requires: laptop_powered] [hidden until: press_release_seen>=1] [planned] (2h) - Rebut a press release or counter a smear.
-│   ├── host_podcast [requires: laptop_powered, skill_social>=10] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
+│   ├── host_podcast [requires: laptop_powered, sk_organizing>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
 │   ├── launch_petition [requires: laptop_powered] [planned] (2h) - Start an online petition drive.
 │   ├── file_records [requires: laptop_powered] [planned] (1h, $15) - File an open-records request. Slow, but legal and hard to refuse.
 │   ├── short_stock [requires: laptop_powered, cash>=500] [planned] (1h, $500) - Short a data center stock. Pays if your work lands.
@@ -269,9 +269,9 @@ needs
 ├── access_foothold>=1 (5)
 │   ├── exfiltrate_files [requires: laptop_powered, access_foothold>=1] [planned] (2h) - Pull files or a database out of a compromised system.
 │   ├── wipe_traces [requires: laptop_powered, access_foothold>=1] [planned] (1h) - Erase logs and traces of your access. Lowers heat.
-│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, skill_hacking>=20] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
-│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, skill_hacking>=30] [hidden until: skill_hacking>=20] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
-│   └── disrupt_cooling [requires: laptop_powered, access_foothold>=1, skill_hacking>=40] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
+│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, sk_network_security>=2] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
+│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: sk_network_security>=2] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
+│   └── disrupt_cooling [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
 ├── apartment_days>=3 (1)
 │   └── befriend_neighbor [hidden until: apartment_days>=3] [planned] (1h) - Small talk now, favors later.
 ├── cash>=100 (1)
@@ -288,12 +288,12 @@ needs
 │   ├── back_candidate [requires: cash>=200] [hidden until: council_attended>=2] [planned] (4h, $200) - Back a council or school board candidate with time and money.
 │   └── pay_debt [requires: cash>=200] [planned] (1h) - Pay down debt. Lowers monthly pressure.
 ├── cash>=300 (4)
-│   ├── open_shell [requires: cash>=300] [hidden until: skill_finance>=10] [planned] (3h, $300) - Open a shell LLC. A front for money, accounts, and gear.
+│   ├── open_shell [requires: cash>=300] [hidden until: sk_finance>=1] [planned] (3h, $300) - Open a shell LLC. A front for money, accounts, and gear.
 │   ├── buy_laptop [requires: cash>=300] [planned] (2h, $300) - Buy a used laptop. Old, but the battery holds.
 │   ├── hire_lawyer [requires: cash>=300] [planned] (2h, $300) - Hire or consult a lawyer.
 │   └── file [requires: evidence>=20, cash>=300] [hidden until: evidence>=15] (3h) - File a lawsuit. Costs $300; takes months; strength depends on your evidence.
 ├── cash>=40 (1)
-│   └── buy_keylogger [requires: cash>=40] [hidden until: skill_hacking>=10] [planned] (1h, $40) - Buy a hardware keylogger.
+│   └── buy_keylogger [requires: cash>=40] [hidden until: sk_network_security>=1] [planned] (1h, $40) - Buy a hardware keylogger.
 ├── cash>=420 (1)
 │   └── upgrade_store [requires: lead_store>=1, cash>=420] [hidden until: lead_store>=1] (2h) - Buy a used laptop with a working battery ($420).
 ├── cash>=500 (2)
@@ -335,7 +335,7 @@ needs
 │   └── buy_anon_accounts [hidden until: darknet>=1] (1h, $120) - Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.
 ├── datacenter_mapped>=1 (3)
 │   ├── track_dockets [requires: laptop_powered] [hidden until: datacenter_mapped>=1] [planned] (2h) - Follow utility and power dockets. Data centers need power, and the filings show how much.
-│   ├── disrupt_cooling [requires: laptop_powered, access_foothold>=1, skill_hacking>=40] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
+│   ├── disrupt_cooling [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
 │   └── stake_out_datacenter [requires: datacenter_mapped>=1] [planned] (4h) - Case or stake out a data center.
 ├── day>=7 (1)
 │   └── take_shift [requires: job_employed>=1] [hidden until: day>=7] [planned] (4h) - Pick up overtime, a side gig, or a quick fix. Cash now, energy later.
@@ -375,7 +375,7 @@ needs
 ├── item_implant>=1 (1)
 │   └── plant_device [requires: item_implant>=1] [planned] (2h) - Plant a rogue device or access point.
 ├── item_raspberry_pi>=1 (1)
-│   └── build_implant [requires: skill_hacking>=15, item_raspberry_pi>=1] [hidden until: skill_hacking>=10] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
+│   └── build_implant [requires: sk_network_security>=2, item_raspberry_pi>=1] [hidden until: sk_network_security>=1] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
 ├── item_sdr_radio>=1 (3)
 │   ├── monitor_scanner [requires: item_sdr_radio>=1] [planned] (2h) - Listen to police traffic. Shows patrols and responses.
 │   ├── sweep_apartment [requires: item_sdr_radio>=1] [planned] (2h) - Sweep your apartment for bugs.
@@ -428,7 +428,7 @@ needs
 ├── person.meetings>=3 (6)
 │   ├── confide_friend [requires: person.trust>=15] [hidden until: person.meetings>=3] [planned] (2h) - Share something real. Builds trust fast.
 │   ├── date_coworker [requires: person.trust>=10] [hidden until: person.meetings>=3] [planned] (2h, $40) - Time off the clock. Comfort, and a risk to your cover.
-│   ├── recruit_hacker [requires: person.trust>=30, skill_hacking>=10] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
+│   ├── recruit_hacker [requires: person.trust>=30, sk_network_security>=1] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
 │   ├── meet_confide [requires: person.trust>=15] [hidden until: person.meetings>=3, person.trust>=20] (2h) - Share something real. Builds trust fast, and puts you in their hands.
 │   ├── meet_flirt [requires: person.trust>=10] [hidden until: person.meetings>=3, person.trust>=25] (2h, $15) - Charm them. It can help, or go badly wrong.
 │   └── meet_extort [requires: person.leverage>=1] [hidden until: person.meetings>=3, person.trust>=20, person.leverage>=1] (2h) - Use what you know about them. They must have something to hide.
@@ -460,7 +460,7 @@ needs
 │   ├── meet_flirt [requires: person.trust>=10] [hidden until: person.meetings>=3, person.trust>=25] (2h, $15) - Charm them. It can help, or go badly wrong.
 │   └── meet_bribe [requires: person.trust>=10] [hidden until: person.meetings>=4, person.trust>=25] (1h, $150) - Pay for help. Works on the corruptible; can be reported by the honest.
 ├── person.trust>=30 (1)
-│   └── recruit_hacker [requires: person.trust>=30, skill_hacking>=10] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
+│   └── recruit_hacker [requires: person.trust>=30, sk_network_security>=1] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
 ├── person.trust>=40 (2)
 │   ├── recruit_whistleblower [requires: person.trust>=40] [hidden until: contacts_insiders>=1] [planned] (2h) - Ask an insider to go on the record. Risky for them and for you.
 │   └── meet_recruit [requires: person.trust>=50] [hidden until: person.meetings>=5, person.trust>=40] (2h) - Ask them to stand with you. A trusted ally helps every day.
@@ -488,39 +488,35 @@ needs
 │   └── crowdfund_cause [requires: laptop_powered, rep_public>=10] [planned] (2h) - Raise money from donors, by crowdfunding or direct ask.
 ├── research_dossier>=1 (1)
 │   └── testify_hearing [requires: council_attended>=2, research_dossier>=1] [hidden until: hearing_scheduled>=1] [planned] (4h) - Testify at a utility or state hearing.
-├── sk_network_security>=1 (1)
-│   └── hack [requires: has_linux_laptop, skills>=15, sk_network_security>=1] [hidden until: os>=1] (3h) - Breach a system. Real evidence, real risk. Needs Linux and skill.
-├── skill_finance>=10 (1)
-│   └── open_shell [requires: cash>=300] [hidden until: skill_finance>=10] [planned] (3h, $300) - Open a shell LLC. A front for money, accounts, and gear.
-├── skill_hacking>=10 (5)
-│   ├── phish_employee [requires: laptop_powered, skill_hacking>=10] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
-│   ├── deface_page [requires: laptop_powered, skill_hacking>=10] [planned] (2h) - Replace a corporate page with your message. Loud, and it brings heat.
-│   ├── recruit_hacker [requires: person.trust>=30, skill_hacking>=10] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
-│   ├── build_implant [requires: skill_hacking>=15, item_raspberry_pi>=1] [hidden until: skill_hacking>=10] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
-│   └── buy_keylogger [requires: cash>=40] [hidden until: skill_hacking>=10] [planned] (1h, $40) - Buy a hardware keylogger.
-├── skill_hacking>=15 (2)
-│   ├── spoof_identity [requires: laptop_powered, skill_hacking>=15] [planned] (2h) - Spoof a badge, login, caller ID, or sensor feed.
-│   └── build_implant [requires: skill_hacking>=15, item_raspberry_pi>=1] [hidden until: skill_hacking>=10] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
-├── skill_hacking>=20 (2)
-│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, skill_hacking>=20] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
-│   └── poison_dataset [requires: laptop_powered, access_foothold>=1, skill_hacking>=30] [hidden until: skill_hacking>=20] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
-├── skill_hacking>=30 (1)
-│   └── poison_dataset [requires: laptop_powered, access_foothold>=1, skill_hacking>=30] [hidden until: skill_hacking>=20] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
-├── skill_hacking>=40 (1)
-│   └── disrupt_cooling [requires: laptop_powered, access_foothold>=1, skill_hacking>=40] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
-├── skill_hacking>=5 (2)
-│   ├── scan_network [requires: laptop_powered, skill_hacking>=5] [planned] (2h) - Scan a target network for open doors.
-│   └── crack_password [requires: laptop_powered, skill_hacking>=5] [planned] (2h) - Crack a weak password or Wi-Fi key.
-├── skill_media>=10 (1)
-│   └── release_deepfake [requires: laptop_powered, skill_media>=20] [hidden until: skill_media>=10] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
-├── skill_media>=20 (1)
-│   └── release_deepfake [requires: laptop_powered, skill_media>=20] [hidden until: skill_media>=10] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
-├── skill_research>=10 (1)
-│   └── follow_lobbyist [requires: skill_research>=10] [hidden until: targets_profiled>=1] [planned] (3h) - Track a lobbyist's travel and calendar.
-├── skill_social>=10 (3)
-│   ├── run_sockpuppets [requires: laptop_powered, skill_social>=10] [planned] (2h) - Run a network of fake accounts to amplify your message.
-│   ├── host_podcast [requires: laptop_powered, skill_social>=10] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
-│   └── tailgate_building [requires: skill_social>=10] [planned] (2h) - Follow someone through a badge door.
+├── sk_finance>=1 (1)
+│   └── open_shell [requires: cash>=300] [hidden until: sk_finance>=1] [planned] (3h, $300) - Open a shell LLC. A front for money, accounts, and gear.
+├── sk_marketing>=1 (1)
+│   └── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
+├── sk_marketing>=2 (1)
+│   └── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
+├── sk_network_security>=1 (8)
+│   ├── scan_network [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Scan a target network for open doors.
+│   ├── phish_employee [requires: laptop_powered, sk_network_security>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
+│   ├── crack_password [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Crack a weak password or Wi-Fi key.
+│   ├── deface_page [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Replace a corporate page with your message. Loud, and it brings heat.
+│   ├── hack [requires: has_linux_laptop, skills>=15, sk_network_security>=1] [hidden until: os>=1] (3h) - Breach a system. Real evidence, real risk. Needs Linux and skill.
+│   ├── recruit_hacker [requires: person.trust>=30, sk_network_security>=1] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
+│   ├── build_implant [requires: sk_network_security>=2, item_raspberry_pi>=1] [hidden until: sk_network_security>=1] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
+│   └── buy_keylogger [requires: cash>=40] [hidden until: sk_network_security>=1] [planned] (1h, $40) - Buy a hardware keylogger.
+├── sk_network_security>=2 (4)
+│   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, sk_network_security>=2] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
+│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: sk_network_security>=2] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
+│   ├── spoof_identity [requires: laptop_powered, sk_network_security>=2] [planned] (2h) - Spoof a badge, login, caller ID, or sensor feed.
+│   └── build_implant [requires: sk_network_security>=2, item_raspberry_pi>=1] [hidden until: sk_network_security>=1] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
+├── sk_network_security>=3 (2)
+│   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: sk_network_security>=2] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
+│   └── disrupt_cooling [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
+├── sk_organizing>=1 (3)
+│   ├── run_sockpuppets [requires: laptop_powered, sk_organizing>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
+│   ├── host_podcast [requires: laptop_powered, sk_organizing>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
+│   └── tailgate_building [requires: sk_organizing>=1] [planned] (2h) - Follow someone through a badge door.
+├── sk_research_archives>=1 (1)
+│   └── follow_lobbyist [requires: sk_research_archives>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Track a lobbyist's travel and calendar.
 ├── skills>=15 (1)
 │   └── hack [requires: has_linux_laptop, skills>=15, sk_network_security>=1] [hidden until: os>=1] (3h) - Breach a system. Real evidence, real risk. Needs Linux and skill.
 ├── skills>=5 (1)
@@ -529,8 +525,8 @@ needs
 │   ├── answer_subpoena [requires: subpoena_pending>=1] [hidden until: subpoena_pending>=1] [planned] (2h) - Respond to a subpoena. Ignoring it is worse.
 │   └── answer_subpoena [requires: subpoena_pending>=1] [hidden until: subpoena_pending>=1] [planned] (2h) - Respond to a subpoena. Ignoring it is worse.
 ├── targets_profiled>=1 (3)
-│   ├── follow_lobbyist [requires: skill_research>=10] [hidden until: targets_profiled>=1] [planned] (3h) - Track a lobbyist's travel and calendar.
-│   ├── phish_employee [requires: laptop_powered, skill_hacking>=10] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
+│   ├── follow_lobbyist [requires: sk_research_archives>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Track a lobbyist's travel and calendar.
+│   ├── phish_employee [requires: laptop_powered, sk_network_security>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
 │   └── tail_target [requires: targets_profiled>=1] [planned] (3h) - Tail a lobbyist or executive.
 ├── techie_trust>=35 (1)
 │   └── upgrade_npc [requires: lead_npc>=1, techie_trust>=35, cash>=150] [hidden until: lead_npc>=1] (2h) - Have a developer you trust swap in a battery for a favor ($150).

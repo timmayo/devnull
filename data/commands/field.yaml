@@ -10,7 +10,7 @@
   cost: {hours: 2}
 - name: tailgate_building
   description: Follow someone through a badge door.
-  requires: {skill_social: 10}
+  requires: {sk_social_engineering: 1}
   cost: {hours: 2}
 - name: tail_target
   description: Tail a lobbyist or executive.

@@ -11,7 +11,7 @@
   cost: {hours: 1}
 - name: run_sockpuppets
   description: Run a network of fake accounts to amplify your message.
-  requires: [laptop_powered, {skill_social: 10}]
+  requires: [laptop_powered, {sk_social_engineering: 1}]
   cost: {hours: 2}
 - name: write_oped
   description: Write an anonymous op-ed or blog post.
@@ -23,8 +23,8 @@
   cost: {hours: 1}
 - name: release_deepfake
   description: Release a deepfake, or expose one. Powerful, and fragile if exposed.
-  requires: [laptop_powered, {skill_media: 20}]
-  hidden_until: {skill_media: 10}
+  requires: [laptop_powered, {sk_marketing: 2}]
+  hidden_until: {sk_marketing: 1}
   cost: {hours: 4, money: 20}
 - name: counter_narrative
   description: Rebut a press release or counter a smear.
@@ -33,7 +33,7 @@
   cost: {hours: 2}
 - name: host_podcast
   description: Record a podcast under an alias. Builds an audience slowly.
-  requires: [laptop_powered, {skill_social: 10}]
+  requires: [laptop_powered, {sk_public_speaking: 1}]
   cost: {hours: 3}
 - name: flood_comments
   description: Flood a public comment docket with fake and real voices.

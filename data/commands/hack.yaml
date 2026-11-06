@@ -3,16 +3,16 @@
 
 - name: scan_network
   description: Scan a target network for open doors.
-  requires: [laptop_powered, {skill_hacking: 5}]
+  requires: [laptop_powered, {sk_network_security: 1}]
   cost: {hours: 2}
 - name: phish_employee
   description: Trick an employee into giving up access.
-  requires: [laptop_powered, {skill_hacking: 10}]
+  requires: [laptop_powered, {sk_network_security: 1}]
   hidden_until: {targets_profiled: 1}
   cost: {hours: 3}
 - name: crack_password
   description: Crack a weak password or Wi-Fi key.
-  requires: [laptop_powered, {skill_hacking: 5}]
+  requires: [laptop_powered, {sk_network_security: 1}]
   cost: {hours: 2}
 - name: exfiltrate_files
   description: Pull files or a database out of a compromised system.
@@ -24,24 +24,24 @@
   cost: {hours: 1}
 - name: plant_backdoor
   description: Leave a hidden way back in. A logic bomb is the same idea with a timer.
-  requires: [laptop_powered, {access_foothold: 1, skill_hacking: 20}]
+  requires: [laptop_powered, {access_foothold: 1, sk_network_security: 2}]
   cost: {hours: 2}
 - name: poison_dataset
   description: Corrupt an AI training dataset or sabotage a training run.
-  requires: [laptop_powered, {access_foothold: 1, skill_hacking: 30}]
-  hidden_until: {skill_hacking: 20}
+  requires: [laptop_powered, {access_foothold: 1, sk_network_security: 3}]
+  hidden_until: {sk_network_security: 2}
   cost: {hours: 3}
 - name: deface_page
   description: Replace a corporate page with your message. Loud, and it brings heat.
-  requires: [laptop_powered, {skill_hacking: 10}]
+  requires: [laptop_powered, {sk_network_security: 1}]
   cost: {hours: 2}
 - name: spoof_identity
   description: Spoof a badge, login, caller ID, or sensor feed.
-  requires: [laptop_powered, {skill_hacking: 15}]
+  requires: [laptop_powered, {sk_network_security: 2}]
   cost: {hours: 2}
 - name: disrupt_cooling
   description: Interfere with data center cooling or power. Hits operations, and the heat is severe.
-  requires: [laptop_powered, {access_foothold: 1, skill_hacking: 40}]
+  requires: [laptop_powered, {access_foothold: 1, sk_network_security: 3}]
   hidden_until: {datacenter_mapped: 1}
   cost: {hours: 3}
 - name: hack

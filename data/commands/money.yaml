@@ -40,7 +40,7 @@
 - name: open_shell
   description: Open a shell LLC. A front for money, accounts, and gear.
   requires: {cash: 300}
-  hidden_until: {skill_finance: 10}
+  hidden_until: {sk_finance: 1}
   cost: {hours: 3, money: 300}
 - name: trade
   description: Small trades. Pays when market sentiment is up.

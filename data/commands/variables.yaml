@@ -16,14 +16,13 @@ lead_store: {hint: Needs the store lead.}
 os: {hint: Needs Linux installed.}
 people_n: {hint: You need to know someone first.}
 press_trust: {hint: 'Needs press trust {n}+.'}
-sk_network_security: {hint: 'Needs network security skill {n}+.'}
+sk_*: {hint: 'Needs {name} skill {n}+.'}     # every skill topic (sk_linux, sk_finance ...), level 1-3
 skills: {hint: 'Needs know-how {n}+.'}
 techie_trust: {hint: 'Needs developer trust {n}+.'}
 terms: {hint: You need a signed agreement first.}
 trust: {hint: 'Needs trust {n}+.'}
 
 # ---- planned: not in the game yet
-# TODO: skill names are inconsistent (live: skills, sk_<topic>; planned: skill_<topic>). See docs/TODO.txt.
 access_foothold: {hint: You need a foothold first.}
 apartment_days: {hint: Give it a few days first.}
 charge_pending: {hint: No charge is pending.}
@@ -62,11 +61,6 @@ rep_boss: {hint: 'Needs boss reputation {n}+.'}
 rep_local: {hint: 'Needs local reputation {n}+.'}
 rep_public: {hint: 'Needs public reputation {n}+.'}
 research_dossier: {hint: You need a dossier first.}
-skill_finance: {hint: 'Needs finance skill {n}+.'}
-skill_hacking: {hint: 'Needs hacking skill {n}+.'}
-skill_media: {hint: 'Needs media skill {n}+.'}
-skill_research: {hint: 'Needs research skill {n}+.'}
-skill_social: {hint: 'Needs social skill {n}+.'}
 subpoena_pending: {hint: No subpoena is pending.}
 targets_profiled: {hint: Profile a target first.}
 warrant_served: {hint: No warrant has been served.}

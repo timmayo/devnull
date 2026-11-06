@@ -37,7 +37,7 @@
   cost: {hours: 1}
 - name: follow_lobbyist
   description: Track a lobbyist's travel and calendar.
-  requires: {skill_research: 10}
+  requires: {sk_research_archives: 1}
   hidden_until: {targets_profiled: 1}
   cost: {hours: 3}
 - name: track_dockets

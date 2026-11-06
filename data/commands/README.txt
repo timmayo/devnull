@@ -43,6 +43,9 @@ CONDITIONS (requires / hidden_until)
                                         (meetings, trust, bond, leverage, owes)
   [has_linux_laptop, {skills: 15}]      a name from gates.yaml, mixed with inline tests
   Hints are generated from variables.yaml, so you never write one per threshold.
+  A variable written `prefix_*` there covers a whole family: sk_* is every skill topic, and
+  {name} in its hint becomes the topic (sk_network_security -> "network security").
+  Skill topics are sk_<topic> (levels 1-3); `skills` is overall know-how (0-100).
 
 PLANNED vs LIVE
   Planned commands are ignored by the game. Their numbers are placeholders; tune them when they go live.

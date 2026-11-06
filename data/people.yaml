@@ -91,6 +91,7 @@ skills:
     linux: "Linux"
     hardware: "hardware repair"
     network_security: "network security"
+    social_engineering: "social engineering"
     machine_learning: "machine learning"
     data_analysis: "data analysis"
     journalism: "investigative reporting"
@@ -136,8 +137,8 @@ skills:
     techie: { python: 3, web_dev: 3, linux: 3, hardware: 2, network_security: 2, machine_learning: 1 }
     neighbor_activist: { organizing: 4, public_speaking: 2, land_use: 1, records_law: 1 }
     developer_staffer: { land_use: 3, finance: 2, public_speaking: 1, energy: 1 }
-    lobbyist: { lobbying: 4, public_speaking: 2, finance: 1, records_law: 1 }
-    police_officer: { police_procedure: 4, network_security: 1, public_speaking: 1 }
+    lobbyist: { lobbying: 4, public_speaking: 2, social_engineering: 2, finance: 1, records_law: 1 }
+    police_officer: { police_procedure: 4, social_engineering: 2, network_security: 1, public_speaking: 1 }
     librarian: { research_archives: 4, records_law: 1, web_dev: 1, data_analysis: 1 }
   by_meeting:
     city_commission: { records_law: 2, land_use: 2, public_speaking: 1 }

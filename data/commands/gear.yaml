@@ -19,8 +19,8 @@
   cost: {hours: 2, money: 300}
 - name: build_implant
   description: Build a Raspberry Pi implant for physical access jobs.
-  requires: {skill_hacking: 15, item_raspberry_pi: 1}
-  hidden_until: {skill_hacking: 10}
+  requires: {sk_network_security: 2, item_raspberry_pi: 1}
+  hidden_until: {sk_network_security: 1}
   cost: {hours: 4, money: 80}
 - name: buy_radio
   description: Buy a software-defined radio. Listens to what shouldn't be heard.
@@ -37,7 +37,7 @@
 - name: buy_keylogger
   description: Buy a hardware keylogger.
   requires: {cash: 40}
-  hidden_until: {skill_hacking: 10}
+  hidden_until: {sk_network_security: 1}
   cost: {hours: 1, money: 40}
 - name: repair_equipment
   description: Repair broken gear. Cheaper than replacing it.

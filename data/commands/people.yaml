@@ -30,7 +30,7 @@
   cost: {hours: 2, money: 20}
 - name: recruit_hacker
   description: Bring a skilled ally onto your side.
-  requires: {person.trust: 30, skill_hacking: 10}
+  requires: {person.trust: 30, sk_network_security: 1}
   hidden_until: {person.meetings: 3}
   cost: {hours: 2}
 - name: bribe_clerk
