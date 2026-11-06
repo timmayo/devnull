@@ -49,12 +49,12 @@ commands
 ├── INFLUENCE [influence] (12) - The information war. Leaks and rumors and public pressure.
 │   ├── leak_document [requires: item_document>=1, contacts_press>=1] [planned] (2h) - Hand a document to a journalist. Can't be taken back.
 │   ├── seed_rumor [requires: laptop_powered] [planned] (1h) - Plant a rumor on a local forum. Cheap, deniable, hard to control.
-│   ├── run_sockpuppets [requires: laptop_powered, sk_organizing>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
+│   ├── run_sockpuppets [requires: laptop_powered, sk_social_engineering>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
 │   ├── write_oped [requires: laptop_powered] [planned] (3h) - Write an anonymous op-ed or blog post.
 │   ├── start_hashtag [requires: network_sockpuppets>=1] [planned] (1h) - Start or hijack a hashtag. Needs accounts to push it.
 │   ├── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
 │   ├── counter_narrative [requires: laptop_powered] [hidden until: press_release_seen>=1] [planned] (2h) - Rebut a press release or counter a smear.
-│   ├── host_podcast [requires: laptop_powered, sk_organizing>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
+│   ├── host_podcast [requires: laptop_powered, sk_public_speaking>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
 │   ├── flood_comments [requires: network_sockpuppets>=1] [hidden until: comment_docket_open>=1] [planned] (2h) - Flood a public comment docket with fake and real voices.
 │   ├── launch_petition [requires: laptop_powered] [planned] (2h) - Start an online petition drive.
 │   ├── feed (1h) - Post. Moves opinion, makes noise.
@@ -124,11 +124,11 @@ commands
 │   ├── browse_store (2h) - Walk the electronics and pawn shops.
 │   ├── upgrade_store [requires: lead_store>=1, cash>=420] [hidden until: lead_store>=1] (2h) - Buy a used laptop with a working battery ($420).
 │   ├── upgrade_npc [requires: lead_npc>=1, techie_trust>=35, cash>=150] [hidden until: lead_npc>=1] (2h) - Have a developer you trust swap in a battery for a favor ($150).
+│   ├── buy (1h) - Buy something from the web or the darknet (see 'commands')
 │   ├── buy_burner_phone [hidden until: people_n>=1] (1h, $80) - A prepaid phone for meetings.
 │   ├── buy_vpn (1h, $15) - Hides your apartment's connection from the sites you visit.
 │   ├── buy_used_laptop [hidden until: darknet>=1] (1h, $300) - A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky.
-│   ├── buy_anon_accounts [hidden until: darknet>=1] (1h, $120) - Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.
-│   └── buy (1h) - Buy something from the web or the darknet (see 'commands')
+│   └── buy_anon_accounts [hidden until: darknet>=1] (1h, $120) - Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.
 ├── OPSEC [opsec] (11) - Evasion and cover. Stay off the radar.
 │   ├── rotate_identity [requires: item_burner_phone>=1] [planned] (1h) - Rotate burner phones and aliases.
 │   ├── check_tails [planned] (1h) - Check for tails and surveillance.
@@ -144,7 +144,7 @@ commands
 ├── FIELD [field] (11) - Physical-world operations. Leave the apartment.
 │   ├── photograph_site [planned] (2h) - Photograph a substation, perimeter, or license plates.
 │   ├── plant_device [requires: item_implant>=1] [planned] (2h) - Plant a rogue device or access point.
-│   ├── tailgate_building [requires: sk_organizing>=1] [planned] (2h) - Follow someone through a badge door.
+│   ├── tailgate_building [requires: sk_social_engineering>=1] [planned] (2h) - Follow someone through a badge door.
 │   ├── tail_target [requires: targets_profiled>=1] [planned] (3h) - Tail a lobbyist or executive.
 │   ├── dumpster_dive [planned] (3h) - Dig through office trash. Smelly, and sometimes gold.
 │   ├── attend_conference [planned] (6h, $100) - Attend a tech conference or job fair. Good for meeting people.
@@ -243,11 +243,11 @@ needs
 │   ├── scan [requires: laptop_powered, has_network, learned_nmap] [planned] (1h) - Scan a host for open services
 │   ├── connect (ssh) [requires: laptop_powered, has_network] [planned] - Open a session on a host you have access to
 │   ├── seed_rumor [requires: laptop_powered] [planned] (1h) - Plant a rumor on a local forum. Cheap, deniable, hard to control.
-│   ├── run_sockpuppets [requires: laptop_powered, sk_organizing>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
+│   ├── run_sockpuppets [requires: laptop_powered, sk_social_engineering>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
 │   ├── write_oped [requires: laptop_powered] [planned] (3h) - Write an anonymous op-ed or blog post.
 │   ├── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
 │   ├── counter_narrative [requires: laptop_powered] [hidden until: press_release_seen>=1] [planned] (2h) - Rebut a press release or counter a smear.
-│   ├── host_podcast [requires: laptop_powered, sk_organizing>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
+│   ├── host_podcast [requires: laptop_powered, sk_public_speaking>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
 │   ├── launch_petition [requires: laptop_powered] [planned] (2h) - Start an online petition drive.
 │   ├── file_records [requires: laptop_powered] [planned] (1h, $15) - File an open-records request. Slow, but legal and hard to refuse.
 │   ├── short_stock [requires: laptop_powered, cash>=500] [planned] (1h, $500) - Short a data center stock. Pays if your work lands.
@@ -511,12 +511,13 @@ needs
 ├── sk_network_security>=3 (2)
 │   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: sk_network_security>=2] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.
 │   └── disrupt_cooling [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: datacenter_mapped>=1] [planned] (3h) - Interfere with data center cooling or power. Hits operations, and the heat is severe.
-├── sk_organizing>=1 (3)
-│   ├── run_sockpuppets [requires: laptop_powered, sk_organizing>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
-│   ├── host_podcast [requires: laptop_powered, sk_organizing>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
-│   └── tailgate_building [requires: sk_organizing>=1] [planned] (2h) - Follow someone through a badge door.
+├── sk_public_speaking>=1 (1)
+│   └── host_podcast [requires: laptop_powered, sk_public_speaking>=1] [planned] (3h) - Record a podcast under an alias. Builds an audience slowly.
 ├── sk_research_archives>=1 (1)
 │   └── follow_lobbyist [requires: sk_research_archives>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Track a lobbyist's travel and calendar.
+├── sk_social_engineering>=1 (2)
+│   ├── run_sockpuppets [requires: laptop_powered, sk_social_engineering>=1] [planned] (2h) - Run a network of fake accounts to amplify your message.
+│   └── tailgate_building [requires: sk_social_engineering>=1] [planned] (2h) - Follow someone through a badge door.
 ├── skills>=15 (1)
 │   └── hack [requires: has_linux_laptop, skills>=15, sk_network_security>=1] [hidden until: os>=1] (3h) - Breach a system. Real evidence, real risk. Needs Linux and skill.
 ├── skills>=5 (1)
@@ -571,11 +572,11 @@ needs
     ├── meet_favor [hidden until: person.meetings>=2, person.trust>=15] (2h) - Do something for them. They will remember.
     ├── talk (speak, ask) [planned] - Start a conversation with someone nearby
     ├── browse_store (2h) - Walk the electronics and pawn shops.
+    ├── buy (1h) - Buy something from the web or the darknet (see 'commands')
     ├── buy_burner_phone [hidden until: people_n>=1] (1h, $80) - A prepaid phone for meetings.
     ├── buy_vpn (1h, $15) - Hides your apartment's connection from the sites you visit.
     ├── buy_used_laptop [hidden until: darknet>=1] (1h, $300) - A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky.
     ├── buy_anon_accounts [hidden until: darknet>=1] (1h, $120) - Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.
-    ├── buy (1h) - Buy something from the web or the darknet (see 'commands')
     ├── check_tails [planned] (1h) - Check for tails and surveillance.
     ├── vary_routine [planned] (1h) - Change your daily routine. Makes you harder to predict.
     ├── leave_phone [planned] - Leave your phone at home. Safe, but nobody can reach you.

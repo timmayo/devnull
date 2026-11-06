@@ -163,14 +163,19 @@ def build(deep: bool = True) -> dict[str, Any]:
         return res
 
     out_cmds = []
+    generated = data.get("_generated") or {}
+    catalog_file = {"shop": "data/slice_rules.yaml", "people_actions": "data/people.yaml"}
     for k, c in cmds.items():
+        gen = generated.get(k)
         out_cmds.append({
             "name": k, "group": c["group"], "live": not ct.is_planned(c), "desc": ct.description_of(c),
             "syntax": c.get("syntax") or k, "aliases": [str(a) for a in ct.as_list(c.get("aliases"))],
-            "parent": c.get("parent"), "screen": c.get("screen"), "contexts": ct.contexts_of(c),
+            "parent": c.get("parent") or (gen or {}).get("verb"), "screen": c.get("screen"), "contexts": ct.contexts_of(c),
             "requires": cond_json(c.get("requires")), "hidden": cond_json(c.get("hidden_until")),
             "hours": ct.cmd_hours(c), "money": ct.cmd_money(c), "handler": c.get("handler"), "rule": c.get("rule"),
-            "file": data.get("_files", {}).get(k, ""), "always": bool(c.get("always_available")),
+            "file": (f"{catalog_file[gen['catalog']]}  ›  {gen['catalog']}  ›  {gen['item']}" if gen
+                     else f"data/commands/{data.get('_files', {}).get(k, '')}" if data.get("_files", {}).get(k) else ""),
+            "gen": gen, "items": c.get("items"), "always": bool(c.get("always_available")),
             "locked_message": c.get("locked_message"), "online": bool(c.get("online")),
             "examples": c.get("examples") or [],
         })

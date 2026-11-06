@@ -71,105 +71,11 @@
   description: spend time with someone you know
   status: implemented
   syntax: meet <n> [action]
+  items: people_actions        # one generated command per action in data/people.yaml (people_actions:)
+  item_syntax: meet <n> {item}
   screen: people
   hidden_until: {people_n: 1}
   handler: cmd_meet
-- name: meet_coffee
-  description: Coffee and small talk. Builds trust slowly.
-  status: implemented
-  syntax: meet <n> coffee
-  parent: meet
-  screen: people
-  cost: {hours: 2, money: 8}
-  handler: cmd_meet
-  rule: people_actions.coffee
-- name: meet_favor
-  description: Do something for them. They will remember.
-  status: implemented
-  syntax: meet <n> favor
-  parent: meet
-  screen: people
-  hidden_until: {person.meetings: 2, person.trust: 15}
-  cost: {hours: 2}
-  handler: cmd_meet
-  rule: people_actions.favor
-- name: meet_ask
-  description: Ask for information or help. Needs some trust.
-  status: implemented
-  syntax: meet <n> ask
-  parent: meet
-  screen: people
-  requires: {person.trust: 20}
-  hidden_until: {person.meetings: 2}
-  cost: {hours: 1}
-  handler: cmd_meet
-  rule: people_actions.ask
-- name: meet_confide
-  description: Share something real. Builds trust fast, and puts you in their hands.
-  status: implemented
-  syntax: meet <n> confide
-  parent: meet
-  screen: people
-  requires: {person.trust: 15}
-  hidden_until: {person.meetings: 3, person.trust: 20}
-  cost: {hours: 2}
-  handler: cmd_meet
-  rule: people_actions.confide
-- name: meet_flirt
-  description: Charm them. It can help, or go badly wrong.
-  status: implemented
-  syntax: meet <n> flirt
-  parent: meet
-  screen: people
-  requires: {person.trust: 10}
-  hidden_until: {person.meetings: 3, person.trust: 25}
-  cost: {hours: 2, money: 15}
-  handler: cmd_meet
-  rule: people_actions.flirt
-- name: meet_bribe
-  description: Pay for help. Works on the corruptible; can be reported by the honest.
-  status: implemented
-  syntax: meet <n> bribe
-  parent: meet
-  screen: people
-  requires: {person.trust: 10}
-  hidden_until: {person.meetings: 4, person.trust: 25}
-  cost: {hours: 1, money: 150}
-  handler: cmd_meet
-  rule: people_actions.bribe
-- name: meet_extort
-  description: Use what you know about them. They must have something to hide.
-  status: implemented
-  syntax: meet <n> extort
-  parent: meet
-  screen: people
-  requires: {person.leverage: 1}
-  hidden_until: {person.meetings: 3, person.trust: 20, person.leverage: 1}
-  cost: {hours: 2}
-  handler: cmd_meet
-  rule: people_actions.extort
-- name: meet_recruit
-  description: Ask them to stand with you. A trusted ally helps every day.
-  status: implemented
-  syntax: meet <n> recruit
-  parent: meet
-  screen: people
-  requires: {person.trust: 50}
-  hidden_until: {person.meetings: 5, person.trust: 40}
-  cost: {hours: 2}
-  handler: cmd_meet
-  rule: people_actions.recruit
-- name: meet_learn
-  description: Ask them to teach you their best skill. Higher level, bigger gain.
-  status: implemented
-  syntax: meet <n> learn
-  parent: meet
-  screen: people
-  requires: {person.trust: 20}
-  hidden_until: {person.meetings: 2, person.trust: 12}
-  cost: {hours: 2}
-  handler: cmd_meet
-  rule: people_actions.learn
 - name: talk
   description: Start a conversation with someone nearby
   syntax: talk <npc> [topic]

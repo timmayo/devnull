@@ -77,49 +77,12 @@
   handler: cmd_action
   rule: upgrade_npc
   locked_message: You need a developer's offer, their trust (35), $150, and a dead battery.
-- name: buy_burner_phone
-  description: A prepaid phone for meetings.
-  status: implemented
-  syntax: buy burner_phone
-  screen: internet
-  hidden_until: {people_n: 1}
-  cost: {hours: 1, money: 80}
-  handler: cmd_buy
-  rule: shop.burner_phone
-  type: hardware
-- name: buy_vpn
-  description: Hides your apartment's connection from the sites you visit.
-  status: implemented
-  syntax: buy vpn
-  screen: internet
-  cost: {hours: 1, money: 15}
-  handler: cmd_buy
-  rule: shop.vpn
-  type: apps
-- name: buy_used_laptop
-  description: A used laptop with a working battery, no questions asked. Cheaper than the store, and a little risky.
-  status: implemented
-  syntax: buy used_laptop
-  screen: darknet
-  hidden_until: {darknet: 1}
-  cost: {hours: 1, money: 300}
-  handler: cmd_buy
-  rule: shop.used_laptop
-  type: hardware
-- name: buy_anon_accounts
-  description: Throwaway accounts that are hard to trace back to you. Posts and leaks draw less heat.
-  status: implemented
-  syntax: buy anon_accounts
-  screen: darknet
-  hidden_until: {darknet: 1}
-  cost: {hours: 1, money: 120}
-  handler: cmd_buy
-  rule: shop.anon_accounts
-  type: apps
 - name: buy
   description: Buy something from the web or the darknet (see 'commands')
   status: implemented
   syntax: buy <item>
+  items: shop                  # one generated command per item in data/slice_rules.yaml (shop:)
+  item_syntax: buy {item}
   screen: internet
   cost: {hours: 1}
   handler: cmd_buy

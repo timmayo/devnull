@@ -3,7 +3,9 @@
 
 Edit the YAML files here. The game, the command tree and the checker all read them.
 
-  .\tools\cmdtree.cmd --check --deep      check everything (run before you commit)
+  .\tools\cmdview.cmd                    open the command map in your browser (search, variables, unlock paths)
+  .\tools\check.cmd                      run every check GitHub runs (run before you commit)
+  .\tools\cmdtree.cmd --check --deep      the command-table check on its own
   .\tools\cmdtree.cmd                     draw the tree        (-g hack = one group, -d = details)
   .\tools\cmdtree.cmd --view needs        what each requirement unlocks
   python tools/gen_docs.py                rebuild docs/command_tree.txt
@@ -15,27 +17,44 @@ FILES
                    an idea that is not built yet). Most commands do NOT use this file.
   variables.yaml   the values a condition may test (cash, evidence, person.trust ...) and the hint shown
                    when a test fails. A name that is not listed here is a typo and the checker says so.
+  schema.json      the shape every file here must have (field names, kinds of value). Checked by
+                   tools/validate_schema.py. Add a field to a command? Add it here too.
   <group>.yaml     one file per group (survive.yaml, hack.yaml ...): a list of commands.
                    A new group = a line in groups.yaml + a new <group>.yaml.
 
 A COMMAND
-  - name: meet_bribe                    verb_noun. The word the player types is the first word of `syntax`.
+  - name: install_linux                 the word the player types is the first word of `syntax` (default: the name).
+                                        (Fields below are illustrative; not every command uses all of them.)
     description: One line shown in the tree, the commands screen and help.
     status: implemented                 leave out while it is only an idea (planned). Live ones need a handler.
-    syntax: meet <n> bribe              what the player types (default: the name)
+    syntax: install_linux               what the player types
     aliases: [h, "?"]                   other words that work (quote yes/no/on/off)
-    parent: meet                        drawn under another command
+    parent: install                     drawn under another command
     screen: people                      section of the in-game `commands` screen:
                                         look_around | internet | darknet | people | admin
     contexts: [world, shell]            default: [world]
     requires: {cash: 150, person.trust: 10}       must hold to RUN it; the hint says what is missing
     hidden_until: {person.meetings: 4}            must hold before it APPEARS (then it stays)
-    cost: {hours: 1, money: 150}        leave out what is zero
-    handler: cmd_meet                   the Python function (live commands)
-    rule: people_actions.bribe          where its numbers live: an action name, shop.<item>, people_actions.<name>
+    cost: {hours: 3, money: 150}        leave out what is zero
+    handler: cmd_action                 the Python function (live commands)
+    rule: install_linux                 where its numbers live: an action name in slice_rules.yaml
     locked_message: text                shown instead of the generated hint when `requires` fails
     always_available: true              visible from the start, whatever hidden_until says
     examples: [{cmd: ..., shows: ...}]  for `help <command>`
+
+VERBS AND THEIR ITEMS  (buy, meet)
+  Some verbs take an item: `buy vpn`, `meet 2 coffee`. The items are NOT listed here. They live in data:
+    buy   -> shop:           in data/slice_rules.yaml   (price, note, market, unlock, category)
+    meet  -> people_actions: in data/people.yaml        (hours, cost, help, visible, requires_person)
+  The verb says where its items come from, and the game builds one command per item (buy_vpn, meet_coffee):
+    - name: buy
+      items: shop                       the catalog: shop | people_actions
+      item_syntax: buy {item}           what the player types for one item
+  To add an item: add one entry to its catalog and rebuild the map. Nothing in this folder changes.
+  Field mapping for a shop item:   note = description, price = cost, market: darknet = darknet screen,
+  unlock = hidden_until, category = type.   For a people action: help = description, hours/cost = cost,
+  visible = hidden_until, requires_person = requires (both with `person.`).
+  Generated commands show in the command map under their verb, with where each one is defined.
 
 CONDITIONS (requires / hidden_until)
   {cash: 300, evidence: 20}             everything listed must be at least that number

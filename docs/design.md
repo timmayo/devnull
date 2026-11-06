@@ -199,7 +199,11 @@ name in `gates.yaml`. Commands also list the `contexts` where they work (only `w
 Typed words resolve as exact name, then alias, then a unique prefix; an ambiguous prefix lists the
 candidates. Commands without `status: implemented` are planned: designed, and ignored by the game.
 The in-game `commands` screen is built from the same table. `tools/cmdtree.py --check --deep` and the
-game's startup run the same checks. `status` is always available. Admin mode (`--admin`, or type `admin`) unlocks
+game's startup run the same checks, and `tools/validate_schema.py` checks the shape of every file
+against `data/commands/schema.json`; GitHub runs all of it on each push (`.github/workflows/check.yml`,
+`tools\check.cmd` locally). Verbs that take an item (`buy`, `meet`) do not list the items: the verb names its catalog
+(`items: shop` or `people_actions`) and the game generates one command per catalog entry, so adding an item
+is one entry in its data file. `status` is always available. Admin mode (`--admin`, or type `admin`) unlocks
 everything and adds `admin set|skill|reveal|spawn|unlock|hours|skip`.
 
 **Saving.** `save [name]` writes one JSON file; `load` lists saves, `load <n or name>` loads one. The game autosaves each morning and when you quit, and `play.cmd --continue` (or `--load NAME`, `--saves`) resumes a run. A save holds everything that changes in play (state, people with their hidden traits, pending results, log, market path, the random generator), so a loaded run plays out exactly like the unsaved one. Rules and city data are read fresh on load. Saves live in `%APPDATA%\devnull\saves` (set `DEVNULL_SAVES` to move them) and are per PC. Code: `core/save.py`.

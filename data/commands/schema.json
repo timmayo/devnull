@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "devnull-command-table",
+  "title": "/dev/null command table",
+  "description": "Shapes of the YAML files in data/commands/. Checked by tools/validate_schema.py (and in CI). Catches a mistyped field name or a wrong kind of value. The rules about meaning (is this variable real, does the handler exist) are checked by tools/cmdtree.py --check --deep.",
+  "$defs": {
+    "condition": {
+      "description": "What must hold: a set of variable: number pairs, the name of a gate, or a list mixing both.",
+      "oneOf": [
+        {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number"}},
+        {"type": "string"},
+        {"type": "array", "minItems": 1, "items": {"oneOf": [
+          {"type": "string"},
+          {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number"}}]}}
+      ]
+    },
+    "command": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "description": {"type": "string", "minLength": 1},
+        "status": {"enum": ["planned", "implemented"]},
+        "syntax": {"type": "string"},
+        "aliases": {"type": "array", "items": {"type": "string"}},
+        "parent": {"type": "string"},
+        "screen": {"enum": ["look_around", "internet", "darknet", "people", "admin"]},
+        "contexts": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "requires": {"$ref": "#/$defs/condition"},
+        "hidden_until": {"$ref": "#/$defs/condition"},
+        "cost": {"type": "object", "additionalProperties": false, "properties": {
+          "hours": {"type": "number", "minimum": 0}, "money": {"type": "number", "minimum": 0}}},
+        "handler": {"type": "string"},
+        "rule": {"type": "string"},
+        "online": {"type": "boolean"},
+        "type": {"type": "string"},
+        "risk": {"type": "number"},
+        "always_available": {"type": "boolean"},
+        "locked_message": {"type": "string"},
+        "items": {"enum": ["shop", "people_actions"], "description": "A verb whose items come from a catalog (one generated command per item)."},
+        "item_syntax": {"type": "string", "description": "What the player types for one item, with {item} where its name goes."},
+        "args": {"type": "array", "items": {"type": "object", "required": ["name"], "additionalProperties": false, "properties": {
+          "name": {"type": "string"}, "type": {"type": "string"}, "required": {"type": "boolean"}}}},
+        "examples": {"type": "array", "items": {"type": "object", "additionalProperties": false, "properties": {
+          "cmd": {"type": "string"}, "shows": {"type": "string"}}}}
+      },
+      "if": {"required": ["items"]},
+      "then": {"required": ["item_syntax", "handler"]}
+    },
+    "commandFile": {"type": "array", "items": {"$ref": "#/$defs/command"}},
+    "contexts": {"type": "object", "additionalProperties": {"type": "object", "required": ["description"], "additionalProperties": false,
+      "properties": {"description": {"type": "string"}}}},
+    "groups": {"type": "object", "additionalProperties": {"type": "object", "required": ["title", "description", "order"], "additionalProperties": false,
+      "properties": {"title": {"type": "string"}, "description": {"type": "string"}, "order": {"type": "integer"}}}},
+    "gates": {"type": "object", "additionalProperties": {"type": "object", "required": ["description"], "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string"},
+        "when": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number"}},
+        "scope": {"enum": ["person"]},
+        "hint": {"type": "string"},
+        "special": {"enum": ["admin"]},
+        "planned": {"type": "boolean"}}}},
+    "variables": {"type": "object", "additionalProperties": {"type": ["object", "null"], "additionalProperties": false,
+      "properties": {"hint": {"type": "string"}}}}
+  }
+}

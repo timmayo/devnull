@@ -201,7 +201,7 @@ function viewCommands(){
     const rows = [];
     const addRow = (c, depth) => {
       rows.push(h("div",{class:`row${depth ? " child":""}${S.sel===c.name?" sel":""}`, onclick:()=>pickCmd(c.name)},
-        h("div",{class:"cname"}, c.syntax),
+        h("div",{class:"cname"}, c.syntax, c.items ? h("span",{class:"chip live",style:"margin-left:8px"}, `${(kids[c.name]||[]).length} ${c.items.replace("_"," ")} items`) : null),
         h("div",{class:"cdesc"}, c.desc),
         h("div",{class:"chips"}, statusChip(c), costChips(c),
           c.requires.map(chipFor), c.hidden.length ? h("span",{class:"note"}, "appears when:") : null, c.hidden.map(chipFor))));
@@ -350,7 +350,7 @@ function detailCmd(c){
   if (kids[c.name]) out.push(...section("Options", h("ul",{class:"plain"}, kids[c.name].map(k=>h("li",{}, goCmd(k, byName[k].syntax), h("span",{class:"note"}, "  " + byName[k].desc))))));
   if (c.parent) out.push(...section("Part of", h("p",{}, goCmd(c.parent))));
   out.push(...section("Where it lives", h("dl",{class:"kv"},
-    h("dt",{},"File"), h("dd",{}, c.file ? `data/commands/${c.file}` : "—"),
+    h("dt",{}, c.gen ? "Defined in" : "File"), h("dd",{}, c.file || "—"),
     c.handler ? [h("dt",{},"Handler"), h("dd",{}, c.handler)] : null,
     c.rule ? [h("dt",{},"Rule"), h("dd",{}, c.rule)] : null,
     c.screen ? [h("dt",{},"Screen"), h("dd",{}, c.screen)] : null,

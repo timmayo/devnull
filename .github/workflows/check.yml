@@ -1,0 +1,47 @@
+name: check
+
+# Runs on every push and pull request. Same checks you run by hand before a commit:
+#   python tools/validate_schema.py
+#   python tools/cmdtree.py --check --deep
+#   python tools/test_save.py
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: pip install pyyaml jsonschema
+
+      - name: Command files match the schema
+        run: python tools/validate_schema.py
+
+      - name: Command table checks (every condition, handler and rule reference)
+        run: python tools/cmdtree.py --check --deep
+
+      - name: Save and load round trip
+        run: python tools/test_save.py
+
+      - name: A short run plays through
+        run: python tools/run_slice.py --seeds 2 --policy idle
+
+      - name: Command map builds
+        run: python tools/cmdview.py --out "$RUNNER_TEMP/command_viewer.html"
+
+      - name: docs/command_tree.txt is up to date
+        run: |
+          python tools/gen_docs.py
+          git diff --exit-code docs/command_tree.txt || { echo "Run python tools/gen_docs.py and commit docs/command_tree.txt"; exit 1; }

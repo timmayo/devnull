@@ -74,18 +74,98 @@ def commands_by_name(raw: Any) -> tuple[dict[str, Any], list[str]]:
     return out, problems
 
 
-def load_file(path: Path | str) -> dict[str, Any]:
-    """Load the command table from a folder (the normal layout) or from one single YAML file."""
+def load_file(path: Path | str, catalogs: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Load the command table from a folder (the normal layout) or from one single YAML file.
+
+    `catalogs` are the item lists that verbs such as `buy` and `meet` draw from (see expand_items).
+    Left out, they are read from the data files next to the commands folder."""
     path = Path(path)
     if path.is_dir():
-        return _load_dir(path)
-    data = read_yaml(path) or {}
-    for section in ("contexts", "gates", "groups", "variables", "commands"):
-        if data.get(section) is None:
-            data[section] = {}
-    data["commands"], data["_load_problems"] = commands_by_name(data["commands"])
-    data["_files"] = {k: path.name for k in data["commands"]}
+        data = _load_dir(path)
+    else:
+        data = read_yaml(path) or {}
+        for section in ("contexts", "gates", "groups", "variables", "commands"):
+            if data.get(section) is None:
+                data[section] = {}
+        data["commands"], data["_load_problems"] = commands_by_name(data["commands"])
+        data["_files"] = {k: path.name for k in data["commands"]}
+    expand_items(data, catalogs, path.parent if path.is_dir() else path.parent.parent)
     return data
+
+
+# ---------------------------------------------------------------- verbs and their items
+
+CATALOGS = ("shop", "people_actions")
+
+
+def default_catalogs(data_dir: Path) -> dict[str, Any]:
+    """The item lists, read from data/slice_rules.yaml (shop) and data/people.yaml (people_actions)."""
+    rules = read_yaml(data_dir / "slice_rules.yaml") if (data_dir / "slice_rules.yaml").exists() else {}
+    people = read_yaml(data_dir / "people.yaml") if (data_dir / "people.yaml").exists() else {}
+    return {"shop": (rules or {}).get("shop") or {}, "people_actions": (people or {}).get("people_actions") or {}}
+
+
+def _person_conditions(spec: Mapping[str, Any] | None) -> dict[str, Any]:
+    return {f"{PERSON_PREFIX}{k}": v for k, v in (spec or {}).items()}
+
+
+def _item_command(verb: str, vc: Mapping[str, Any], catalog: str, item: str, spec: Mapping[str, Any]) -> dict[str, Any]:
+    """One item of a catalog as a command. The catalog stays the one place that describes the item."""
+    template = vc.get("item_syntax") or f"{verb} {{item}}"
+    c: dict[str, Any] = {"description": spec.get("note" if catalog == "shop" else "help", ""),
+                         "status": "implemented", "syntax": template.replace("{item}", item)}
+    if catalog == "shop":
+        c["screen"] = "darknet" if spec.get("market") == "darknet" else "internet"
+        if spec.get("unlock"):
+            c["hidden_until"] = dict(spec["unlock"])
+        c["cost"] = {"hours": cmd_hours(vc), "money": spec.get("price", 0)}
+        c["type"] = spec.get("category")
+    else:
+        c["parent"] = verb
+        c["screen"] = vc.get("screen")
+        if spec.get("requires_person"):
+            c["requires"] = _person_conditions(spec["requires_person"])
+        if spec.get("visible"):
+            c["hidden_until"] = _person_conditions(spec["visible"])
+        c["cost"] = {"hours": spec.get("hours", cmd_hours(vc))}
+        if spec.get("cost"):
+            c["cost"]["money"] = spec["cost"]
+    c["handler"] = vc.get("handler")
+    c["rule"] = f"{catalog}.{item}"
+    return c
+
+
+def expand_items(data: dict[str, Any], catalogs: Mapping[str, Any] | None, data_dir: Path) -> None:
+    """A verb with `items: <catalog>` gets one generated command per catalog entry, named <verb>_<item>.
+    So adding an item is one entry in its data file, and the command table does not grow."""
+    verbs = {k: c for k, c in data["commands"].items() if (c or {}).get("items")}
+    if not verbs:
+        return
+    if catalogs is None:
+        catalogs = default_catalogs(data_dir)
+    problems = data.setdefault("_load_problems", [])
+    generated: dict[str, dict[str, str]] = {}
+    out: dict[str, Any] = {}
+    for key, c in data["commands"].items():
+        out[key] = c
+        if key not in verbs:
+            continue
+        catalog = c["items"]
+        if catalog not in CATALOGS or catalog not in catalogs:
+            problems.append(f"{key}: items: {catalog!r} is not a catalog (use one of {', '.join(CATALOGS)})")
+            continue
+        for item, spec in (catalogs[catalog] or {}).items():
+            name = f"{key}_{item}"
+            if name in data["commands"] or name in out:
+                problems.append(f"{key}: item '{item}' would be the command '{name}', which is already defined by hand")
+                continue
+            ic = _item_command(key, c, catalog, item, spec or {})
+            ic["group"] = c["group"]
+            out[name] = ic
+            data["_files"][name] = data["_files"].get(key, "")
+            generated[name] = {"verb": key, "catalog": catalog, "item": item}
+    data["commands"] = out
+    data["_generated"] = generated
 
 
 def _load_dir(root: Path) -> dict[str, Any]:
@@ -191,12 +271,23 @@ def default_hint(var: str, n: Any, person: bool) -> str:
     return f"Needs {name} {_num(n)}+."
 
 
+def find_variable(variables: Mapping[str, Any], key: str) -> tuple[Any, str] | None:
+    """(entry, name) for `key` in variables.yaml. An entry written `prefix_*` covers every key that starts with
+    `prefix_` (sk_* = every skill topic); `name` is the rest of the key, for the hint's {name}."""
+    if key in variables:
+        return variables[key] or {}, key.replace("_", " ")
+    for pat, entry in variables.items():
+        if str(pat).endswith("*") and key.startswith(str(pat)[:-1]) and len(key) > len(str(pat)) - 1:
+            return entry or {}, key[len(str(pat)) - 1:].replace("_", " ")
+    return None
+
+
 def hint_for(variables: Mapping[str, Any], key: str, n: Any) -> str:
     """The text shown when `key >= n` fails. `key` is as written in the file (person.trust ...)."""
-    v = variables.get(key) or {}
-    template = v.get("hint") if isinstance(v, dict) else None
+    found = find_variable(variables, key)
+    template = found[0].get("hint") if found and isinstance(found[0], dict) else None
     if template:
-        return str(template).replace("{n}", _num(n))
+        return str(template).replace("{n}", _num(n)).replace("{name}", found[1])
     person = key.startswith(PERSON_PREFIX)
     return default_hint(key[len(PERSON_PREFIX):] if person else key, n, person)
 
@@ -308,7 +399,7 @@ def check(data: Mapping[str, Any], handlers: Collection[str] | None = None,
                     var = str(k)[len(PERSON_PREFIX):] if person else str(k)
                     if person and var not in PERSON_KEYS:
                         problems.append(f"{name}: {field_} {k!r} - a person has only {', '.join(sorted(PERSON_KEYS))}")
-                    elif variables and str(k) not in variables:
+                    elif variables and find_variable(variables, str(k)) is None:
                         problems.append(f"{name}: {field_} uses {k!r}, which is not in variables.yaml (typo? or add it)")
                     elif not planned and not person and state_keys is not None and var not in state_keys:
                         problems.append(f"{name}: live command tests {k!r}, which is not a game variable yet")

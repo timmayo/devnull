@@ -48,7 +48,8 @@ def load_rules(path: Path = DEFAULT_RULES, people_path: Path = DEFAULT_PEOPLE) -
         with open(DEFAULT_NEWS, encoding="utf-8") as f:
             rules["news"] = yaml.safe_load(f)
     if DEFAULT_COMMANDS.exists():
-        data = cmdtable.load_file(DEFAULT_COMMANDS)
+        data = cmdtable.load_file(DEFAULT_COMMANDS, catalogs={
+            "shop": rules.get("shop") or {}, "people_actions": (rules.get("people") or {}).get("people_actions") or {}})
         problems = cmdtable.check(data, rules=rules)
         if problems:
             raise cmdtable.CommandFileError(

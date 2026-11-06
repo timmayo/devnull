@@ -12,6 +12,6 @@ if not defined PYV (
 )
 echo Setting up with Python %PYV% ^(one time^)...
 py -%PYV% -m venv .venv || exit /b 1
-".venv\Scripts\python" -m pip install -q -e . python-docx || exit /b 1
+".venv\Scripts\python" -m pip install -q -e . || exit /b 1
 :run
 ".venv\Scripts\devnull" %*
