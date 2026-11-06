@@ -23,6 +23,9 @@ echo == save and load
 echo == a short run plays through
 "%PY%" "%ROOT%\tools\run_slice.py" --seeds 2 --policy idle > nul && echo OK || set FAIL=1
 
+echo == link checker (offline test)
+"%PY%" "%ROOT%\tools\test_cityfetch.py" > "%TEMP%\devnull_test_cityfetch.txt" 2>&1 && echo OK || (type "%TEMP%\devnull_test_cityfetch.txt" & set FAIL=1)
+
 echo == city status (a report: blockers must be zero to ship a city)
 "%PY%" "%ROOT%\tools\citycheck.py" --quiet
 

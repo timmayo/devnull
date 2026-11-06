@@ -43,25 +43,30 @@ def band(x: float) -> str:
     return next(label for edge, label in BANDS if x < edge)
 
 
-def load_cities() -> list[dict[str, Any]]:
+def load_cities(drafts: bool = True) -> list[dict[str, Any]]:
+    """Every city file. A city with `status: draft` is unfinished: only listed when `drafts` is True."""
     cities = []
     for path in sorted(CITIES_DIR.glob("*.yaml")):
         with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
-        if isinstance(data, dict) and "city" in data:
+        if isinstance(data, dict) and "city" in data and (drafts or data["city"].get("status") != "draft"):
             cities.append(data)
     return cities
 
 
-def choose_city(cities: list[dict[str, Any]], wanted: str | None) -> dict[str, Any]:
+def choose_city(cities: list[dict[str, Any]], wanted: str | None, admin: bool = False) -> dict[str, Any]:
+    """`--city` finds any city, drafts included (for testing). The menu lists finished cities, plus drafts for the admin."""
     if wanted:
         for c in cities:
             if wanted.lower() in (c["city"]["id"], c["city"]["display_name"].lower()):
+                if c["city"].get("status") == "draft":
+                    print(f"  (Draft city: {c['city']['display_name']} is unfinished and not in the menu. Run tools/citycheck.py.)")
                 return c
         raise SystemExit(f"No city named {wanted!r}.")
+    cities = [c for c in cities if admin or c["city"].get("status") != "draft"]
     print("Choose a city:")
     for i, c in enumerate(cities, 1):
-        print(f"  {i}) {c['city']['display_name']}, {c['city']['state']}")
+        print(f"  {i}) {c['city']['display_name']}, {c['city']['state']}" + ("  (draft)" if c["city"].get("status") == "draft" else ""))
     while True:
         try:
             raw = input("> ").strip()
@@ -833,7 +838,7 @@ def main(argv: list[str] | None = None) -> int:
     saved = savegame.list_saves()
     if saved:
         print(f"You have {len(saved)} saved run(s). Resume the latest with: play.cmd --continue   (list: --saves)\n")
-    city = choose_city(cities, args.city)
+    city = choose_city(cities, args.city, admin=args.admin)
     seed = args.seed if args.seed is not None else random.randrange(2**31)
     quotes: dict[str, Any] = {}
     rules = load_rules()
@@ -844,9 +849,9 @@ def main(argv: list[str] | None = None) -> int:
         quotes = fetch_quotes([s for g in tape["groups"].values() for s in g["tickers"]])
     feed: dict[str, Any] = {}
     if not args.no_quotes:
-        from devnull.core.feeds import fetch_feeds
+        from devnull.core.feeds import city_feeds, fetch_feeds
         print("Fetching today's headlines...")
-        feed = fetch_feeds(city["city"]["display_name"], city["city"]["state"])
+        feed = fetch_feeds(city["city"]["display_name"], city["city"]["state"], local_feeds=city_feeds(city))
     sim = Sim(seed=seed, rules=rules, quotes=quotes, feed=feed, start_date=args.start_date or date.today(),
               events=city.get("events") or [])
     print("\n" + wrap(f"{city['city']['display_name']}, {city['city']['state']}. "

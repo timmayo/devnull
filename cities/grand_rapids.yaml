@@ -5,8 +5,48 @@ city:
   id: grand_rapids
   display_name: "Grand Rapids"
   state: "Michigan"
+  status: released              # draft = unfinished: hidden from the city menu (tools/newcity.py makes drafts). Set to released when citycheck passes.
   content_version: "0.1"        # this city's content, shown as <city> <content_version>. 1.0 = ready to ship (tools/citycheck.py --release)
   min_game_version: "0.0.1"     # the oldest game that can play this file
+
+# ---------------------------------------------------------------
+# RESOURCES: every outside page this city's content comes from. The admin provides the URLs.
+# kind: facts | events | feed | roster | other.   url: null = still needed (a blocker until it has one).
+# tools/citycheck.py checks this list; tools/cityfetch.py checks each link still works and has not changed.
+# ---------------------------------------------------------------
+resources:
+  # ---- pages the facts above came from
+  - { id: gr_city_commission_office, kind: facts, name: "Office of the City Commission (City of Grand Rapids)", url: "https://www.grandrapidsmi.gov/Government/Departments/Office-of-the-City-Commission", retrieved: "2026-11-03", covers: [real.government_structure.form, real.government_structure.mayor_powers, real.government_structure.ward_system] }
+  - { id: gr_how_commission_works, kind: facts, name: "How the City Commission works (City of Grand Rapids)", url: "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/", retrieved: "2026-11-03", covers: [real.government_structure.council_size, real.government_structure.meeting_schedule] }
+  - { id: mi_recall_law_ballotpedia, kind: facts, name: "Michigan recall law (Ballotpedia; secondary source, primary is MCL 168.951 et seq.)", url: "https://ballotpedia.org/Michigan_Recall_Law", retrieved: "2026-11-03", covers: [real.government_structure.recall_rules] }
+  - { id: mi_oma_handbook, kind: facts, name: "Michigan AG Open Meetings Act Handbook, Oct 2022", url: "https://www.michigan.gov/ag/-/media/Project/Websites/AG/open-meetings/OMA-Handbook-October-2022.pdf", retrieved: "2026-11-03", covers: [real.law.open_meetings] }
+  - { id: mi_foia_mcl_15_235, kind: facts, name: "Michigan FOIA, MCL 15.235 (response to requests)", url: "https://capitol.legislature.mi.gov/documents/mcl/pdf/mcl-15-235.pdf", retrieved: "2026-11-03", covers: [real.law.public_records] }
+  - { id: gr_zone_change, kind: facts, name: "Apply for a Zone Change (City of Grand Rapids Planning Department)", url: "https://www.grandrapidsmi.gov/departments/planning-department/apply-for-a-zone-change", retrieved: "2026-11-03", covers: [real.law.zoning_process] }
+  - { id: mpsc_consumers_dc_order, kind: facts, name: "MPSC order on Consumers Energy data center terms of service, Nov 6, 2025", url: "https://www.michigan.gov/mpsc/commission/news-releases/2025/11/06/mpsc-approves-terms-of-service-between-consumers-energy-and-data-centers", retrieved: "2026-11-03", covers: [real.background_institutions.utility, real.law.utility_commission] }
+  # ---- dated events (each event also carries its own link)
+  - { id: gr_cc_schedule_2026, kind: events, name: "Adopted 2026 City Commission schedule (City of Grand Rapids)", url: "https://www.grandrapidsmi.gov/media/rsnigned/adopted-2026-cc-schedule.pdf", retrieved: "2026-11-03" }
+  - { id: need_chamber_calendar, kind: events, name: "Grand Rapids Chamber events calendar", url: null, note: "NEEDED: the page that lists the Chamber's events" }
+  - { id: need_experiencegr_calendar, kind: events, name: "Experience Grand Rapids events calendar", url: null, note: "NEEDED: the page that lists the tourism bureau's events" }
+  # ---- live headlines at the start of a run ({city} and {state} are filled in)
+  - { id: gr_google_news, kind: feed, name: "Google News", url: "https://news.google.com/rss/search?q=%22{city}%22+{state}&hl=en-US&gl=US&ceid=US:en", scope: "local", note: "free RSS for personal use; a released game needs a licensed news source" }
+  # ---- real officials, to keep generated names from matching them
+  - { id: need_officials_roster, kind: roster, name: "Published rosters: city commission, city manager, city attorney, police chief (now and recent past)", url: null, note: "NEEDED: roster page(s); names go in the blocklist file" }
+  # ---- facts not researched yet: the source named in the file, still needing a URL
+  - { id: need_city_planning_dept, kind: facts, name: "city planning dept", url: null, covers: [real.geography.neighborhoods], note: "NEEDED: URL for this source" }
+  - { id: need_usgs_egle, kind: facts, name: "USGS / EGLE", url: null, covers: [real.geography.watershed], note: "NEEDED: URL for this source" }
+  - { id: need_noaa, kind: facts, name: "NOAA", url: null, covers: [real.geography.climate], note: "NEEDED: URL for this source" }
+  - { id: need_city_zoning_map, kind: facts, name: "city zoning map", url: null, covers: [real.geography.industrial_corridors], note: "NEEDED: URL for this source" }
+  - { id: need_census_acs, kind: facts, name: "Census ACS", url: null, covers: [real.demographics.population, real.demographics.median_income], note: "NEEDED: URL for this source" }
+  - { id: need_bls_census, kind: facts, name: "BLS / Census", url: null, covers: [real.demographics.top_industries], note: "NEEDED: URL for this source" }
+  - { id: need_city_budget_docs, kind: facts, name: "city budget docs", url: null, covers: [real.demographics.tax_base_notes], note: "NEEDED: URL for this source" }
+  - { id: need_city_charter_kent_county_clerk, kind: facts, name: "city charter / Kent County clerk", url: null, covers: [real.government_structure.election_calendar], note: "NEEDED: URL for this source" }
+  - { id: need_legislature_counsel_review, kind: facts, name: "legislature / counsel review", url: null, covers: [real.law.state_preemption_baseline], note: "NEEDED: URL for this source" }
+  - { id: need_commission_filings, kind: facts, name: "commission filings", url: null, covers: [real.conditions.utility_rate_trend], note: "NEEDED: URL for this source" }
+  - { id: need_city_water_dept, kind: facts, name: "city water dept", url: null, covers: [real.conditions.water_supply], note: "NEEDED: URL for this source" }
+  - { id: need_ferc_iso_docs, kind: facts, name: "FERC / ISO docs", url: null, covers: [real.conditions.grid_operator], note: "NEEDED: URL for this source" }
+  - { id: need_public_reporting, kind: facts, name: "public reporting", url: null, covers: [real.conditions.existing_dc_activity], note: "NEEDED: URL for this source" }
+  - { id: need_city_budget, kind: facts, name: "city budget", url: null, covers: [real.background_institutions.police_department], note: "NEEDED: URL for this source" }
+  - { id: need_local_press_outlets_daily_and_weekly, kind: facts, name: "Local press outlets (daily and weekly)", url: null, covers: [real.background_institutions.local_press], note: "NEEDED: URL for this source" }
 
 # ---------------------------------------------------------------
 # REAL LAYER: facts only. Every entry needs a source and a date.

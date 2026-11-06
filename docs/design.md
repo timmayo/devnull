@@ -184,6 +184,8 @@ The game ships as `MAJOR.MINOR`. **A major version adds a city; a minor version 
 - A licensed market-data feed in place of the free quotes.
 - CI is green.
 
+**Resources.** Every outside page a city's content comes from is listed in its file under `resources:` (kind, name, url, retrieved, and the facts it `covers`); the admin supplies the URLs, and `url: null` marks one still needed. `tools/newcity.py` scaffolds a draft city with every field and slot present; a draft (`city.status: draft`) is hidden from the player's city menu but opens with `--city` for testing. `tools/cityfetch.py` fetches each resource and reports DEAD, MOVED, CHANGED or BLOCKED links against a saved hash of the visible page text (`cities/<id>.links.json`); a weekly GitHub run checks them all, and the game's day-1 headlines read the city's own `feed` resources. `cities/README.txt` is the admin's step-by-step guide.
+
 **A new city (the next major version)** needs: its `cities/<id>.yaml` passing `citycheck.py --release`, a bot balance run on it, and its own blocklist, name pool and researched events. The per-city research and legal work, not the code, is the cost of each major version. `.\tools\check.cmd` prints each city's status.
 
 ## 5c. People, meetings, and what you can see

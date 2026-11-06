@@ -1,0 +1,22 @@
+name: links
+
+# Weekly: does every city's resource link still work? A dead link fails the run (you get an email from GitHub).
+# A page whose text changed is listed as CHANGED: re-read it, update the facts it supports, then run
+#   python tools/cityfetch.py --update   and commit the cities/*.links.json files.
+
+on:
+  schedule:
+    - cron: "17 13 * * 1"      # Mondays, 13:17 UTC
+  workflow_dispatch:           # or run it by hand from the Actions tab
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pyyaml
+      - name: Check every city's resource links
+        run: python tools/cityfetch.py --strict

@@ -61,10 +61,19 @@ def _fetch(feed: dict[str, str], city: str, state: str, max_age: float, timeout:
         return []
 
 
-def fetch_feeds(city: str, state: str, timeout: float = 6.0, use_cache: bool = True) -> dict[str, list[dict[str, Any]]]:
-    """{'local': [...], 'national': [...]} with at most `per_section` items each."""
+def city_feeds(city: dict[str, Any]) -> list[dict[str, str]]:
+    """The local feeds a city file lists as resources (kind: feed, scope: local, with a url)."""
+    return [{"name": r.get("name") or r["id"], "url": r["url"]} for r in city.get("resources") or []
+            if r.get("kind") == "feed" and r.get("url") and r.get("scope", "local") == "local"]
+
+
+def fetch_feeds(city: str, state: str, timeout: float = 6.0, use_cache: bool = True,
+                local_feeds: list[dict[str, str]] | None = None) -> dict[str, list[dict[str, Any]]]:
+    """{'local': [...], 'national': [...]} with at most `per_section` items each.
+    `local_feeds` are the city's own feeds (see city_feeds); without any, the default local feed in data/feeds.yaml is used."""
     cfg = yaml.safe_load(open(REPO_ROOT / "data" / "feeds.yaml", encoding="utf-8"))
-    key = f"{city}|{state}"
+    local = local_feeds or cfg["local"]
+    key = f"{city}|{state}|" + "|".join(f["url"] for f in local)
     if use_cache:
         try:
             c = json.loads(CACHE.read_text(encoding="utf-8"))
@@ -72,7 +81,7 @@ def fetch_feeds(city: str, state: str, timeout: float = 6.0, use_cache: bool = T
                 return c["feed"]
         except (OSError, KeyError, ValueError):
             pass
-    jobs = [("local", f) for f in cfg["local"]] + [("national", f) for f in cfg["national"]]
+    jobs = [("local", f) for f in local] + [("national", f) for f in cfg["national"]]
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(lambda j: _fetch(j[1], city, state, cfg["max_age_hours"], timeout), jobs))
     out: dict[str, list[dict[str, Any]]] = {"local": [], "national": []}

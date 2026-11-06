@@ -1,0 +1,147 @@
+# cities/__ID__.yaml  (made by tools/newcity.py; read cities/README.txt)
+# Every `VERIFY` is something still to research. Replace it with the value, its source and the date you got it.
+# tools/citycheck.py __ID__ lists what is left; a city ships when it has no blockers.
+schema_version: 2
+
+city:
+  id: __ID__
+  display_name: "__NAME__"
+  state: "__STATE__"
+  status: draft                 # draft = unfinished: hidden from the city menu. Set to released when tools/citycheck.py passes.
+  content_version: "0.1"
+  min_game_version: "0.0.1"
+
+# ---------------------------------------------------------------
+# RESOURCES: every outside page this city's content comes from. The admin provides the URLs.
+# kind: facts | events | feed | roster | other.   url: null = still needed (a blocker until it has one).
+# Give each resource its own entry and fill `covers` with the facts it supports. Add entries as needed.
+# ---------------------------------------------------------------
+resources:
+  - { id: need_geography, kind: facts, name: "__NAME__: geography", url: null, covers: [real.geography.neighborhoods, real.geography.watershed, real.geography.climate, real.geography.industrial_corridors], note: "NEEDED: URL(s) for this section; add one resource per source" }
+  - { id: need_demographics, kind: facts, name: "__NAME__: demographics", url: null, covers: [real.demographics.population, real.demographics.median_income, real.demographics.top_industries, real.demographics.tax_base_notes], note: "NEEDED: URL(s) for this section; add one resource per source" }
+  - { id: need_government, kind: facts, name: "__NAME__: government structure", url: null, covers: [real.government_structure.form, real.government_structure.mayor_powers, real.government_structure.council_size, real.government_structure.ward_system, real.government_structure.meeting_schedule, real.government_structure.election_calendar, real.government_structure.recall_rules], note: "NEEDED: URL(s) for this section; add one resource per source" }
+  - { id: need_law, kind: facts, name: "__NAME__: law", url: null, covers: [real.law.open_meetings, real.law.public_records, real.law.zoning_process, real.law.utility_commission, real.law.state_preemption_baseline], note: "NEEDED: URL(s) for this section; add one resource per source" }
+  - { id: need_conditions, kind: facts, name: "__NAME__: conditions", url: null, covers: [real.conditions.utility_rate_trend, real.conditions.water_supply, real.conditions.grid_operator, real.conditions.existing_dc_activity], note: "NEEDED: URL(s) for this section; add one resource per source" }
+  - { id: need_institutions, kind: facts, name: "__NAME__: background institutions", url: null, covers: [real.background_institutions.police_department, real.background_institutions.utility, real.background_institutions.local_press], note: "NEEDED: URL(s) for this section; add one resource per source" }
+  - { id: need_city_calendar, kind: events, name: "__NAME__ official meeting calendar", url: null, note: "NEEDED: the city or council meeting schedule" }
+  - { id: need_local_calendar, kind: events, name: "__NAME__ local events calendar", url: null, note: "NEEDED: tourism bureau, chamber or library events page" }
+  - { id: need_local_feed, kind: feed, name: "__NAME__ local news feed", url: null, scope: "local", note: "NEEDED: an RSS feed URL ({city} and {state} are filled in)" }
+  - { id: need_officials_roster, kind: roster, name: "Published rosters of __NAME__ office-holders (now and recent past)", url: null, note: "NEEDED: roster page(s); names go in the blocklist file" }
+
+# ---------------------------------------------------------------
+# REAL LAYER: facts only. Every entry needs a source and a date.
+# Nothing here may describe wrongdoing or conduct by a real party.
+# ---------------------------------------------------------------
+real:
+  geography:
+    neighborhoods:           { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    watershed:               { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    climate:                 { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    industrial_corridors:    { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+  demographics:
+    population:              { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    median_income:           { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    top_industries:          { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    tax_base_notes:          { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+  government_structure:
+    form:                    { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    mayor_powers:            { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    council_size:            { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    ward_system:             { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    meeting_schedule:        { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    election_calendar:       { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    recall_rules:            { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+  law:
+    open_meetings:           { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    public_records:          { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    zoning_process:          { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    utility_commission:      { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    state_preemption_baseline: { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+  conditions:
+    utility_rate_trend:      { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    water_supply:            { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    grid_operator:           { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    existing_dc_activity:    { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+  background_institutions:
+    police_department:       { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    utility:                 { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+    local_press:             { value: VERIFY, source: VERIFY, retrieved: VERIFY }
+
+# ---------------------------------------------------------------
+# FICTIONAL LAYER: everyone who acts is invented. Keep the rules.
+# ---------------------------------------------------------------
+fictional:
+  generation:
+    seed_source: run_seed
+    name_pools:
+      surnames: pools/__STATE_SLUG___surnames.txt
+      given: pools/given_names.txt
+    collision_check:
+      enabled: true
+      rule: 'reject any generated name + role that matches a real person holding that role in this city, now or
+        in the recent past. Applies to every role, including mayor and police chief.
+
+        '
+      blocklist: pools/__ID___real_officials_blocklist.txt
+      include_roles:
+      - mayor
+      - police_chief
+      - council_member
+      - city_manager
+      - city_attorney
+  cast_templates:
+    mayor:
+      count: 1
+    council_members:
+      count_from: real.government_structure.council_size
+    city_staff:
+      roles:
+      - city_manager
+      - planning_director
+      - city_attorney
+    police:
+      roles:
+      - police_chief
+      - patrol_officer
+      - sergeant
+      - detective
+    lawyers:
+      roles:
+      - public_interest
+      - corporate_counsel
+    reporters:
+      roles:
+      - local_reporter
+      - editor
+    developer:
+      type: generated shell developer + parent corp
+    pacs:
+      count: 2
+    proposed_site:
+      type: fictional parcel in a real zoned corridor
+  fictional_analogues:
+    utility_actor: generated; inherits rate structure from the real utility's public tariff
+    outlet_actor: generated outlet name; real outlet never appears as an actor
+  plot_rules:
+  - Real people never appear.
+  - Real companies, utility, and outlets never take plot actions.
+  - Fictional office-holders may take any alignment, including corrupt or incompetent.
+  - Fictional office-holders get invented backgrounds; never copy a real incumbent's biography, party, term dates,
+    or distinctive traits.
+  - Scenario must not mirror a live local dispute.
+
+display:
+  disclaimer: "Set in a real city. Items with a link are real and point to their source. Everything else (all characters, organizations and events in the story) is fictional."
+  digest_notes: {}
+
+news:
+  real_events: []        # real headlines tied to dates: {id, window: [start, end], text, source, published, url, retrieved}
+  national_real: []
+  fillers:               # invented small-town items for quiet days (about 6 for `all`, 2-3 per season)
+    all: []
+    winter: []
+    spring: []
+    summer: []
+    fall: []
+
+events: []               # real dated events: {id, title, start, end, time, hours, kind, venue, source, url, retrieved}
