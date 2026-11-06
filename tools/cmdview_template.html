@@ -28,6 +28,8 @@ h1{font:600 17px/1.2 var(--mono);margin:0 0 2px}
 .top{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:8px 0 10px}
 input[type=search],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
 input[type=search]{min-width:260px}
+.btn{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
 nav{display:flex;gap:2px;flex-wrap:wrap}
 nav button{font:inherit;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:8px 14px;cursor:pointer}
 nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
@@ -138,9 +140,22 @@ const kids = {};
 for (const c of D.commands) if (c.parent && byName[c.parent]) (kids[c.parent] ||= []).push(c.name);
 
 // ---- state
-const S = {tab:"commands", sel:null, selVar:null, q:"", group:"", status:"", ctx:"", sort:"name", path:null};
+const S = {tab:"commands", sel:null, selVar:null, q:"", group:"", status:"", ctx:"", sort:"name", path:null,
+  openGroups:new Set(), openPath:new Set()};   // everything starts collapsed; what you open stays open
 
 // ---- small renderers
+function expandBtns(){
+  const all = () => [...document.querySelectorAll("#view details")];
+  const expand = () => {
+    for (let pass = 0; pass < 6 && all().length < 1500; pass++){
+      const closed = all().filter(d => !d.open);
+      if (!closed.length) break;
+      closed.forEach(d => { d.open = true; if (d._fill) d._fill(); });
+    }
+  };
+  const collapse = () => all().forEach(d => { d.open = false; });
+  return [h("button",{class:"btn",onclick:expand}, "Expand all"), h("button",{class:"btn",onclick:collapse}, "Collapse all")];
+}
 function chipFor(cond){
   const cls = cond.gate ? "gate" : cond.scope;
   const txt = cond.gate ? cond.label : cond.label.replace(">=", " ≥ ");
@@ -176,7 +191,7 @@ function viewCommands(){
   wrap.append(h("div",{class:"filters"},
     sel("fg", D.groups.map(g=>[g.id, g.title||g.id]), "group", "All groups"),
     sel("fs", [["live","Live"],["planned","Planned"]], "status", "Live and planned"),
-    sel("fc", D.contexts.map(c=>[c.id,c.id]), "ctx", "All contexts")));
+    sel("fc", D.contexts.map(c=>[c.id,c.id]), "ctx", "All contexts"), expandBtns()));
   let shown = 0;
   for (const g of D.groups){
     const members = D.commands.filter(c => c.group === g.id && matches(c));
@@ -193,8 +208,11 @@ function viewCommands(){
       for (const k of (kids[c.name]||[]).filter(k => members.some(m => m.name === k))) addRow(byName[k], depth+1);
     };
     roots.forEach(c => addRow(c, 0));
-    wrap.append(h("details",{class:"group card", open:true},
-      h("summary",{}, g.title || g.id, h("span",{class:"gnote"}, `${members.length} · ${g.description||""}`)), rows));
+    const filtering = !!(S.q || S.group || S.status || S.ctx);
+    const gd = h("details",{class:"group card", open: filtering || S.openGroups.has(g.id)},
+      h("summary",{}, g.title || g.id, h("span",{class:"gnote"}, `${members.length} · ${g.description||""}`)), rows);
+    gd.addEventListener("toggle", () => { if (!filtering) { gd.open ? S.openGroups.add(g.id) : S.openGroups.delete(g.id); } });
+    wrap.append(gd);
   }
   if (!shown) wrap.append(h("div",{class:"card empty"}, "Nothing matches."));
   return wrap;
@@ -223,7 +241,7 @@ function viewVariables(){
 }
 
 // ---- Unlock path
-function pathTree(cmd, depth, seen){
+function pathTree(cmd, depth, seen, id=""){
   const wrap = h("div");
   const conds = [["runs when", cmd.requires], ["appears when", cmd.hidden]];
   let any = false;
@@ -238,8 +256,12 @@ function pathTree(cmd, depth, seen){
         const free = vv.start != null && vv.start >= n && !v.startsWith("person.");
         const sum = h("summary",{}, h("span",{class:"note"}, label+" "), h("b",{class:"mono"}, `${v} ≥ ${n}`), " ",
           free ? h("span",{class:"chip live"},"true at the start") : rs.length ? null : h("span",{class:"chip bad"}, v.startsWith("person.") ? "per person" : "nothing raises this yet"));
-        const det = h("details",{open: depth < 2 && !free}, sum);
-        if (!free){
+        const key = `${S.path}|${id}|${label}|${v}`;
+        const det = h("details",{open: S.openPath.has(key)}, sum);
+        det.addEventListener("toggle", () => { det.open ? S.openPath.add(key) : S.openPath.delete(key); });
+        let filled = false;
+        const fill = () => {
+          if (filled || free) return; filled = true;
           const seenBy = new Set();
           for (const e of rs){
             const key = (e.by||"") + "|" + (e.via||"") + "|" + e.how;
@@ -250,12 +272,15 @@ function pathTree(cmd, depth, seen){
               det.append(line);
               if (depth < 5 && !seen.has(e.by)){
                 const s2 = new Set(seen); s2.add(e.by);
-                const t = pathTree(sub, depth+1, s2);
+                const t = pathTree(sub, depth+1, s2, `${id}/${e.by}`);
                 if (t.childNodes.length) det.append(h("div",{class:"path"}, t));
               } else if (seen.has(e.by)) det.append(h("div",{class:"leaf"}, "(already on this path)"));
             } else det.append(h("div",{class:"leaf"}, `${e.via || "the world"}: ${e.how}`));
           }
-        }
+        };
+        det._fill = fill;
+        det.addEventListener("toggle", fill);
+        if (det.open) fill();
         wrap.append(det);
       }
     }
@@ -265,9 +290,9 @@ function pathTree(cmd, depth, seen){
 }
 function viewPath(){
   const opts = D.commands.slice().sort((a,b)=>a.name.localeCompare(b.name));
-  const sel = h("select",{onchange:e=>{S.path=e.target.value; render();}}, h("option",{value:""}, "Choose a command..."),
+  const sel = h("select",{onchange:e=>{S.path=e.target.value; S.openPath.clear(); render();}}, h("option",{value:""}, "Choose a command..."),
     ...opts.map(c => h("option",{value:c.name, selected:S.path===c.name}, `${c.name}${c.live?"":"  (planned)"}`)));
-  const box = h("div",{class:"card pad path"}, h("div",{class:"filters"}, sel,
+  const box = h("div",{class:"card pad path"}, h("div",{class:"filters"}, sel, expandBtns(),
     h("span",{class:"note"}, "Read it top-down: what must be true, then what makes it true, then what that needs.")));
   const c = byName[S.path];
   if (c){
