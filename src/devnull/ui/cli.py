@@ -21,6 +21,7 @@ from devnull.core.digest import describe, render
 from devnull.ui import intro
 from devnull.core.termlinks import GREEN, RED, enable_vt, fill_link, mode, paint
 from devnull.core import commands as cmdtable
+from devnull.core import profile as playerprofile
 from devnull.core import save as savegame
 from devnull.core.sim import Sim, load_rules
 
@@ -766,7 +767,9 @@ def play(sim: Sim, city: dict[str, Any], admin: bool = False) -> None:
             continue
         if HANDLERS[cs.handler(res.key)](s, res.key, rest):
             autosave(s)
-            if not s.sim.ending:
+            if s.sim.ending:
+                playerprofile.record_end(s.sim.ending, s.sim.turn)
+            else:
                 print("  Saved. Pick this run up again with: play.cmd --continue")
             return
 
@@ -821,7 +824,7 @@ def main(argv: list[str] | None = None) -> int:
     enable_vt()
     cities = load_cities()
     if not args.no_intro:
-        intro.show(animate=True)
+        intro.show(playerprofile.load(), animate=True)
     else:
         print(f"/dev/null  v{__version__}")
         print("Humanity trained it. They own it. Your job is to break it.\n")
@@ -858,6 +861,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if args.admin:
         sim.unlock_all()
+    playerprofile.record_start(_city_id(city), city["city"]["display_name"], sim.start_date)
     play(sim, city, admin=args.admin)
     return 0
 
