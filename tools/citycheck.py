@@ -99,12 +99,13 @@ def check_city(data: dict[str, Any], today: date) -> tuple[list[str], list[str],
         gaps = [k for k, v in e.items() if v == "VERIFY"]
         flags = [str(v) for k, v in e.items() if isinstance(v, str) and v.startswith("VERIFY_")]
         covered.update(f"{path}.{k}" for k in e)
+        sink = warnings if e.get("use") == "reference" else blockers      # reference-only facts never block a release
         if gaps:
             unresearched += 1
-            blockers.append(f"{path}: not researched yet (fill in: {', '.join(gaps)})")
+            sink.append(f"{path}: not researched yet (fill in: {', '.join(gaps)})")
         for flag in flags:
             unconfirmed += 1
-            blockers.append(f"{path}: researched but not confirmed ({flag})")
+            sink.append(f"{path}: researched but not confirmed ({flag})")
     for path, v in walk(real, "real"):                  # anything marked VERIFY outside a sourced fact
         if path not in covered and isinstance(v, str) and v.startswith("VERIFY"):
             unresearched += 1

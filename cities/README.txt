@@ -13,6 +13,8 @@ THE WORKFLOW
                             `covers` says which facts it supports.
   3. Fill in the facts      Under `real:`, replace each VERIFY with the value, its source and the date you got it.
                             Real structure and conditions only. Nothing about wrongdoing by a real person or party.
+                            A fact the game does not use can carry  use: reference  : an unconfirmed or missing value then
+                            shows as a warning and does not block the release.
   4. Real officials         Put the city's real office-holders (now and recent past) in pools/<id>_real_officials_blocklist.txt,
                             one "Given Surname" per line, from the published rosters. Generated names never match them.
   5. Name pool, events      pools/<state>_surnames.txt (40+ names). Dated events under `events:`, each with a source and url.
