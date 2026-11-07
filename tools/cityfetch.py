@@ -3,6 +3,7 @@
 
     python tools/cityfetch.py                    check every city's resources (a report)
     python tools/cityfetch.py grand_rapids       one city
+    python tools/cityfetch.py --list             just list every resource (id, kind, retrieved, url); no internet needed
     python tools/cityfetch.py --update           also save what the pages look like now (cities/<id>.links.json)
     python tools/cityfetch.py --strict           exit 1 if any link is dead (the weekly GitHub check uses this)
 
@@ -146,6 +147,7 @@ def main() -> int:
     ap.add_argument("city", nargs="?", help="a city id (default: every city)")
     ap.add_argument("--update", action="store_true", help="save the current page hashes as the new baseline")
     ap.add_argument("--strict", action="store_true", help="exit 1 if any link is DEAD")
+    ap.add_argument("--list", action="store_true", help="list every resource and its url without fetching anything")
     ap.add_argument("--timeout", type=float, default=20.0)
     args = ap.parse_args()
 
@@ -159,6 +161,12 @@ def main() -> int:
         data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
         if not data.get("resources"):
             print(f"{p.stem}: no `resources:` list yet\n")
+            continue
+        if args.list:
+            print(f"{(data.get('city') or {}).get('display_name', p.stem)}: {len(data['resources'])} resources  (file: cities/{p.name})")
+            for r in data["resources"]:
+                print(f"  {r.get('kind', '?'):7} {r.get('id', '?'):34} {str(r.get('retrieved') or '-'):10} {r.get('url') or 'NEEDED'}")
+            print()
             continue
         lock = read_lock(p)
         rows = check_resources(data, lock, timeout=args.timeout)
