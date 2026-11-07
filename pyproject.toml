@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "devnull"
 version = "0.0.1"
-description = "/dev/null: Humanity trained it. They own it. Your job is to break it. A single-player, terminal-style game."
+description = "/dev/null: Humanity trained it. They own it. You must stop it. A single-player, terminal-style game."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["pyyaml>=6"]

@@ -807,7 +807,7 @@ def resume(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="devnull", description="/dev/null: Humanity trained it. They own it. Your job is to break it.")
+    parser = argparse.ArgumentParser(prog="devnull", description="/dev/null: Humanity trained it. They own it. You must stop it.")
     parser.add_argument("--seed", type=int, default=None, help="RNG seed (default: random)")
     parser.add_argument("--city", default=None, help="city id or name (default: choose)")
     parser.add_argument("--start-date", type=date.fromisoformat, default=None,
@@ -832,7 +832,7 @@ def main(argv: list[str] | None = None) -> int:
         intro.show(playerprofile.load(), animate=True)
     else:
         print(f"/dev/null  v{__version__}")
-        print("Humanity trained it. They own it. Your job is to break it.\n")
+        print("Humanity trained it. They own it. You must stop it.\n")
     if args.resume or args.load:
         return resume(args)
     saved = savegame.list_saves()

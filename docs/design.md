@@ -1,6 +1,6 @@
 # /dev/null: design doc
 
-*Humanity trained it. They own it. Your job is to break it.*
+*Humanity trained it. They own it. You must stop it.*
 
 Status: early design. This is a working document; expect it to change.
 
