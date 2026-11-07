@@ -1,0 +1,32 @@
+{
+  "gr_cc_schedule_2026": {
+    "checked": "2026-11-07",
+    "hash": "067e6fd1c02b44fd825426af577d147f62892572329679ae2771ff3c39f7ce3b",
+    "url": "https://www.grandrapidsmi.gov/media/rsnigned/adopted-2026-cc-schedule.pdf"
+  },
+  "gr_city_commission_office": {
+    "checked": "2026-11-07",
+    "hash": "12ffe06497626221d1bb3237762fbe4d76421024596e2f5f82f5f806122d2d54",
+    "url": "https://www.grandrapidsmi.gov/Government/City-Commission"
+  },
+  "gr_google_news": {
+    "checked": "2026-11-07",
+    "hash": "330ff1bd28932d7be7016d3463029463751de6b46384148ad5af513da2ee94ef",
+    "url": "https://news.google.com/rss/search?q=%22{city}%22+{state}&hl=en-US&gl=US&ceid=US:en"
+  },
+  "gr_how_commission_works": {
+    "checked": "2026-11-07",
+    "hash": "6f9d2f788dff44627bfd69c7c9a4ff5107988b9d316d7bbdac2edbc36251f837",
+    "url": "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/"
+  },
+  "gr_zone_change": {
+    "checked": "2026-11-07",
+    "hash": "d376b5d64f7e7e6f21bd838ed14e0c1952ac09b4bb3f7d130ac41eaba75307b5",
+    "url": "https://www.grandrapidsmi.gov/media/sh0dvtle/zone-change-application-fy27.pdf"
+  },
+  "mi_recall_law_ballotpedia": {
+    "checked": "2026-11-07",
+    "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "url": "https://ballotpedia.org/Michigan_Recall_Law"
+  }
+}
