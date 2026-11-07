@@ -17,7 +17,7 @@ city:
 # Give each resource its own entry and fill `covers` with the facts it supports. Add entries as needed.
 # ---------------------------------------------------------------
 resources:
-  - { id: need_geography, kind: facts, name: "__NAME__: geography", url: null, covers: [real.geography.neighborhoods, real.geography.watershed, real.geography.climate, real.geography.industrial_corridors], note: "NEEDED: URL(s) for this section; add one resource per source" }
+  - { id: need_geography, kind: facts, name: "__NAME__: geography", url: null, covers: [real.geography.neighborhoods, real.geography.climate, real.geography.industrial_corridors], note: "NEEDED: URL(s) for this section; add one resource per source" }
   - { id: need_demographics, kind: facts, name: "__NAME__: demographics", url: null, covers: [real.demographics.population, real.demographics.median_income, real.demographics.top_industries, real.demographics.tax_base_notes], note: "NEEDED: URL(s) for this section; add one resource per source" }
   - { id: need_government, kind: facts, name: "__NAME__: government structure", url: null, covers: [real.government_structure.form, real.government_structure.mayor_powers, real.government_structure.council_size, real.government_structure.ward_system, real.government_structure.meeting_schedule, real.government_structure.election_calendar, real.government_structure.recall_rules], note: "NEEDED: URL(s) for this section; add one resource per source" }
   - { id: need_law, kind: facts, name: "__NAME__: law", url: null, covers: [real.law.open_meetings, real.law.public_records, real.law.zoning_process, real.law.utility_commission, real.law.state_preemption_baseline], note: "NEEDED: URL(s) for this section; add one resource per source" }
@@ -35,7 +35,6 @@ resources:
 real:
   geography:
     neighborhoods:           { value: VERIFY, source: VERIFY, retrieved: VERIFY }
-    watershed:               { value: VERIFY, source: VERIFY, retrieved: VERIFY }
     climate:                 { value: VERIFY, source: VERIFY, retrieved: VERIFY }
     industrial_corridors:    { value: VERIFY, source: VERIFY, retrieved: VERIFY }
   demographics:

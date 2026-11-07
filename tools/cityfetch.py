@@ -3,6 +3,7 @@
 
     python tools/cityfetch.py                    check every city's resources (a report)
     python tools/cityfetch.py grand_rapids       one city
+    python tools/cityfetch.py --all              also list the NEW, BLOCKED and NEEDED links (normally only counts)
     python tools/cityfetch.py --list             just list every resource (id, kind, retrieved, url); no internet needed
     python tools/cityfetch.py --update           also save what the pages look like now (cities/<id>.links.json)
     python tools/cityfetch.py --strict           exit 1 if any link is dead (the weekly GitHub check uses this)
@@ -147,6 +148,7 @@ def main() -> int:
     ap.add_argument("city", nargs="?", help="a city id (default: every city)")
     ap.add_argument("--update", action="store_true", help="save the current page hashes as the new baseline")
     ap.add_argument("--strict", action="store_true", help="exit 1 if any link is DEAD")
+    ap.add_argument("--all", action="store_true", help="also list NEW, BLOCKED and NEEDED links (default: only DEAD, MOVED, CHANGED)")
     ap.add_argument("--list", action="store_true", help="list every resource and its url without fetching anything")
     ap.add_argument("--timeout", type=float, default=20.0)
     args = ap.parse_args()
@@ -175,7 +177,7 @@ def main() -> int:
             counts[r["state"]] = counts.get(r["state"], 0) + 1
         print(f"{(data.get('city') or {}).get('display_name', p.stem)}: " + ", ".join(f"{n} {s}" for s, n in sorted(counts.items())))
         for r in rows:
-            if r["state"] != "ok":
+            if r["state"] in ("DEAD", "MOVED", "CHANGED") or args.all:    # NEW, BLOCKED and NEEDED are counts only
                 print(f"  {r['state']:7} {r['id']:36} {r['detail']}")
         dead += counts.get("DEAD", 0)
         if args.update:
