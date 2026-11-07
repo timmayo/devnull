@@ -23,6 +23,7 @@ from devnull.core.termlinks import GREEN, RED, enable_vt, fill_link, mode, paint
 from devnull.core import commands as cmdtable
 from devnull.core import profile as playerprofile
 from devnull.core import save as savegame
+from devnull.core import setup as citysetup
 from devnull.core.sim import Sim, load_rules
 
 CITIES_DIR = Path(__file__).resolve().parents[3] / "cities"
@@ -78,6 +79,41 @@ def choose_city(cities: list[dict[str, Any]], wanted: str | None, admin: bool = 
             if raw.lower() == c["city"]["display_name"].lower():
                 return c
         print("Type a number from the list.")
+
+
+SETUP_TITLES = {"neighborhood": "Where do you live?", "job": "What is your day job?",
+                "cushion": "How much of a cushion do you start with?"}
+
+
+def choose_setup(city: dict[str, Any], quick: bool = False) -> dict[str, str]:
+    """Ask for each setup choice the city offers. Enter takes the default; `quick` (or no input) takes every default."""
+    picks = citysetup.default_picks(city)
+    if quick:
+        return picks
+    for g, spec in citysetup.groups(city).items():
+        opts = spec["options"]
+        dflt = citysetup.default_option(spec)
+        print(f"\n{SETUP_TITLES.get(g, g)}")
+        for i, o in enumerate(opts, 1):
+            tag = "  (default)" if o is dflt else ""
+            print(textwrap.fill(f"{i}) {o['name']}{tag}: {o.get('blurb', '')}", width=78,
+                                initial_indent="  ", subsequent_indent="     "))
+        while True:
+            try:
+                raw = input("> ").strip()
+            except EOFError:
+                return picks
+            if not raw:
+                break
+            if raw.isdigit() and 1 <= int(raw) <= len(opts):
+                picks[g] = opts[int(raw) - 1]["id"]
+                break
+            hit = [o for o in opts if raw.lower() in (o["id"], o["name"].lower())]
+            if hit:
+                picks[g] = hit[0]["id"]
+                break
+            print("Type a number from the list, or press Enter for the default.")
+    return picks
 
 
 def wrap(text: str, indent: str = "") -> str:
@@ -188,6 +224,9 @@ def show_status(sim: Sim, admin: bool = False) -> None:
         leads.append("you know how to install Linux")
     law = {0: "none", 1: "filed", 2: "hearing", 3: "awaiting ruling"}[int(s["filed"])]
     print(f"\n{sim.date:%A %B %d, %Y}   Day {sim.turn + 1}   Free hours left: {sim.hours_left}")
+    for g, name, blurb in citysetup.describe(sim.city, sim.setup or {}):
+        if g != "cushion":
+            stat_line("Home" if g == "neighborhood" else "Day job", "", f"{name}. {blurb}".strip())
     stat_line("Cash", f"${s['cash']:.0f}", f"Bills run about ${sim.rules['daily']['upkeep']} a day.")
     stat_line("Heat", f"{s['heat']:.0f}", "The attention you are drawing right now. It fades if you stay quiet; "
               "loud or risky actions raise it.")
@@ -668,7 +707,7 @@ def open_save(name: str) -> tuple[Sim, dict[str, Any]]:
     if city is None:
         raise savegame.SaveError(f"That save is for a city this game does not have ('{data.get('city')}').")
     try:
-        sim = savegame.restore(data, load_rules(), city.get("events") or [])
+        sim = savegame.restore(data, load_rules(), city.get("events") or [], city=city)
     except (KeyError, TypeError, ValueError) as e:
         raise savegame.SaveError(f"'{name}' does not match this version of the game ({e}).") from e
     return sim, city
@@ -815,6 +854,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-quotes", action="store_true",
                         help="do not fetch live stock quotes or headlines (offline play)")
     parser.add_argument("--no-intro", action="store_true", help="skip the opening screen")
+    parser.add_argument("--defaults", action="store_true",
+                        help="skip the setup questions (home, job, cushion) and take the defaults")
     parser.add_argument("--admin", action="store_true",
                         help="testing: unlock every command and show hidden state on request")
     parser.add_argument("--continue", dest="resume", action="store_true", help="resume the most recent save")
@@ -852,8 +893,9 @@ def main(argv: list[str] | None = None) -> int:
         from devnull.core.feeds import city_feeds, fetch_feeds
         print("Fetching today's headlines...")
         feed = fetch_feeds(city["city"]["display_name"], city["city"]["state"], local_feeds=city_feeds(city))
+    picks = choose_setup(city, quick=args.defaults)
     sim = Sim(seed=seed, rules=rules, quotes=quotes, feed=feed, start_date=args.start_date or date.today(),
-              events=city.get("events") or [])
+              events=city.get("events") or [], city=city, setup=picks)
     print("\n" + wrap(f"{city['city']['display_name']}, {city['city']['state']}. "
                     f"Your run begins {sim.start_date:%B %d, %Y} and lasts up to 8 years "
                     f"(to {sim.end_date:%B %d, %Y}). "

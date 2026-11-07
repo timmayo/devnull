@@ -73,6 +73,131 @@ def fact_entries(node: Any, path: str):
                 yield from fact_entries(v, f"{path}.{k}" if path else str(k))
 
 
+def _rule_files() -> tuple[dict[str, Any], dict[str, Any]]:
+    """(data/slice_rules.yaml, data/people.yaml): what a city's mechanics, setup and overrides must fit."""
+    load = lambda n: yaml.safe_load((ROOT / "data" / n).read_text(encoding="utf-8"))  # noqa: E731
+    return load("slice_rules.yaml"), load("people.yaml")
+
+
+def _dotted(tree: Any, path: str) -> Any:
+    for part in path.split("."):
+        tree = tree.get(part) if isinstance(tree, dict) else None
+    return tree
+
+
+def check_mechanics(data: dict[str, Any]) -> tuple[list[str], list[str]]:
+    """The `mechanics`, `setup`, `start` and `daily` blocks: present, sourced, and fitting the game's rules."""
+    blockers: list[str] = []
+    warnings: list[str] = []
+    rules, people = _rule_files()
+    state_vars = set(rules["start"])
+    skills = set((people.get("skills") or {}).get("catalog") or {})
+    mech = data.get("mechanics")
+    setup = data.get("setup")
+
+    for name, block in (("mechanics", mech), ("setup", setup)):
+        if not isinstance(block, dict) or not block:
+            blockers.append(f"{name}: is missing (see tools/city_template.yaml)")
+            continue
+        for path, v in walk(block, name):
+            if isinstance(v, str) and v.startswith("VERIFY"):
+                blockers.append(f"{path}: not filled in yet ({v})")
+
+    def sourced(block: str, spec: Any) -> None:
+        fact = spec.get("source_fact") if isinstance(spec, dict) else None
+        if not fact:
+            blockers.append(f"{block}: has no source_fact (the `real:` fact its numbers come from)")
+        elif _dotted(data, str(fact)) is None:
+            blockers.append(f"{block}: source_fact '{fact}' is not in this file")
+
+    if isinstance(mech, dict):
+        rec = mech.get("records")
+        if not isinstance(rec, dict):
+            blockers.append("mechanics.records: is missing (the public-records response times)")
+        else:
+            sourced("mechanics.records", rec)
+            if not isinstance(rec.get("respond_business_days"), int) or rec["respond_business_days"] < 1:
+                blockers.append("mechanics.records.respond_business_days: must be a whole number of 1 or more")
+            for k in ("receive_lag_business_days", "extension_business_days"):
+                if k in rec and not (isinstance(rec[k], int) and rec[k] >= 0):
+                    blockers.append(f"mechanics.records.{k}: must be a whole number of 0 or more")
+            if not 0 <= float(rec.get("extension_chance", 0) or 0) <= 1:
+                blockers.append("mechanics.records.extension_chance: must be between 0 and 1")
+        el = mech.get("elections")
+        if not isinstance(el, dict) or not el.get("contests"):
+            blockers.append("mechanics.elections.contests: is missing (the city's own races and when they fall)")
+        else:
+            sourced("mechanics.elections", el)
+            for c in el["contests"]:
+                who = f"mechanics.elections.contests[{c.get('id', '?')}]"
+                for f in ("id", "label", "years", "effect"):
+                    if not c.get(f):
+                        blockers.append(f"{who}: missing {f}")
+                if c.get("years") not in ("even", "presidential"):
+                    blockers.append(f"{who}: years must be even or presidential (is {c.get('years')!r})")
+                for var in ((c.get("effect") or {}).get("terms") or {}):
+                    if var not in state_vars:
+                        blockers.append(f"{who}: effect uses '{var}', which is not a game value")
+        for name in ("zoning", "open_meetings"):
+            if isinstance(mech.get(name), dict):
+                sourced(f"mechanics.{name}", mech[name])
+            else:
+                warnings.append(f"mechanics.{name}: is missing (used by the zoning storyline, a later release)")
+
+    for key in ("start", "daily"):
+        block = data.get(key) or {}
+        if not isinstance(block, dict):
+            blockers.append(f"{key}: must be a mapping")
+            continue
+        for path in block:
+            if key == "start" and path not in state_vars:
+                blockers.append(f"start.{path}: not a game value (see start: in data/slice_rules.yaml)")
+            if key == "daily" and not isinstance(_dotted(rules["daily"], path), (int, float)):
+                blockers.append(f"daily.{path}: not a number in daily: of data/slice_rules.yaml")
+
+    if isinstance(setup, dict):
+        for g in ("neighborhood", "job"):
+            if not (isinstance(setup.get(g), dict) and setup[g].get("options")):
+                blockers.append(f"setup.{g}: is missing (a player chooses a home neighborhood and a day job)")
+        if not (isinstance(setup.get("cushion"), dict) and setup["cushion"].get("options")):
+            warnings.append("setup.cushion: is missing (the savings choice)")
+        hood_text = str(_dotted(data, "real.geography.neighborhoods.value") or "")
+        for g, spec in setup.items():
+            if not isinstance(spec, dict) or not spec.get("options"):
+                continue
+            if g in ("neighborhood", "job"):
+                sourced(f"setup.{g}", spec)
+            seen: set[str] = set()
+            defaults = [o for o in spec["options"] if o.get("default")]
+            if len(defaults) > 1:
+                blockers.append(f"setup.{g}: more than one default option")
+            default = (defaults or spec["options"])[0]
+            for o in spec["options"]:
+                who = f"setup.{g}.{o.get('id', '?')}"
+                for f in ("id", "name", "blurb"):
+                    if not o.get(f):
+                        blockers.append(f"{who}: missing {f}")
+                if o.get("id") in seen:
+                    blockers.append(f"{who}: id is used twice")
+                seen.add(o.get("id"))
+                if o is default and any(o.get(k) for k in ("daily", "state", "skills")):
+                    blockers.append(f"{who}: the default option must have no effects (it is the baseline)")
+                for path in o.get("daily") or {}:
+                    if not isinstance(_dotted(rules["daily"], path), (int, float)):
+                        blockers.append(f"{who}: daily.{path} is not a number in daily: of data/slice_rules.yaml")
+                for var in o.get("state") or {}:
+                    if var not in state_vars:
+                        blockers.append(f"{who}: state.{var} is not a game value")
+                for sk, lvl in (o.get("skills") or {}).items():
+                    if sk not in skills:
+                        blockers.append(f"{who}: skill '{sk}' is not in the skill catalog (data/people.yaml)")
+                    elif lvl not in (1, 2, 3):
+                        blockers.append(f"{who}: skill level for '{sk}' must be 1, 2 or 3")
+                if g == "neighborhood" and o.get("name") and o["name"] not in hood_text:
+                    blockers.append(f"{who}: '{o['name']}' is not in real.geography.neighborhoods (use a real neighborhood)")
+    return blockers, warnings
+
+
 def check_city(data: dict[str, Any], today: date) -> tuple[list[str], list[str], dict[str, int]]:
     """(blockers, warnings, counts)"""
     blockers: list[str] = []
@@ -224,6 +349,10 @@ def check_city(data: dict[str, Any], today: date) -> tuple[list[str], list[str],
                 warnings.append(f"news.real_events[{e.get('id', '?')}]: missing {f}")
     if not (news.get("fillers") or {}).get("all"):
         warnings.append("news.fillers.all is empty")
+
+    mb, mw = check_mechanics(data)
+    blockers += mb
+    warnings += mw
 
     counts = {"resources": r_total, "needing URL": r_needed, "unresearched": unresearched, "unconfirmed": unconfirmed, "stale facts": stale,
               "blocklist names": listed, "events upcoming": upcoming, "events past": past}

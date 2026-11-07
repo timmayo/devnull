@@ -26,7 +26,7 @@ from typing import Any
 from devnull import __version__
 from devnull.core.sim import Person, Sim
 
-SAVE_VERSION = 1
+SAVE_VERSION = 2          # 2: adds `setup` (the player's setup choices)
 AUTOSAVE = "autosave"
 DEFAULT_NAME = "quicksave"
 _NAME = re.compile(r"[A-Za-z0-9_-]{1,40}")
@@ -92,6 +92,7 @@ def snapshot(sim: Sim, city_id: str) -> dict[str, Any]:
         "saved_at": datetime.now().isoformat(timespec="seconds"),
         "city": city_id,
         "seed": sim.seed,
+        "setup": sim.setup,
         "start_date": sim.start_date,
         "max_turns_override": sim.max_turns_override,
         "show_all": sim.show_all,
@@ -118,15 +119,17 @@ def snapshot(sim: Sim, city_id: str) -> dict[str, Any]:
     }
 
 
-def restore(data: dict[str, Any], rules: dict[str, Any], events: list[dict[str, Any]] | None = None) -> Sim:
-    """Rebuild a Sim from `snapshot` data. `events` are the city's dated events (read fresh from the city file)."""
+def restore(data: dict[str, Any], rules: dict[str, Any], events: list[dict[str, Any]] | None = None,
+            city: dict[str, Any] | None = None) -> Sim:
+    """Rebuild a Sim from `snapshot` data. `events` are the city's dated events and `city` its whole file
+    (both read fresh from the city file, so a fix reaches old saves; a save without `setup` gets the defaults)."""
     if data.get("game") != "devnull":
         raise SaveError("That file is not a /dev/null save.")
     if int(data.get("save_version", 0)) > SAVE_VERSION:
         raise SaveError("That save is from a newer version of the game. Update the game first.")
     sim = Sim(seed=data["seed"], rules=rules, start_date=data["start_date"],
               max_turns_override=data.get("max_turns_override"), events=events or [],
-              quotes=data.get("quotes") or {}, feed=data.get("feed") or {})
+              city=city, setup=data.get("setup"), quotes=data.get("quotes") or {}, feed=data.get("feed") or {})
     sim.show_all = bool(data.get("show_all"))
     sim.turn = int(data["turn"])
     sim.hours_left = data["hours_left"]

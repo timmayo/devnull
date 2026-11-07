@@ -319,11 +319,11 @@ actions:
     hours: 1
     online: true
     help: "File a public-records request. Answers arrive in days or weeks."
-    done: "Request filed. Michigan law gives them 5 business days to answer, plus a possible 10-day extension."
+    done: "Request filed."                 # a city's mechanics.records.done adds its own law
     effects:
       legibility: { bias: 0.5 }
       case_file: { bias: 0.3 }
-      evidence: { bias: 6, terms: { evidence: -0.05, sk_records_law: 1.2, sk_python: 0.4 }, noise: 2, delay: [5, 15] }
+      evidence: { bias: 6, terms: { evidence: -0.05, sk_records_law: 1.2, sk_python: 0.4 }, noise: 2, delay: [5, 15], delay_rule: records }   # a city's records law sets the wait
   trace:
     hours: 2
     online: true

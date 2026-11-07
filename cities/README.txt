@@ -19,6 +19,11 @@ THE WORKFLOW
                             one "Given Surname" per line, from the published rosters. Generated names never match them.
   5. Name pool, events      pools/<state>_surnames.txt (40+ names). Dated events under `events:`, each with a source and url.
                             Invented small-town items for quiet days under `news: fillers:`.
+  5b. Mechanics, setup        In cities/<id>.yaml fill `mechanics:` (the city's records-response clock and its election calendar, each
+                            with a `source_fact` pointing at the `real:` fact the numbers come from) and `setup:` (real
+                            neighborhoods, day jobs from the city's top industries, the savings cushion). The default option of
+                            each group must have no effects. `start:` and `daily:` stay empty unless a source says otherwise.
+                            Docs: docs/design.md section 5h.
   6. Check it               .\tools\citycheck.cmd <id>        lists what is left (blockers must reach zero)
                             .\tools\cityfetch.cmd <id>        fetches every resource URL: DEAD, MOVED or CHANGED links
                             .\tools\cityfetch.cmd <id> --update   saves what the pages look like now (cities/<id>.links.json)

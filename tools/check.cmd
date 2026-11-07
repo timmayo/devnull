@@ -23,6 +23,9 @@ echo == save and load
 echo == a short run plays through
 "%PY%" "%ROOT%\tools\run_slice.py" --seeds 2 --policy idle > nul && echo OK || set FAIL=1
 
+echo == city mechanics, setup choices and overrides
+"%PY%" "%ROOT%\tools\test_city_mechanics.py" > "%TEMP%\devnull_test_city_mechanics.txt" 2>&1 && echo OK || (type "%TEMP%\devnull_test_city_mechanics.txt" & set FAIL=1)
+
 echo == link checker (offline test)
 "%PY%" "%ROOT%\tools\test_cityfetch.py" > "%TEMP%\devnull_test_cityfetch.txt" 2>&1 && echo OK || (type "%TEMP%\devnull_test_cityfetch.txt" & set FAIL=1)
 

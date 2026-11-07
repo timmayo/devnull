@@ -129,6 +129,40 @@ fictional:
     or distinctive traits.
   - Scenario must not mirror a live local dispute.
 
+mechanics:               # the city's real rules as numbers the game reads; see cities/grand_rapids.yaml for a finished one
+  records:
+    source_fact: real.law.public_records
+    receive_lag_business_days: VERIFY    # days before an e-mailed request counts as received
+    respond_business_days: VERIFY        # days the body has to respond
+    extension_business_days: VERIFY      # one extension notice, at most this many days
+    extension_chance: 0.3                # design
+    done: VERIFY                         # one sentence shown after the player files a request
+  elections:
+    source_fact: real.government_structure.election_calendar
+    contests:                            # the city's own races; years: even | presidential
+      - { id: VERIFY, label: VERIFY, years: even, effect: { bias: 0, terms: { opinion: -0.15, public_concern: 0.04 }, noise: 1.0 } }
+  zoning:
+    source_fact: real.law.zoning_process
+    stages: VERIFY
+  open_meetings:
+    source_fact: real.law.open_meetings
+
+start: {}                # this city's starting values, only with a sourced reason
+daily: {}                # this city's daily rules (for example upkeep), only with a sourced reason
+
+setup:                   # what the player chooses before day 1; the default option of each group has no effects
+  neighborhood:
+    source_fact: real.geography.neighborhoods
+    options:             # real neighborhood names from real.geography.neighborhoods
+      - { id: VERIFY, name: VERIFY, default: true, blurb: VERIFY }
+  job:
+    source_fact: real.demographics.top_industries
+    options:
+      - { id: VERIFY, name: VERIFY, default: true, blurb: VERIFY }
+  cushion:
+    options:
+      - { id: steady, name: "Steady", default: true, blurb: "$350 in the bank, a few weeks of breathing room. The baseline." }
+
 display:
   disclaimer: "Set in a real city. Items with a link are real and point to their source. Everything else (all characters, organizations and events in the story) is fictional."
   digest_notes: {}

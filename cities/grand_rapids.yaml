@@ -87,7 +87,7 @@ real:
     recall_rules:    { value: "Michigan Election Law: signatures equal to 25% of the votes cast for governor in the official's district; 60 days to collect; petition reason must be clear and factual (county election commission decides, appeal to circuit court); election at least 95 days after filing, on the next May or November election date; terms longer than two years cannot be recalled in the first or last year. Grand Rapids charter recall provisions not yet checked.", source: "https://ballotpedia.org/Michigan_Recall_Law (secondary); primary: MCL 168.951 et seq.", retrieved: "2026-11-03", status: VERIFY_against_statute_and_charter, use: reference }
   law:
     open_meetings:   { strength: "moderate (design rating, derived from the rules below)", rules: "Special or rescheduled meetings need notice at least 18 hours ahead; closed sessions need a 2/3 roll-call vote for most purposes and must cite the statutory purpose; a court may invalidate a decision made in violation; suit must be brought within 60 days after approved minutes are public (30 days for contracts, bids and bond procedures); a body may cure by reenacting the decision in compliance; intentional violation is a misdemeanor; personal civil liability up to $500 per meeting", citation: "Michigan Open Meetings Act, MCL 15.261 et seq. (sections 15.263, 15.265, 15.267, 15.268, 15.270, 15.272, 15.273); summarized in the Michigan AG OMA Handbook, Oct 2022", source: "https://www.michigan.gov/ag/-/media/Project/Websites/AG/open-meetings/OMA-Handbook-October-2022.pdf", retrieved: "2026-11-07", checked: "Statute text (complete through PA 12 of 2025) read on 2026-11-07: sections 5 (18-hour notice) and 7 (2/3 roll call) are unchanged. Since the Oct 2022 handbook, section 3a (electronic meetings) was amended by 2023 PA 214 (effective Feb 13, 2024) and section 9a (recordings for state licensing boards) was added by 2022 PA 63; neither changes the rules above for a city commission. Source: https://www.legislature.mi.gov/documents/mcl/pdf/MCL-ACT-267-OF-1976.pdf" }
-    public_records:  { strength: "moderate (design rating)", response_days: "5 business days to respond; one notice of extension of up to 10 business days; silence counts as a denial if the failure was willful and intentional, or the request clearly said FOIA or information in its first 250 words or subject line", citation: "Michigan Freedom of Information Act, MCL 15.235", source: "https://www.legislature.mi.gov/documents/mcl/pdf/mcl-15-235.pdf", retrieved: "2026-11-03" }
+    public_records:  { strength: "moderate (design rating)", response_days: "5 business days to respond; one notice of extension of up to 10 business days; silence counts as a denial if the failure was willful and intentional, or the request clearly said FOIA or information in its first 250 words or subject line", electronic_receipt: "A request made by e-mail, fax or other electronic transmission is not received by the FOIA coordinator until 1 business day after it is sent", citation: "Michigan Freedom of Information Act, MCL 15.235", source: "https://www.legislature.mi.gov/documents/mcl/pdf/mcl-15-235.pdf", retrieved: "2026-11-03", checked: "Statute text read on 2026-11-07 (a mirror of the same PDF at capitol.legislature.mi.gov): section 15.235(2) 5 business days after receipt and one extension notice of not more than 10 business days; (3) failure to respond; and the electronic-receipt rule above." }
     zoning_process:  { value: "Planning staff review -> Planning Commission public hearing (notice 15 days before) -> Planning Commission recommends (it does not decide) -> City Commission reviews in committee, may hold an additional public hearing -> City Commission decides -> rezoning typically takes effect 30 days after the decision", citation: "City of Grand Rapids zone change application (FY27). State minimum notice, Michigan Zoning Enabling Act MCL 125.3103: notice published in a newspaper at least 15 days before the hearing, and mailed at least 15 days before to owners and occupants within 300 feet of the property. The city zoning ordinance section was not read and may require more.", source: "https://www.grandrapidsmi.gov/media/sh0dvtle/zone-change-application-fy27.pdf ; https://www.legislature.mi.gov/documents/mcl/pdf/mcl-125-3103.pdf", retrieved: "2026-11-07" }
     utility_commission: { type: "state public service commission (Michigan Public Service Commission)", citation: "MPSC order in Case U-21859 (Consumers Energy), Nov 6, 2025; enabling statute Act 3 of 1939, MCL 460.6 (complete power and jurisdiction to regulate all public utilities in the state). Kent County, including Grand Rapids, is the largest metropolitan area in Consumers Energy's electric service territory (Consumers Energy, 2020)", source: "https://www.michigan.gov/mpsc/commission/news-releases/2025/11/06/mpsc-approves-terms-of-service-between-consumers-energy-and-data-centers ; https://www.legislature.mi.gov/documents/mcl/pdf/mcl-460-6.pdf ; https://www.consumersenergy.com/news-releases/news-release-details/2020/11/13/consumers-energy-names-megan-sall-rydecki-as-community-affairs-manager-for-kent-county", retrieved: "2026-11-07" }
     state_preemption_baseline: { value: "Local governments hold the main zoning power over data centers; the Michigan Zoning Enabling Act bars exclusionary zoning (a total ban of a land use where there is a demonstrated need). At least 52 Michigan communities had passed data center moratoriums by June 2026 (usually 6 to 12 months). State incentive: the Enterprise Data Center sales and use tax exemption (House Bill 4906, signed Jan 17, 2025; effective April 2025) for projects with at least $250 million of investment and 30 new jobs at 150% of the regional median wage; no new certifications after Dec 31, 2029; the Michigan Strategic Fund certifies. As of Sept 14, 2026 a one-year statewide moratorium had been introduced in both chambers and a Senate regulation package proposed, with no committee action reported; no preemption bill was described.", source: "https://www.michiganpublic.org/politics-government/2026-06-29/michigan-communities-are-hitting-pause-on-data-centers-the-clock-is-ticking ; https://www.michiganbusiness.org/services/data-center/ ; https://www.route-fifty.com/artificial-intelligence/2026/09/environmentalists-push-michigan-lawmakers-forge-ahead-moratorium-and-regulations-data-centers/415960/ ; https://www.michigan.gov/whitmer/news/press-releases/2025/01/17/governor-whitmer-signs-bills-supporting-technology-and-innovation", retrieved: "2026-11-07", note: "bill status moves fast: re-check before release" }
@@ -141,6 +141,81 @@ fictional:
     - "Fictional office-holders may take any alignment, including corrupt or incompetent."
     - "Fictional office-holders get invented backgrounds; never copy a real incumbent's biography, party, term dates, or distinctive traits."
     - "Scenario must not mirror a live local dispute."
+
+# ---------------------------------------------------------------
+# MECHANICS: the city's real rules as numbers the game reads (src/devnull/core/setup.py and Sim).
+# `source_fact` is the `real:` fact each block comes from; the numbers must match it. Numbers marked "design"
+# are game tuning, not facts. `used_by` says which part of the game reads a block (a block nothing reads yet
+# is kept so the research is not lost).
+# ---------------------------------------------------------------
+mechanics:
+  records:
+    source_fact: real.law.public_records
+    used_by: the `records` action (how long an answer takes)
+    receive_lag_business_days: 1       # an e-mailed request is received 1 business day after it is sent (MCL 15.235)
+    respond_business_days: 5           # the body must respond within 5 business days of receiving it
+    extension_business_days: 10        # one notice of extension, for not more than 10 more business days
+    extension_chance: 0.3              # design: how often a body uses its extension
+    done: "Request filed. In Michigan an e-mailed request counts as received a business day later; they then have 5 business days to answer, plus one notice of extension of up to 10 more."
+  elections:
+    source_fact: real.government_structure.election_calendar
+    used_by: the day after each federal general election (the city's races share that ballot in even years)
+    contests:
+      # `years`: even = every even year; presidential = every fourth year. `effect` moves regulation (design).
+      - { id: commission, label: "the City Commission seats (one per ward)", years: even,         effect: { bias: 0, terms: { opinion: -0.15, public_concern: 0.04 }, noise: 1.0 } }
+      - { id: mayor,      label: "the mayor's race",                          years: presidential, effect: { bias: 0, terms: { opinion: -0.25, public_concern: 0.06 }, noise: 1.5 } }
+  zoning:
+    source_fact: real.law.zoning_process
+    used_by: the zoning storyline (a later Grand Rapids release); the engine does not read it yet
+    hearing_notice_days: 15            # published and mailed at least this many days before the hearing (MCL 125.3103)
+    effective_after_decision_days: 30  # a rezoning typically takes effect this long after the City Commission decides
+    planning_commission_decides: false # it recommends; the City Commission decides
+    stages: [staff_review, planning_commission_hearing, planning_commission_recommendation, city_commission_committee, city_commission_decision, effective]
+  open_meetings:
+    source_fact: real.law.open_meetings
+    used_by: the zoning storyline (a later Grand Rapids release); the engine does not read it yet
+    special_meeting_notice_hours: 18
+    closed_session_vote: "two-thirds roll call"
+    suit_days: 60                      # after the approved minutes are public
+    suit_days_contracts: 30            # contracts, bids and bond procedures
+    cure_by_reenactment: true
+    civil_liability_per_meeting: 500
+
+# ---------------------------------------------------------------
+# START: this city's starting values (replace data/slice_rules.yaml `start`), and DAILY: its daily rules
+# (replace `daily`, by dotted path). Leave them empty unless a source says otherwise; Grand Rapids uses
+# the baseline. Example: start: { cash: 300 }   daily: { upkeep: 58 }
+# ---------------------------------------------------------------
+start: {}
+daily: {}
+
+# ---------------------------------------------------------------
+# SETUP: what the player chooses before day 1. The default option of each group has no effects, so a run
+# that takes every default plays like the baseline. Effects (design numbers) are added to the baseline:
+#   daily: dotted paths in data/slice_rules.yaml `daily` (upkeep, free_hours.workday, job.pay, ...)
+#   state: starting values (cash, burnout, cover, ...)     skills: {skill: 1 beginner .. 3 expert}
+# Neighborhoods are real names from real.geography.neighborhoods. Their effects are game design, not
+# statistics, and a blurb never says anything about a real place's crime, income or people.
+# ---------------------------------------------------------------
+setup:
+  neighborhood:
+    source_fact: real.geography.neighborhoods
+    options:
+      - { id: eastown, name: "Eastown", default: true, blurb: "East of downtown, around a main street of small shops. The baseline." }
+      - { id: downtown, name: "Downtown Grand Rapids", blurb: "City Hall and the Chamber are a walk away. Rent is higher; your commute is short.", daily: { upkeep: 10, "free_hours.workday": 1 } }
+      - { id: heritage_hill, name: "Heritage Hill", blurb: "A historic district of older homes. Pricier; easier to switch off after work.", daily: { upkeep: 5, off_day_burnout_loss: 0.6 } }
+      - { id: alger_heights, name: "Alger Heights", blurb: "A residential neighborhood south-east of downtown. Cheaper; a longer commute.", daily: { upkeep: -8, "free_hours.workday": -1 } }
+  job:
+    source_fact: real.demographics.top_industries
+    options:
+      - { id: health_billing, name: "Health-care billing clerk", default: true, blurb: "Health care employs about 16,700 residents. Spreadsheets all day. The baseline." }
+      - { id: manufacturing, name: "Quality inspector at a plant", blurb: "Manufacturing employs about 17,200 residents. Pays a little more, wears you down faster; you learn how machines get fixed.", daily: { "job.pay": 15, "job.burnout_gain": 0.3 }, skills: { hardware: 1 } }
+      - { id: retail, name: "Retail associate", blurb: "Retail employs about 11,400 residents. Pays less, easier on you; you learn what sells.", daily: { "job.pay": -15, "job.burnout_gain": -0.2 }, skills: { marketing: 1 } }
+  cushion:
+    options:
+      - { id: lean,     name: "Lean",     blurb: "$150 in the bank. You are rested, and nothing is left over.", state: { cash: -200, burnout: -10 } }
+      - { id: steady,   name: "Steady",   default: true, blurb: "$350 in the bank, a few weeks of breathing room. The baseline." }
+      - { id: saved_up, name: "Saved up", blurb: "$800 in the bank, after a summer of double shifts. You start worn out.", state: { cash: 450, burnout: 20 } }
 
 # ---------------------------------------------------------------
 # DISPLAY

@@ -1,3 +1,7 @@
 /dev/null TODO (small reminders; the big plan lives in design.md)
 
-(nothing open)
+Next:
+- Scale the hack and recon actions (135 planned commands vs 56 live).
+- Delayed and ambient establishment responses; balance tuning (activist wins ~63% of baseline runs, target 30-40%).
+- Setup numbers (neighborhood, job, cushion) are first guesses: tune with the bots.
+- 1.0 release: package data/, cities/ and pools/; LICENSE and attorney review; licensed quote feed.

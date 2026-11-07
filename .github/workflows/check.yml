@@ -38,6 +38,9 @@ jobs:
       - name: A short run plays through
         run: python tools/run_slice.py --seeds 2 --policy idle
 
+      - name: City mechanics, setup choices and overrides
+        run: python tools/test_city_mechanics.py
+
       - name: Link checker works (offline test)
         run: python tools/test_cityfetch.py
 

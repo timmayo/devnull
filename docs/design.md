@@ -111,6 +111,8 @@ The player wakes up in a cheap apartment with a cheap laptop whose battery is de
   Both are found by doing things in the world. Upgrades beyond this (hardened hardware, better tools) are open for later.
 - Cash has no real sink beyond the laptop yet, so a saver ends up rich.
 
+Before day 1 the player makes three setup choices (section 5h): a home neighborhood, a day job and a savings cushion. The default of each is the baseline described above.
+
 ### Gear: OS, hardware, apps
 
 The laptop's operating system, hardware and apps are progression. Each item opens options when acquired, and the player has to find out how to get it.
@@ -178,7 +180,7 @@ The game ships as `MAJOR.MINOR`. **A major version adds a city; a minor version 
 
 **1.0 release criteria** (all must hold):
 - `python tools/citycheck.py --release` passes: every real fact researched, sourced and confirmed (no `VERIFY` left), the real-officials blocklist filled from published rosters, name pools and dated events in place.
-- The city's real rules drive its mechanics (the planned `mechanics:` block: records timing, lawsuit window, election calendar, zoning stages) and the player chooses a home neighborhood and day job at setup.
+- The city's real rules drive its mechanics (the `mechanics:` block, section 5h) and the player chooses a home neighborhood and day job at setup (the `setup:` block). `citycheck.py --release` enforces both.
 - `data/`, `cities/` and `pools/` are packaged so an installed copy finds them.
 - A LICENSE, and the attorney review of the media/IP risk and the title (see section 7 and section 8, question 9).
 - A licensed market-data feed in place of the free quotes.
@@ -316,3 +318,22 @@ file, network security 3 the FBI's interest and NSA coverage.
 
 **Darknet.** The place where gear is bought (`buy <item>`) is called the DARKNET in the
 command list. Items appear as you unlock them. The internal rules key is still `shop`.
+
+## 5h. City mechanics and setup
+
+A city file carries four blocks that shape a run (code: `core/setup.py`, read by `Sim`; checked by `tools/citycheck.py`; tested by `tools/test_city_mechanics.py`).
+
+**`mechanics:`** the city's real rules as numbers. Each block names the `real:` fact it comes from (`source_fact`), and citycheck fails if that fact is missing.
+- `records`: the Michigan FOIA clock. An e-mailed request counts as received one business day after it is sent, the body has 5 business days to answer, and one notice may add up to 10 more (MCL 15.235, statute text read 2026-11-07). The `records` action picks the arrival day in business days from the date it was filed, so a Friday request waits over the weekend. `extension_chance` (design, 0.3) is how often a body uses its extension. The `done` line is the sentence shown when the player files.
+- `elections`: the city's own races, counted with the federal ballot on the day after it. Grand Rapids votes for commission seats in every even year and for mayor in presidential years. Each contest adds a small, noisy push to `regulation` (design numbers, smaller than the federal effect) and puts a line in the overnight news.
+- `zoning`, `open_meetings`: the sourced stages, notice periods and suit windows for the zoning storyline. Stored now, not read by the engine yet.
+
+**`setup:`** three groups the player chooses from before day 1, each with a default that has no effects (so a run taking every default plays like the baseline, and an old save without choices loads with the defaults).
+- `neighborhood`: real names from `real.geography.neighborhoods` (citycheck rejects invented ones). Effects are design, never statements about a real place: rent, commute hours, how well a day off restores you.
+- `job`: drawn from the city's top industries (`real.demographics.top_industries`): pay, burnout per shift, a starting skill.
+- `cushion`: how much cash to start with, traded against starting burnout.
+An option's effects are `daily:` (dotted paths into `daily:` of `data/slice_rules.yaml`, for example `job.pay` or `free_hours.workday`), `state:` (starting values) and `skills:` (1 beginner to 3 expert). The choices are saved with the run (`save_version` 2).
+
+**`start:` and `daily:`** replace the baseline starting values and daily rules for the whole city, before the choices apply. Grand Rapids leaves both empty: nothing researched justifies a different cost of living yet. Add an override only with a sourced reason.
+
+`play.cmd --defaults` skips the three questions (testing). Neighborhood, job and cushion numbers are first guesses; balance tuning is still open.

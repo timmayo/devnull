@@ -23,6 +23,7 @@ import yaml
 
 from devnull.core import commands as cmdtable
 from devnull.core import responses
+from devnull.core import setup as citysetup
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RULES = REPO_ROOT / "data" / "slice_rules.yaml"
@@ -205,6 +206,8 @@ class Sim:
     quotes: dict[str, dict[str, Any]] = field(default_factory=dict)  # real delayed quotes at run start
     show_all: bool = False        # admin: show every action with people
     feed: dict[str, list[dict[str, Any]]] = field(default_factory=dict)  # real headlines at run start (day 1)
+    city: dict[str, Any] | None = None      # the city file: `mechanics`, `setup` and `start` shape the run
+    setup: dict[str, str] | None = None     # the player's picks {'neighborhood': id, 'job': id, 'cushion': id}
     turn: int = 0
     state: dict[str, float] = field(default_factory=dict)
     history: list[dict[str, float]] = field(default_factory=list)
@@ -220,7 +223,12 @@ class Sim:
             (d - self.start_date).days for d in election_days(self.start_date, self.end_date)
         }
         self.election_log: list[tuple[int, float]] = []
+        self.rules = citysetup.private_rules(self.rules)     # setup edits `daily`; shared rules stay untouched
         self.state = {k: float(v) for k, v in self.rules["start"].items()}
+        self.setup = citysetup.apply(self.rules, self.state, self.city, self.setup)
+        self.mech = citysetup.mechanics(self.city)
+        if not self.events and self.city:
+            self.events = self.city.get("events") or []        # the city's dated events, unless the caller gave some
         self.pending: list[tuple[int, str, dict[str, Any]]] = []   # delayed effects
         self.log: list[tuple[int, str, Any]] = []                  # (turn, code, data)
         self.people: list[Person] = []
@@ -240,6 +248,8 @@ class Sim:
         sk = cr.get("skills", {})
         th = sk.get("xp_thresholds", [1, 4, 9])
         self.skill_xp: dict[str, float] = {k: float(th[v - 1]) for k, v in sk.get("player_start", {}).items()}
+        for k, v in citysetup.start_skills(self.city, self.setup).items():
+            self.skill_xp[k] = max(self.skill_xp.get(k, 0.0), float(th[v - 1]))
         for k in sk.get("catalog", {}):
             self.state["sk_" + k] = 0.0
         self._refresh_derived()
@@ -756,7 +766,9 @@ class Sim:
         if any(self.state[k] < v for k, v in (spec.get("if") or {}).items()):
             return None
         if spec.get("delay") and not now:
-            due = self.turn + self.rng.randint(*spec["delay"])
+            rule = self.mech.get("records") if spec.get("delay_rule") == "records" else None
+            wait = citysetup.records_delay(self.date, rule, self.rng) if rule else self.rng.randint(*spec["delay"])
+            due = self.turn + wait
             self.pending.append((due, var, spec))
             return None
         msg = None
@@ -820,8 +832,9 @@ class Sim:
             spec = self.action_spec(text)
             keys = [f"buy.{tokens[1]}", "buy"] if tokens[0] == "buy" and len(tokens) > 1 else [tokens[0]]
             self.hours_left -= spec["hours"]
-            if spec.get("done"):
-                msgs.append(spec["done"])
+            note = (self.mech.get("records") or {}).get("done") if tokens[0] == "records" else None
+            if note or spec.get("done"):
+                msgs.append(note or spec["done"])
             for var, eff in spec["effects"].items():
                 m = self._apply_effect(var, eff)
                 if m:
@@ -888,12 +901,25 @@ class Sim:
             self._clamp("regulation")
             self.election_log.append((self.turn + 1, self.state["regulation"]))
             self.event("election", self.state["regulation"] - before)
+            self._local_election(self.start_date + timedelta(self.turn + 1 - delay))
 
         self._refresh_derived()
         self.turn += 1
         self.history.append(dict(self.state))
         self._began = False
         self._check_endings()
+
+    def _local_election(self, day: date) -> None:
+        """The city's own races, counted with the federal ballot (mechanics.elections.contests)."""
+        held: list[str] = []
+        for c in (self.mech.get("elections") or {}).get("contests") or []:
+            if c["years"] == "presidential" and day.year % 4:
+                continue
+            self.state["regulation"] += evaluate(c["effect"], self.state, self.rng)
+            self._clamp("regulation")
+            held.append(c["label"])
+        if held:
+            self.event("local_election", held)
 
     def step(self, chosen: list[str]) -> None:
         """A whole day for bots and tests: start, act in order, end."""

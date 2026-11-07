@@ -177,6 +177,9 @@ def morning(sim: Sim, city: dict[str, Any] | None = None) -> list[tuple[str, lis
         elif code == "lawsuit_result":
             news.append("The court rules in your favor. It is on the front page of the local paper."
                         if data else "The court rules against you.")
+        elif code == "local_election":
+            news.append("In " + (city or {}).get("city", {}).get("display_name", "town") + ", votes are counted for "
+                        + " and ".join(data) + ".")
         elif code == "election":
             if data >= 2:
                 news.append("Votes are counted. Analysts say the result tilts toward tougher oversight of the data center boom.")
