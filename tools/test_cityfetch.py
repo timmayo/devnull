@@ -94,6 +94,9 @@ def main() -> int:
     live = {"city": data["city"], "resources": [{"id": "feed", "kind": "feed", "url": base + "/council"}]}
     STATE["text"] = "A"; lk = {"feed": {"hash": "old"}}
     expect("a feed whose content changed is still ok", cf.check_resources(live, lk, timeout=3)[0]["state"], "ok")
+    cert = lambda url, timeout: {"error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] self-signed certificate>"}
+    got = cf.check_resources({"city": data["city"], "resources": [{"id": "c", "kind": "facts", "url": "https://x.test/a"}]}, {}, getter=cert)
+    expect("a certificate failure is BLOCKED, not DEAD", got[0]["state"], "BLOCKED")
     srv.shutdown()
     print("\nall passed" if not bad else f"\n{bad} FAILED")
     return 1 if bad else 0

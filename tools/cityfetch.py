@@ -13,7 +13,7 @@ Each resource in a city file (resources: with a url) is fetched. The result is o
     CHANGED   works, but the page text differs from the last saved check: re-read it, a fact may be out of date
     MOVED     works, but the address redirects somewhere else: update the url in the city file
     DEAD      cannot be fetched (error, 404, 5xx): fix or replace the link
-    BLOCKED   the site answered 401, 403 or 429: it refuses automated visits. Open it in a browser to check it. (Not a failure.)
+    BLOCKED   the site answered 401, 403 or 429, or its certificate failed (a firewall in front of it): it refuses automated visits. Open it in a browser to check it. (Not a failure.)
 A resource with no url yet is listed as NEEDED. The saved check (cities/<id>.links.json) holds only a hash of the
 visible page text, never the page itself. Needs internet access: run it on your PC or let GitHub run it.
 """
@@ -100,6 +100,8 @@ def check_resources(data: dict[str, Any], lock: dict[str, Any], getter: Fetcher 
         if "error" in got:
             if got.get("status") in BLOCKED_CODES:       # the site refuses automated visits; the page may be fine
                 row["state"], row["detail"] = "BLOCKED", f"{got['error']}: the site refuses automated checks, open it in a browser"
+            elif "CERTIFICATE_VERIFY_FAILED" in got["error"]:   # often a firewall answering robots with a placeholder certificate
+                row["state"], row["detail"] = "BLOCKED", "certificate not trusted by this checker (a firewall may be answering automated visits): open it in a browser"
             else:
                 row["state"], row["detail"] = "DEAD", got["error"]
             continue
