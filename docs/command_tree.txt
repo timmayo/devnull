@@ -109,16 +109,11 @@ commands
 │   │   ├── meet_recruit [requires: person.trust>=50] [hidden until: person.meetings>=5, person.trust>=40] (2h) - Ask them to stand with you. A trusted ally helps every day.
 │   │   └── meet_learn [requires: person.trust>=20] [hidden until: person.meetings>=2, person.trust>=12] (2h) - Ask them to teach you their best skill. Higher level, bigger gain.
 │   └── talk (speak, ask) [planned] - Start a conversation with someone nearby
-├── GEAR [gear] (19) - Buying and building and upgrading equipment.
-│   ├── buy_burner [requires: cash>=60] [planned] (1h, $60) - Buy a burner phone. Cash only.
-│   ├── buy_faraday [requires: cash>=20] [planned] (1h, $20) - Buy a Faraday pouch. Blocks signals when you need silence.
+├── GEAR [gear] (14) - Buying and building and upgrading equipment.
 │   ├── rent_cloud [requires: laptop_powered, cash>=15] [planned] (1h, $15) - Rent a cloud server with cash-bought credits.
-│   ├── buy_laptop [requires: cash>=300] [planned] (2h, $300) - Buy a used laptop. Old, but the battery holds.
 │   ├── build_implant [requires: sk_network_security>=2, item_raspberry_pi>=1] [hidden until: sk_network_security>=1] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
-│   ├── buy_radio [requires: cash>=80] [planned] (1h, $80) - Buy a software-defined radio. Listens to what shouldn't be heard.
 │   ├── upgrade_router [requires: cash>=60] [planned] (2h, $60) - Upgrade the home router or internet. Faster, harder to snoop on.
 │   ├── upgrade_laptop [requires: laptop>=1, cash>=120] [planned] (2h, $120) - Upgrade laptop RAM and SSD. Faster cracking and less waiting.
-│   ├── buy_keylogger [requires: cash>=40] [hidden until: sk_network_security>=1] [planned] (1h, $40) - Buy a hardware keylogger.
 │   ├── repair_equipment [requires: item_broken>=1] [planned] (2h, $30) - Repair broken gear. Cheaper than replacing it.
 │   ├── install_linux [requires: lead_linux>=1, laptop>=1] [hidden until: lead_linux>=1] (3h) - Install Linux next to Windows 11.
 │   ├── browse_store (2h) - Walk the electronics and pawn shops.
@@ -282,28 +277,20 @@ needs
 │   └── rent_cloud [requires: laptop_powered, cash>=15] [planned] (1h, $15) - Rent a cloud server with cash-bought credits.
 ├── cash>=150 (1)
 │   └── upgrade_npc [requires: lead_npc>=1, techie_trust>=35, cash>=150] [hidden until: lead_npc>=1] (2h) - Have a developer you trust swap in a battery for a favor ($150).
-├── cash>=20 (1)
-│   └── buy_faraday [requires: cash>=20] [planned] (1h, $20) - Buy a Faraday pouch. Blocks signals when you need silence.
 ├── cash>=200 (2)
 │   ├── back_candidate [requires: cash>=200] [hidden until: council_attended>=2] [planned] (4h, $200) - Back a council or school board candidate with time and money.
 │   └── pay_debt [requires: cash>=200] [planned] (1h) - Pay down debt. Lowers monthly pressure.
-├── cash>=300 (4)
+├── cash>=300 (3)
 │   ├── open_shell [requires: cash>=300] [hidden until: sk_finance>=1] [planned] (3h, $300) - Open a shell LLC. A front for money, accounts, and gear.
-│   ├── buy_laptop [requires: cash>=300] [planned] (2h, $300) - Buy a used laptop. Old, but the battery holds.
 │   ├── hire_lawyer [requires: cash>=300] [planned] (2h, $300) - Hire or consult a lawyer.
 │   └── file [requires: evidence>=20, cash>=300] [hidden until: evidence>=15] (3h) - File a lawsuit. Costs $300; takes months; strength depends on your evidence.
-├── cash>=40 (1)
-│   └── buy_keylogger [requires: cash>=40] [hidden until: sk_network_security>=1] [planned] (1h, $40) - Buy a hardware keylogger.
 ├── cash>=420 (1)
 │   └── upgrade_store [requires: lead_store>=1, cash>=420] [hidden until: lead_store>=1] (2h) - Buy a used laptop with a working battery ($420).
 ├── cash>=500 (2)
 │   ├── run_office [requires: rep_local>=40, cash>=500] [hidden until: election_cycle_open>=1] [planned] (6h, $500) - Run for office. Big upside, and everything you've done becomes public.
 │   └── short_stock [requires: laptop_powered, cash>=500] [planned] (1h, $500) - Short a data center stock. Pays if your work lands.
-├── cash>=60 (2)
-│   ├── buy_burner [requires: cash>=60] [planned] (1h, $60) - Buy a burner phone. Cash only.
+├── cash>=60 (1)
 │   └── upgrade_router [requires: cash>=60] [planned] (2h, $60) - Upgrade the home router or internet. Faster, harder to snoop on.
-├── cash>=80 (1)
-│   └── buy_radio [requires: cash>=80] [planned] (1h, $80) - Buy a software-defined radio. Listens to what shouldn't be heard.
 ├── charge_pending>=1 (1)
 │   ├── take_plea [requires: charge_pending>=1] [hidden until: charge_pending>=1] [planned] (2h) - Take a plea deal. Ends the case, and probably the campaign.
 │   └── take_plea [requires: charge_pending>=1] [hidden until: charge_pending>=1] [planned] (2h) - Take a plea deal. Ends the case, and probably the campaign.
@@ -494,15 +481,14 @@ needs
 │   └── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
 ├── sk_marketing>=2 (1)
 │   └── release_deepfake [requires: laptop_powered, sk_marketing>=2] [hidden until: sk_marketing>=1] [planned] (4h, $20) - Release a deepfake, or expose one. Powerful, and fragile if exposed.
-├── sk_network_security>=1 (8)
+├── sk_network_security>=1 (7)
 │   ├── scan_network [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Scan a target network for open doors.
 │   ├── phish_employee [requires: laptop_powered, sk_network_security>=1] [hidden until: targets_profiled>=1] [planned] (3h) - Trick an employee into giving up access.
 │   ├── crack_password [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Crack a weak password or Wi-Fi key.
 │   ├── deface_page [requires: laptop_powered, sk_network_security>=1] [planned] (2h) - Replace a corporate page with your message. Loud, and it brings heat.
 │   ├── hack [requires: has_linux_laptop, skills>=15, sk_network_security>=1] [hidden until: os>=1] (3h) - Breach a system. Real evidence, real risk. Needs Linux and skill.
 │   ├── recruit_hacker [requires: person.trust>=30, sk_network_security>=1] [hidden until: person.meetings>=3] [planned] (2h) - Bring a skilled ally onto your side.
-│   ├── build_implant [requires: sk_network_security>=2, item_raspberry_pi>=1] [hidden until: sk_network_security>=1] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
-│   └── buy_keylogger [requires: cash>=40] [hidden until: sk_network_security>=1] [planned] (1h, $40) - Buy a hardware keylogger.
+│   └── build_implant [requires: sk_network_security>=2, item_raspberry_pi>=1] [hidden until: sk_network_security>=1] [planned] (4h, $80) - Build a Raspberry Pi implant for physical access jobs.
 ├── sk_network_security>=2 (4)
 │   ├── plant_backdoor [requires: laptop_powered, access_foothold>=1, sk_network_security>=2] [planned] (2h) - Leave a hidden way back in. A logic bomb is the same idea with a timer.
 │   ├── poison_dataset [requires: laptop_powered, access_foothold>=1, sk_network_security>=3] [hidden until: sk_network_security>=2] [planned] (3h) - Corrupt an AI training dataset or sabotage a training run.

@@ -5,3 +5,5 @@ Next:
 - Delayed and ambient establishment responses; balance tuning (activist wins ~63% of baseline runs, target 30-40%).
 - Setup numbers (neighborhood, job, cushion) are first guesses: tune with the bots.
 - 1.0 release: package data/, cities/ and pools/; LICENSE and attorney review; licensed quote feed.
+- Gear ideas dropped from the command stubs, to add as `shop:` items when designed: Faraday pouch ($20, blocks signals),
+  software-defined radio ($80), hardware keylogger ($40, appears at network security 1).

@@ -1,31 +1,15 @@
 # GEAR - Buying and building and upgrading equipment.
 # One command per entry. Format: see README.txt in this folder.
 
-- name: buy_burner
-  description: Buy a burner phone. Cash only.
-  requires: {cash: 60}
-  cost: {hours: 1, money: 60}
-- name: buy_faraday
-  description: Buy a Faraday pouch. Blocks signals when you need silence.
-  requires: {cash: 20}
-  cost: {hours: 1, money: 20}
 - name: rent_cloud
   description: Rent a cloud server with cash-bought credits.
   requires: [laptop_powered, {cash: 15}]
   cost: {hours: 1, money: 15}
-- name: buy_laptop
-  description: Buy a used laptop. Old, but the battery holds.
-  requires: {cash: 300}
-  cost: {hours: 2, money: 300}
 - name: build_implant
   description: Build a Raspberry Pi implant for physical access jobs.
   requires: {sk_network_security: 2, item_raspberry_pi: 1}
   hidden_until: {sk_network_security: 1}
   cost: {hours: 4, money: 80}
-- name: buy_radio
-  description: Buy a software-defined radio. Listens to what shouldn't be heard.
-  requires: {cash: 80}
-  cost: {hours: 1, money: 80}
 - name: upgrade_router
   description: Upgrade the home router or internet. Faster, harder to snoop on.
   requires: {cash: 60}
@@ -34,11 +18,6 @@
   description: Upgrade laptop RAM and SSD. Faster cracking and less waiting.
   requires: {laptop: 1, cash: 120}
   cost: {hours: 2, money: 120}
-- name: buy_keylogger
-  description: Buy a hardware keylogger.
-  requires: {cash: 40}
-  hidden_until: {sk_network_security: 1}
-  cost: {hours: 1, money: 40}
 - name: repair_equipment
   description: Repair broken gear. Cheaper than replacing it.
   requires: {item_broken: 1}
