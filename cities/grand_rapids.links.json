@@ -1,17 +1,62 @@
 {
+  "atlasbig_gr_neighborhoods": {
+    "checked": "2026-11-07",
+    "hash": "fe11fc192dab70b5aa0403f87be0d36543bb8cbc18a80e3f02e0d64e8f84a5e4",
+    "url": "https://www.atlasbig.com/united-states/grand-rapids/neighborhoods"
+  },
+  "census_quickfacts_gr": {
+    "checked": "2026-11-07",
+    "hash": "b4c90c502eca756d16fa9c318a2fd29c873816ebd4f4214470b615049f68c27a",
+    "url": "https://www.census.gov/quickfacts/grandrapidscitymichigan"
+  },
+  "consumers_kent_county": {
+    "checked": "2026-11-07",
+    "hash": "b7dee239bd6129928469f52900a2482e9b5b69ff54a9f00e659ba929415b9220",
+    "url": "https://www.consumersenergy.com/news-releases/news-release-details/2020/11/13/consumers-energy-names-megan-sall-rydecki-as-community-affairs-manager-for-kent-county"
+  },
+  "datausa_gr": {
+    "checked": "2026-11-07",
+    "hash": "039e37a3e60fff037de97175d305d89653cb5d98aff83cdcf0f07afbfe928992",
+    "url": "https://datausa.io/profile/geo/grand-rapids-mi"
+  },
+  "fox17": {
+    "checked": "2026-11-07",
+    "hash": "8915abe14af58580241ce1eece7fc7bc496c55948c3ef94dad751e276ee36ba4",
+    "url": "https://www.fox17online.com/"
+  },
   "gr_cc_schedule_2026": {
     "checked": "2026-11-07",
     "hash": "067e6fd1c02b44fd825426af577d147f62892572329679ae2771ff3c39f7ce3b",
     "url": "https://www.grandrapidsmi.gov/media/rsnigned/adopted-2026-cc-schedule.pdf"
+  },
+  "gr_chamber_calendar": {
+    "checked": "2026-11-07",
+    "hash": "ff2c967fc52560380a61071bda131c0654f3891cae05fe86770d4d52e68b0246",
+    "url": "https://grandrapids.org/eventspage/list/?ical=1"
   },
   "gr_city_commission_office": {
     "checked": "2026-11-07",
     "hash": "12ffe06497626221d1bb3237762fbe4d76421024596e2f5f82f5f806122d2d54",
     "url": "https://www.grandrapidsmi.gov/Government/City-Commission"
   },
+  "gr_experiencegr_events": {
+    "checked": "2026-11-07",
+    "hash": "ec3570798ce9a7425875a47455cb5f469fd26442432cb8a71f04a40770d52d23",
+    "url": "https://www.experiencegr.com/events/annual-events/"
+  },
+  "gr_fy2027_fiscal_plan": {
+    "checked": "2026-11-07",
+    "hash": "803cf4d0bb62fe3be111ed02320840f61b46eb319fd81558e12bfff6464fc683",
+    "url": "https://www.grandrapidsmi.gov/city-news/posts/city-commission-adopts-786-million-fy2027-fiscal-plan/"
+  },
+  "gr_fy2027_police_budget": {
+    "checked": "2026-11-07",
+    "hash": "803cf4d0bb62fe3be111ed02320840f61b46eb319fd81558e12bfff6464fc683",
+    "url": "https://www.grandrapidsmi.gov/city-news/posts/city-commission-adopts-786-million-fy2027-fiscal-plan/"
+  },
   "gr_google_news": {
     "checked": "2026-11-07",
-    "hash": "330ff1bd28932d7be7016d3463029463751de6b46384148ad5af513da2ee94ef",
+    "hash": "53f566fc257ca9af4d2e84590b051858a6e8628497be28cf58e2a413a7372b6a",
     "url": "https://news.google.com/rss/search?q=%22{city}%22+{state}&hl=en-US&gl=US&ceid=US:en"
   },
   "gr_how_commission_works": {
@@ -19,14 +64,89 @@
     "hash": "6f9d2f788dff44627bfd69c7c9a4ff5107988b9d316d7bbdac2edbc36251f837",
     "url": "https://www.grandrapidsmi.gov/government/city-commission/how-the-city-commission-works/"
   },
+  "gr_master_plan_appendix_a": {
+    "checked": "2026-11-07",
+    "hash": "8cb044d22f1677acacd80d2ab01c21ce4d00a04702138ae75bb83868b2514a7a",
+    "url": "https://www.grandrapidsmi.gov/media/wswdrtpt/bridge-to-our-future-appendix-a.pdf"
+  },
+  "gr_officials_roster": {
+    "checked": "2026-11-07",
+    "hash": "2d62027c19197d71ea6204e3d4d754ead7a5503527c2191afcc05f72807c6638",
+    "url": "https://grandrapidsmi.gov/Government/Elected-Officials"
+  },
+  "gr_water_system": {
+    "checked": "2026-11-07",
+    "hash": "10af73d4deb37bfb2eeabf5fd008f81b621cfa174d8376f632de73568237a8f2",
+    "url": "https://www.grandrapidsmi.gov/departments/water-system/history/"
+  },
   "gr_zone_change": {
     "checked": "2026-11-07",
     "hash": "d376b5d64f7e7e6f21bd838ed14e0c1952ac09b4bb3f7d130ac41eaba75307b5",
     "url": "https://www.grandrapidsmi.gov/media/sh0dvtle/zone-change-application-fy27.pdf"
   },
+  "gr_zoning_maps": {
+    "checked": "2026-11-07",
+    "hash": "41fa7a231483bc81b6faba09df54a64b9badf7d27bd859d52fe4d301fb321f26",
+    "url": "https://www.grandrapidsmi.gov/departments/planning-department/zoning-maps/"
+  },
+  "mcl_460_6_mpsc": {
+    "checked": "2026-11-07",
+    "hash": "3e354336cddeaf48b0b5fb343163137024802825e713470f07c10621c028d431",
+    "url": "https://www.legislature.mi.gov/documents/mcl/pdf/mcl-460-6.pdf"
+  },
   "mi_recall_law_ballotpedia": {
     "checked": "2026-11-07",
     "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "url": "https://ballotpedia.org/Michigan_Recall_Law"
+  },
+  "michigan_public_dc_moratoriums": {
+    "checked": "2026-11-07",
+    "hash": "251db9ea9a68f08721bd839b9efc2efc69c19b5e46473ec805c45a2a7e3af56e",
+    "url": "https://www.michiganpublic.org/politics-government/2026-06-29/michigan-communities-are-hitting-pause-on-data-centers-the-clock-is-ticking"
+  },
+  "nws_grr_normals": {
+    "checked": "2026-11-07",
+    "hash": "60990e3874385fa06a2b0e861f057f537875e36948b78ed14bfadc39e70fab9f",
+    "url": "https://forecast.weather.gov/product.php?site=GRR&issuedby=GRR&product=CLA&format=txt&version=1&glossary=0"
+  },
+  "police_funding_database_gr": {
+    "checked": "2026-11-07",
+    "hash": "156c0d02adb4e4a92cd4f4944b278bf9f2004e628172ddf0033db02b8c93b4df",
+    "url": "https://policefundingdatabase.org/explore-the-database/locations/michigan/grand-rapids/"
+  },
+  "route_fifty_moratorium_status": {
+    "checked": "2026-11-07",
+    "hash": "0f0bc2b291ae97aef0eef35c19af6bc6a9166644d9115a9339c4c37274c8af10",
+    "url": "https://www.route-fifty.com/artificial-intelligence/2026/09/environmentalists-push-michigan-lawmakers-forge-ahead-moratorium-and-regulations-data-centers/415960/"
+  },
+  "utilitydive_consumers_large_load": {
+    "checked": "2026-11-07",
+    "hash": "0a451b9f6bab96282d56b49d2eb7b9b62c40ed5ad1328bd34d157f8c620725f0",
+    "url": "https://www.utilitydive.com/news/consumers-energy-campbell-large-load-earnings/805778/"
+  },
+  "wgvu_even_year_elections": {
+    "checked": "2026-11-07",
+    "hash": "ee84a765c6f7d453c05f07532f3ac8ddf851a02dfc3fa60315745cb5b4b8fe0a",
+    "url": "https://www.wgvunews.org/post/gr-city-commission-will-move-even-year-election-cycle-2022"
+  },
+  "wgvu_gaines_microsoft": {
+    "checked": "2026-11-07",
+    "hash": "2ea60e8e13fddc6ce24cd222eed9e91f9f56b02285f56703e255458be001d96c",
+    "url": "https://www.wgvunews.org/news/2025-12-16/gaines-township-to-consider-rezoning-for-future-microsoft-data-center"
+  },
+  "wgvu_news": {
+    "checked": "2026-11-07",
+    "hash": "6a25d8f9cab7b57833875f68679afab3d1b9120a5d1f8385d6ad279a403c15eb",
+    "url": "https://www.wgvunews.org/"
+  },
+  "wikipedia_2019_gr_mayoral": {
+    "checked": "2026-11-07",
+    "hash": "9db088789b59e8d46502eecd689e990c7d3fe30da896817bf49d173dfbca3220",
+    "url": "https://en.wikipedia.org/wiki/2019_Grand_Rapids_mayoral_election"
+  },
+  "wikipedia_grand_river": {
+    "checked": "2026-11-07",
+    "hash": "bd78a8bf381ecaa95018a4989d95ac4cbd12cb3c21e2f16f70659b952f338f23",
+    "url": "https://en.wikipedia.org/wiki/Grand_River_%28Michigan%29"
   }
 }
